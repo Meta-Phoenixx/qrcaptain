@@ -19,6 +19,7 @@ export function QRScanner({ onClose, onVesselFound }: QRScannerProps) {
   
   const scannerRef = useRef<HTMLDivElement>(null);
   const html5QrCodeRef = useRef<any>(null);
+  const isMountedRef = useRef(true);
 
   // Query vessel when we have a scanned code
   const vessel = useQuery(
@@ -36,16 +37,28 @@ export function QRScanner({ onClose, onVesselFound }: QRScannerProps) {
     }
   }, [vessel, scannedCode, onVesselFound]);
 
+  // Track component mount state
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Initialize camera scanner
   useEffect(() => {
     if (mode !== "camera" || !scannerRef.current) return;
 
     let html5QrCode: any = null;
+    let isCleanedUp = false;
 
     const initScanner = async () => {
       try {
         // Dynamically import html5-qrcode to avoid SSR issues
         const { Html5Qrcode } = await import("html5-qrcode");
+        
+        // Check if cleanup was called before init completed
+        if (isCleanedUp || !isMountedRef.current) return;
         
         html5QrCode = new Html5Qrcode("qr-reader");
         html5QrCodeRef.current = html5QrCode;
@@ -73,28 +86,54 @@ export function QRScanner({ onClose, onVesselFound }: QRScannerProps) {
           () => {} // Ignore scan errors (no QR detected)
         );
 
-        setIsScanning(true);
-        setCameraError(null);
+        if (isMountedRef.current && !isCleanedUp) {
+          setIsScanning(true);
+          setCameraError(null);
+        }
       } catch (err) {
         console.error("Failed to start scanner:", err);
-        setCameraError(
-          err instanceof Error
-            ? err.message.includes("Permission")
-              ? "Camera permission denied. Please allow camera access or enter the code manually."
-              : "Failed to start camera. Try entering the code manually."
-            : "Camera not available"
-        );
-        setIsScanning(false);
+        if (isMountedRef.current && !isCleanedUp) {
+          setCameraError(
+            err instanceof Error
+              ? err.message.includes("Permission")
+                ? "Camera permission denied. Please allow camera access or enter the code manually."
+                : "Failed to start camera. Try entering the code manually."
+              : "Camera not available"
+          );
+          setIsScanning(false);
+        }
       }
     };
 
     initScanner();
 
-    // Cleanup
+    // Cleanup function - must run synchronously before React unmounts
     return () => {
+      isCleanedUp = true;
+      
+      // Clear the scanner element first to prevent React DOM conflicts
+      // This must happen synchronously before React's unmount
+      const element = document.getElementById("qr-reader");
+      if (element) {
+        element.innerHTML = "";
+      }
+      
+      // Stop the scanner (fire and forget - the DOM is already cleared)
       if (html5QrCodeRef.current) {
-        html5QrCodeRef.current.stop().catch(console.error);
+        const scanner = html5QrCodeRef.current;
         html5QrCodeRef.current = null;
+        
+        // Stop scanner in background - DOM is already safe
+        try {
+          const state = scanner.getState?.();
+          if (state === 2 || scanner.isScanning) {
+            scanner.stop().catch(() => {
+              // Ignore errors - element already cleared
+            });
+          }
+        } catch {
+          // Ignore errors during cleanup
+        }
       }
     };
   }, [mode]);
@@ -218,14 +257,17 @@ export function QRScanner({ onClose, onVesselFound }: QRScannerProps) {
         <div className="p-6">
           {mode === "camera" ? (
             <div className="space-y-4">
-              {/* Camera View */}
-              <div
-                id="qr-reader"
-                ref={scannerRef}
-                className="relative rounded-xl overflow-hidden bg-gray-900 min-h-[280px]"
-              >
+              {/* Camera View - wrapper contains the scanner and overlay separately */}
+              <div className="relative rounded-xl overflow-hidden bg-gray-900 min-h-[280px]">
+                {/* Scanner container - NO React children inside to avoid DOM conflicts */}
+                <div
+                  id="qr-reader"
+                  ref={scannerRef}
+                  className="w-full min-h-[280px]"
+                />
+                {/* Overlay states - positioned over scanner but NOT inside qr-reader */}
                 {!isScanning && !cameraError && (
-                  <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="text-center text-white">
                       <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
                       <p className="text-sm">Starting camera...</p>
@@ -233,7 +275,7 @@ export function QRScanner({ onClose, onVesselFound }: QRScannerProps) {
                   </div>
                 )}
                 {cameraError && (
-                  <div className="absolute inset-0 flex items-center justify-center p-6">
+                  <div className="absolute inset-0 flex items-center justify-center p-6 bg-gray-900">
                     <div className="text-center">
                       <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <svg
