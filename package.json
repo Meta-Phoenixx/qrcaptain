@@ -12,6 +12,10 @@
     "dev:mobile": "turbo dev --filter=mobile",
     "dev:convex": "cd convex && npx convex dev"
   },
+  "dependencies": {
+    "convex": "^1.17.0",
+    "@convex-dev/auth": "^0.0.71"
+  },
   "devDependencies": {
     "turbo": "^2.3.0",
     "typescript": "^5.3.3"

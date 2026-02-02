@@ -3,6 +3,34 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useState } from "react";
 
+// Map technical error messages to user-friendly ones
+function getErrorMessage(error: unknown, isSignUp: boolean): string {
+  const message = error instanceof Error ? error.message : String(error);
+  
+  // Handle common auth errors
+  if (message.includes("InvalidAccountId") || message.includes("Account not found")) {
+    return "No account found with this email. Please sign up first.";
+  }
+  if (message.includes("InvalidSecret") || message.includes("Invalid password")) {
+    return "Incorrect password. Please try again.";
+  }
+  if (message.includes("AccountAlreadyExists") || message.includes("already exists")) {
+    return "An account with this email already exists. Please sign in instead.";
+  }
+  if (message.includes("TooManyRequests") || message.includes("rate limit")) {
+    return "Too many attempts. Please wait a moment and try again.";
+  }
+  if (message.includes("InvalidEmail") || message.includes("email")) {
+    return "Please enter a valid email address.";
+  }
+  
+  // Default messages
+  if (isSignUp) {
+    return "Could not create account. Please try again.";
+  }
+  return "Invalid email or password. Please try again.";
+}
+
 export function SignInForm() {
   const { signIn } = useAuthActions();
   const [isSignUp, setIsSignUp] = useState(false);
@@ -18,10 +46,19 @@ export function SignInForm() {
     formData.set("flow", isSignUp ? "signUp" : "signIn");
 
     try {
-      await signIn("password", formData);
+      const result = await signIn("password", formData);
+      
+      // If there's a redirect (OAuth), handle it
+      if (result && typeof result === 'object' && 'redirect' in result) {
+        window.location.href = result.redirect as string;
+        return;
+      }
+      
+      // For password auth, the signIn completed
+      // Reset loading and let the auth state update trigger re-render
+      setIsLoading(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Authentication failed");
-    } finally {
+      setError(getErrorMessage(err, isSignUp));
       setIsLoading(false);
     }
   };
@@ -47,7 +84,7 @@ export function SignInForm() {
                 name="name"
                 type="text"
                 required={isSignUp}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                 placeholder="John Smith"
               />
             </div>
@@ -62,7 +99,7 @@ export function SignInForm() {
                 id="role"
                 name="role"
                 required={isSignUp}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
               >
                 <option value="owner">Boat Owner</option>
                 <option value="mechanic">Marine Mechanic</option>
@@ -83,7 +120,7 @@ export function SignInForm() {
             name="email"
             type="email"
             required
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+            className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
             placeholder="you@example.com"
           />
         </div>
@@ -101,7 +138,7 @@ export function SignInForm() {
             type="password"
             required
             minLength={8}
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+            className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
             placeholder="••••••••"
           />
         </div>

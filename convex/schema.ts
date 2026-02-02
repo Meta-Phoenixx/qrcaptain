@@ -7,18 +7,28 @@ export default defineSchema({
 
   // Extended user profile
   users: defineTable({
-    email: v.string(),
-    fullName: v.string(),
+    // Convex Auth standard fields
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
+    email: v.optional(v.string()),
+    emailVerificationTime: v.optional(v.number()),
     phone: v.optional(v.string()),
-    role: v.union(
-      v.literal("admin"),
-      v.literal("owner"),
-      v.literal("mechanic")
+    phoneVerificationTime: v.optional(v.number()),
+    isAnonymous: v.optional(v.boolean()),
+
+    // App specific fields - Made optional to debug auth errors
+    fullName: v.optional(v.string()),
+    role: v.optional(
+      v.union(
+        v.literal("admin"),
+        v.literal("owner"),
+        v.literal("mechanic")
+      )
     ),
     companyName: v.optional(v.string()),
     licenseNumber: v.optional(v.string()),
     avatarStorageId: v.optional(v.id("_storage")),
-    isActive: v.boolean(),
+    isActive: v.optional(v.boolean()),
   })
     .index("by_email", ["email"])
     .index("by_role", ["role"]),

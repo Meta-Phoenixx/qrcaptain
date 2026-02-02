@@ -14,6 +14,58 @@ export const currentUser = query({
   },
 });
 
+// Seed an admin user - call this via CLI: npx convex run users:seedAdmin
+export const seedAdmin = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    // Check if admin already exists
+    const existingAdmin = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("email"), "admin@qrcaptain.com"))
+      .first();
+    
+    if (existingAdmin) {
+      // Update to admin role if not already
+      if (existingAdmin.role !== "admin") {
+        await ctx.db.patch(existingAdmin._id, { role: "admin" });
+      }
+      return { message: "Admin user already exists", userId: existingAdmin._id };
+    }
+
+    // Create new admin user
+    const userId = await ctx.db.insert("users", {
+      email: "admin@qrcaptain.com",
+      name: "Admin",
+      fullName: "System Administrator",
+      role: "admin",
+      isActive: true,
+    });
+
+    return { 
+      message: "Admin user created. Sign up with email: admin@qrcaptain.com to set password", 
+      userId 
+    };
+  },
+});
+
+// Update a user's role to admin (for promoting existing users)
+export const promoteToAdmin = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("email"), args.email))
+      .first();
+    
+    if (!user) {
+      throw new Error(`User with email ${args.email} not found`);
+    }
+
+    await ctx.db.patch(user._id, { role: "admin" });
+    return { message: `User ${args.email} promoted to admin`, userId: user._id };
+  },
+});
+
 // Create a new user profile (called during sign up)
 export const createProfile = internalMutation({
   args: {

@@ -19,35 +19,45 @@ export const listMyVessels = query({
     const user = await ctx.db.get(userId);
     if (!user) return [];
 
+    let vessels: any[] = [];
+
     // Owners see their own vessels
     if (user.role === "owner") {
-      return await ctx.db
+      vessels = await ctx.db
         .query("vessels")
         .withIndex("by_owner", (q) => q.eq("ownerId", userId))
         .collect();
     }
-
     // Mechanics see authorized vessels
-    if (user.role === "mechanic") {
+    else if (user.role === "mechanic") {
       const authorizations = await ctx.db
         .query("mechanicAuthorizations")
         .withIndex("by_mechanic", (q) => q.eq("mechanicId", userId))
         .filter((q) => q.eq(q.field("isActive"), true))
         .collect();
 
-      const vessels = await Promise.all(
+      const vesselResults = await Promise.all(
         authorizations.map((auth) => ctx.db.get(auth.vesselId))
       );
 
-      return vessels.filter(Boolean);
+      vessels = vesselResults.filter(Boolean);
     }
-
     // Admins see all vessels
-    if (user.role === "admin") {
-      return await ctx.db.query("vessels").collect();
+    else if (user.role === "admin") {
+      vessels = await ctx.db.query("vessels").collect();
     }
 
-    return [];
+    // Add image URLs
+    const vesselsWithImages = await Promise.all(
+      vessels.map(async (vessel) => ({
+        ...vessel,
+        imageUrl: vessel.imageStorageId
+          ? await ctx.storage.getUrl(vessel.imageStorageId)
+          : null,
+      }))
+    );
+
+    return vesselsWithImages;
   },
 });
 
@@ -274,6 +284,32 @@ export const authorizeMechanic = mutation({
     });
 
     return { authorizationId: authId };
+  },
+});
+
+// Get admin statistics
+export const getAdminStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+
+    const user = await ctx.db.get(userId);
+    if (!user || user.role !== "admin") return null;
+
+    const users = await ctx.db.query("users").collect();
+    const vessels = await ctx.db.query("vessels").collect();
+    const workOrders = await ctx.db.query("workOrders").collect();
+
+    return {
+      userCount: users.length,
+      vesselCount: vessels.length,
+      workOrderCount: workOrders.length,
+      ownerCount: users.filter((u) => u.role === "owner").length,
+      mechanicCount: users.filter((u) => u.role === "mechanic").length,
+      activeWorkOrders: workOrders.filter((wo) => wo.status === "in_progress").length,
+      completedWorkOrders: workOrders.filter((wo) => wo.status === "completed").length,
+    };
   },
 });
 

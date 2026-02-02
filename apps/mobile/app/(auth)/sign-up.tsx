@@ -68,6 +68,7 @@ export default function SignUp() {
             value={name}
             onChangeText={setName}
             placeholder="John Smith"
+            placeholderTextColor="#6b7280"
             autoCapitalize="words"
           />
 
@@ -77,6 +78,7 @@ export default function SignUp() {
             value={email}
             onChangeText={setEmail}
             placeholder="you@example.com"
+            placeholderTextColor="#6b7280"
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -88,6 +90,7 @@ export default function SignUp() {
             value={password}
             onChangeText={setPassword}
             placeholder="••••••••"
+            placeholderTextColor="#6b7280"
             secureTextEntry
           />
 
@@ -184,6 +187,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
+    color: "#000",
     marginBottom: 16,
   },
   roleSelector: {
