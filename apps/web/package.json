@@ -16,6 +16,7 @@
     "react-dom": "^18.2.0",
     "@convex-dev/auth": "^0.0.71",
     "qrcode.react": "^4.0.1",
+    "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.460.0",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.5.0"

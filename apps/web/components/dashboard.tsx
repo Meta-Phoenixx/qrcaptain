@@ -3,8 +3,12 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Id } from "../../../convex/_generated/dataModel";
+import { ImageCropper } from "./image-cropper";
+import { EquipmentManifest } from "./equipment-manifest";
+import { QRCodeSVG } from "qrcode.react";
+import { QRScanner, VesselInfoModal } from "./qr-scanner";
 
 export function Dashboard() {
   const { signOut } = useAuthActions();
@@ -335,21 +339,32 @@ function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onC
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle file selection - show cropper first
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Create a URL for the selected file to show in cropper
+    const imageUrl = URL.createObjectURL(file);
+    setImageToCrop(imageUrl);
+  };
+
+  // Handle cropped image upload
+  const handleCroppedImage = async (croppedBlob: Blob) => {
+    setImageToCrop(null);
     setIsUploading(true);
+    
     try {
       // Get upload URL
       const uploadUrl = await generateUploadUrl();
       
-      // Upload the file
+      // Upload the cropped image
       const result = await fetch(uploadUrl, {
         method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
+        headers: { "Content-Type": "image/jpeg" },
+        body: croppedBlob,
       });
       
       const { storageId } = await result.json();
@@ -363,6 +378,17 @@ function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onC
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+    }
+  };
+
+  // Cancel cropping
+  const handleCropCancel = () => {
+    if (imageToCrop) {
+      URL.revokeObjectURL(imageToCrop);
+    }
+    setImageToCrop(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -437,27 +463,17 @@ function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onC
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                onChange={handlePhotoUpload}
+                onChange={handleFileSelect}
                 className="hidden"
               />
             </div>
           </div>
 
           {/* QR Code Section */}
-          <div className="mb-6 p-4 bg-gray-50 rounded-xl text-center">
-            <div className="inline-block p-4 bg-white rounded-lg shadow-sm mb-3">
-              {/* QR Code placeholder - will be replaced with actual QR code */}
-              <div className="w-32 h-32 bg-gray-200 flex items-center justify-center text-gray-400">
-                <span className="text-4xl">📱</span>
-              </div>
-            </div>
-            <p className="text-sm text-gray-600">
-              Scan this QR code to access vessel history
-            </p>
-            <p className="text-xs text-gray-400 mt-1 font-mono">
-              {vessel.qrCodeData}
-            </p>
-          </div>
+          <VesselQRCode 
+            qrCodeData={vessel.qrCodeData} 
+            vesselName={vessel.name}
+          />
 
           {/* Vessel Details */}
           <div className="grid grid-cols-2 gap-4 mb-6">
@@ -486,8 +502,11 @@ function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onC
             </div>
           )}
 
+          {/* Equipment Manifest Section */}
+          <EquipmentManifest vesselId={vesselId} />
+
           {/* Work Orders Section */}
-          <div>
+          <div className="mt-6">
             <h3 className="font-semibold text-gray-900 mb-3">Service History</h3>
             {workOrders === undefined ? (
               <div className="text-center py-4">
@@ -523,6 +542,16 @@ function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onC
           </div>
         </div>
       </div>
+
+      {/* Image Cropper Modal */}
+      {imageToCrop && (
+        <ImageCropper
+          imageSrc={imageToCrop}
+          onCropComplete={handleCroppedImage}
+          onCancel={handleCropCancel}
+          aspectRatio={16 / 9}
+        />
+      )}
     </div>
   );
 }
@@ -533,6 +562,8 @@ function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onC
 
 function MechanicDashboard() {
   const workOrders = useQuery(api.workOrders.getMyWorkOrders, {});
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannedVessel, setScannedVessel] = useState<any>(null);
 
   if (workOrders === undefined) {
     return (
@@ -549,8 +580,14 @@ function MechanicDashboard() {
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-semibold text-gray-900">My Work Orders</h2>
-        <button className="rounded-lg bg-captain-600 px-4 py-2 font-semibold text-white hover:bg-captain-700">
-          📷 Scan QR Code
+        <button 
+          onClick={() => setShowScanner(true)}
+          className="rounded-lg bg-captain-600 px-4 py-2 font-semibold text-white hover:bg-captain-700 flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+          </svg>
+          Scan QR Code
         </button>
       </div>
 
@@ -615,6 +652,35 @@ function MechanicDashboard() {
           </div>
         )}
       </div>
+
+      {/* QR Scanner Modal */}
+      {showScanner && (
+        <QRScanner
+          onClose={() => setShowScanner(false)}
+          onVesselFound={(vessel) => {
+            setShowScanner(false);
+            setScannedVessel(vessel);
+          }}
+        />
+      )}
+
+      {/* Scanned Vessel Info Modal */}
+      {scannedVessel && (
+        <VesselInfoModal
+          vessel={scannedVessel}
+          onClose={() => setScannedVessel(null)}
+          onStartWorkOrder={() => {
+            // TODO: Navigate to create work order page
+            alert("Work order creation will be implemented in the next update!");
+            setScannedVessel(null);
+          }}
+          onViewHistory={() => {
+            // TODO: Navigate to vessel history page
+            alert("Vessel history view will be implemented in the next update!");
+            setScannedVessel(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -660,6 +726,200 @@ function AdminDashboard() {
         <p className="text-gray-500 text-center py-8">
           Activity feed coming soon...
         </p>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// VESSEL QR CODE COMPONENT
+// ============================================
+
+function VesselQRCode({ qrCodeData, vesselName }: { qrCodeData: string; vesselName: string }) {
+  const qrRef = useRef<HTMLDivElement>(null);
+
+  // Download QR code as PNG
+  const handleDownload = useCallback(() => {
+    if (!qrRef.current) return;
+
+    const svg = qrRef.current.querySelector("svg");
+    if (!svg) return;
+
+    // Create canvas
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // Set canvas size with padding for label
+    const qrSize = 256;
+    const padding = 32;
+    const labelHeight = 60;
+    canvas.width = qrSize + padding * 2;
+    canvas.height = qrSize + padding * 2 + labelHeight;
+
+    // Fill white background
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Convert SVG to image
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.onload = () => {
+      // Draw QR code
+      ctx.drawImage(img, padding, padding, qrSize, qrSize);
+
+      // Add vessel name label
+      ctx.fillStyle = "#1f2937";
+      ctx.font = "bold 16px system-ui, -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(vesselName, canvas.width / 2, qrSize + padding + 30);
+
+      // Add QR code ID
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "12px monospace";
+      ctx.fillText(qrCodeData, canvas.width / 2, qrSize + padding + 50);
+
+      // Download
+      const link = document.createElement("a");
+      link.download = `${vesselName.replace(/[^a-z0-9]/gi, "_")}_QR.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }, [qrCodeData, vesselName]);
+
+  // Print QR code
+  const handlePrint = useCallback(() => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>QR Code - ${vesselName}</title>
+          <style>
+            body {
+              font-family: system-ui, -apple-system, sans-serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              min-height: 100vh;
+              margin: 0;
+              padding: 20px;
+              box-sizing: border-box;
+            }
+            .qr-container {
+              text-align: center;
+              padding: 40px;
+              border: 2px solid #e5e7eb;
+              border-radius: 16px;
+              background: white;
+            }
+            .qr-code {
+              width: 200px;
+              height: 200px;
+              margin-bottom: 20px;
+            }
+            h2 {
+              margin: 0 0 8px 0;
+              color: #1f2937;
+              font-size: 24px;
+            }
+            .code-id {
+              font-family: monospace;
+              color: #6b7280;
+              font-size: 14px;
+            }
+            .instructions {
+              margin-top: 16px;
+              font-size: 12px;
+              color: #9ca3af;
+            }
+            @media print {
+              body { 
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+              .qr-container {
+                border: 1px solid #000;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="qr-container">
+            <div class="qr-code">
+              ${qrRef.current?.innerHTML || ""}
+            </div>
+            <h2>⚓ ${vesselName}</h2>
+            <div class="code-id">${qrCodeData}</div>
+            <div class="instructions">Scan with QR Captain app to access vessel service history</div>
+          </div>
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  }, [qrCodeData, vesselName]);
+
+  return (
+    <div className="mb-6 p-4 bg-gradient-to-br from-captain-50 to-captain-100 rounded-xl">
+      <div className="text-center">
+        {/* QR Code */}
+        <div 
+          ref={qrRef}
+          className="inline-block p-4 bg-white rounded-xl shadow-sm mb-3"
+        >
+          <QRCodeSVG
+            value={qrCodeData}
+            size={160}
+            level="H"
+            includeMargin={false}
+            bgColor="#ffffff"
+            fgColor="#0c4a6e"
+          />
+        </div>
+        
+        <p className="text-sm text-gray-600 mb-1">
+          Scan this QR code to access vessel history
+        </p>
+        <p className="text-xs text-captain-600 font-mono mb-4">
+          {qrCodeData}
+        </p>
+
+        {/* Action Buttons */}
+        <div className="flex gap-2 justify-center">
+          <button
+            onClick={handleDownload}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-captain-700 bg-white border border-captain-200 rounded-lg hover:bg-captain-50 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download
+          </button>
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-captain-700 bg-white border border-captain-200 rounded-lg hover:bg-captain-50 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            Print
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,0 +1,449 @@
+import { v } from "convex/values";
+import { query, mutation } from "./_generated/server";
+import { getAuthUserId } from "@convex-dev/auth/server";
+
+// Equipment category type for validation
+const equipmentCategoryValidator = v.union(
+  v.literal("propulsion"),
+  v.literal("electrical"),
+  v.literal("electronics"),
+  v.literal("plumbing"),
+  v.literal("fuel"),
+  v.literal("hvac"),
+  v.literal("deck"),
+  v.literal("safety"),
+  v.literal("steering"),
+  v.literal("hull"),
+  v.literal("canvas"),
+  v.literal("galley"),
+  v.literal("entertainment"),
+  v.literal("rigging"),
+  v.literal("tender")
+);
+
+// Helper to check vessel access
+async function checkVesselAccess(ctx: any, vesselId: any, userId: any) {
+  const vessel = await ctx.db.get(vesselId);
+  if (!vessel) return null;
+
+  const user = await ctx.db.get(userId);
+  if (!user) return null;
+
+  // Admins have full access
+  if (user.role === "admin") return vessel;
+
+  // Owners can access their own vessels
+  if (user.role === "owner" && vessel.ownerId === userId) return vessel;
+
+  // Mechanics can access authorized vessels
+  if (user.role === "mechanic") {
+    const auth = await ctx.db
+      .query("mechanicAuthorizations")
+      .withIndex("by_vessel_mechanic", (q: any) =>
+        q.eq("vesselId", vesselId).eq("mechanicId", userId)
+      )
+      .filter((q: any) => q.eq(q.field("isActive"), true))
+      .first();
+
+    if (auth) return vessel;
+  }
+
+  return null;
+}
+
+// List all equipment for a vessel
+export const listByVessel = query({
+  args: { vesselId: v.id("vessels") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const vessel = await checkVesselAccess(ctx, args.vesselId, userId);
+    if (!vessel) return [];
+
+    const equipment = await ctx.db
+      .query("vesselEquipment")
+      .withIndex("by_vessel", (q) => q.eq("vesselId", args.vesselId))
+      .collect();
+
+    // Add image URLs for equipment with photos
+    const equipmentWithImages = await Promise.all(
+      equipment.map(async (item) => ({
+        ...item,
+        imageUrl: item.imageStorageId
+          ? await ctx.storage.getUrl(item.imageStorageId)
+          : null,
+      }))
+    );
+
+    return equipmentWithImages;
+  },
+});
+
+// List equipment by category for a vessel
+export const listByCategory = query({
+  args: {
+    vesselId: v.id("vessels"),
+    category: equipmentCategoryValidator,
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const vessel = await checkVesselAccess(ctx, args.vesselId, userId);
+    if (!vessel) return [];
+
+    const equipment = await ctx.db
+      .query("vesselEquipment")
+      .withIndex("by_vessel_category", (q) =>
+        q.eq("vesselId", args.vesselId).eq("category", args.category)
+      )
+      .collect();
+
+    // Add image URLs
+    const equipmentWithImages = await Promise.all(
+      equipment.map(async (item) => ({
+        ...item,
+        imageUrl: item.imageStorageId
+          ? await ctx.storage.getUrl(item.imageStorageId)
+          : null,
+      }))
+    );
+
+    return equipmentWithImages;
+  },
+});
+
+// Get equipment counts by category for a vessel
+export const getCategoryCounts = query({
+  args: { vesselId: v.id("vessels") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return {};
+
+    const vessel = await checkVesselAccess(ctx, args.vesselId, userId);
+    if (!vessel) return {};
+
+    const equipment = await ctx.db
+      .query("vesselEquipment")
+      .withIndex("by_vessel", (q) => q.eq("vesselId", args.vesselId))
+      .collect();
+
+    // Count items by category
+    const counts: Record<string, number> = {};
+    for (const item of equipment) {
+      counts[item.category] = (counts[item.category] || 0) + 1;
+    }
+
+    return counts;
+  },
+});
+
+// Get a single equipment item
+export const getEquipment = query({
+  args: { equipmentId: v.id("vesselEquipment") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+
+    const equipment = await ctx.db.get(args.equipmentId);
+    if (!equipment) return null;
+
+    const vessel = await checkVesselAccess(ctx, equipment.vesselId, userId);
+    if (!vessel) return null;
+
+    return {
+      ...equipment,
+      imageUrl: equipment.imageStorageId
+        ? await ctx.storage.getUrl(equipment.imageStorageId)
+        : null,
+    };
+  },
+});
+
+// Condition status validator
+const conditionStatusValidator = v.optional(
+  v.union(
+    v.literal("good"),
+    v.literal("fair"),
+    v.literal("needs_attention")
+  )
+);
+
+// Consumable part number validator
+const consumablePartValidator = v.optional(
+  v.array(
+    v.object({
+      name: v.string(),
+      partNumber: v.string(),
+      manufacturer: v.optional(v.string()),
+      notes: v.optional(v.string()),
+    })
+  )
+);
+
+// Create new equipment item
+export const createEquipment = mutation({
+  args: {
+    vesselId: v.id("vessels"),
+    category: equipmentCategoryValidator,
+    name: v.string(),
+    manufacturer: v.optional(v.string()),
+    model: v.optional(v.string()),
+    serialNumber: v.optional(v.string()),
+    
+    // Installation & Purchase
+    installationDate: v.optional(v.number()),
+    yearInstalled: v.optional(v.number()),
+    purchaseDate: v.optional(v.number()),
+    
+    // Warranty
+    warrantyExpiry: v.optional(v.number()),
+    warrantyTerms: v.optional(v.string()),
+    
+    // Service Tracking - Date based
+    lastServiceDate: v.optional(v.number()),
+    nextServiceDate: v.optional(v.number()),
+    serviceIntervalDays: v.optional(v.number()),
+    
+    // Service Tracking - Hours based
+    hoursAtInstall: v.optional(v.number()),
+    currentHours: v.optional(v.number()),
+    lastServiceHours: v.optional(v.number()),
+    serviceIntervalHours: v.optional(v.number()),
+    
+    // Condition Status
+    conditionStatus: conditionStatusValidator,
+    
+    // Consumables & Parts
+    consumablePartNumbers: consumablePartValidator,
+    
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const vessel = await checkVesselAccess(ctx, args.vesselId, userId);
+    if (!vessel) throw new Error("Vessel not found or access denied");
+
+    const user = await ctx.db.get(userId);
+    // Only owners and admins can add equipment
+    if (user?.role !== "owner" && user?.role !== "admin") {
+      throw new Error("Only vessel owners can add equipment");
+    }
+
+    const equipmentId = await ctx.db.insert("vesselEquipment", {
+      vesselId: args.vesselId,
+      category: args.category,
+      name: args.name,
+      manufacturer: args.manufacturer,
+      model: args.model,
+      serialNumber: args.serialNumber,
+      installationDate: args.installationDate,
+      yearInstalled: args.yearInstalled,
+      purchaseDate: args.purchaseDate,
+      warrantyExpiry: args.warrantyExpiry,
+      warrantyTerms: args.warrantyTerms,
+      lastServiceDate: args.lastServiceDate,
+      nextServiceDate: args.nextServiceDate,
+      serviceIntervalDays: args.serviceIntervalDays,
+      hoursAtInstall: args.hoursAtInstall,
+      currentHours: args.currentHours,
+      lastServiceHours: args.lastServiceHours,
+      serviceIntervalHours: args.serviceIntervalHours,
+      conditionStatus: args.conditionStatus,
+      consumablePartNumbers: args.consumablePartNumbers,
+      notes: args.notes,
+    });
+
+    return { equipmentId };
+  },
+});
+
+// Update equipment item
+export const updateEquipment = mutation({
+  args: {
+    equipmentId: v.id("vesselEquipment"),
+    name: v.optional(v.string()),
+    manufacturer: v.optional(v.string()),
+    model: v.optional(v.string()),
+    serialNumber: v.optional(v.string()),
+    
+    // Installation & Purchase
+    installationDate: v.optional(v.number()),
+    yearInstalled: v.optional(v.number()),
+    purchaseDate: v.optional(v.number()),
+    
+    // Warranty
+    warrantyExpiry: v.optional(v.number()),
+    warrantyTerms: v.optional(v.string()),
+    
+    // Service Tracking - Date based
+    lastServiceDate: v.optional(v.number()),
+    nextServiceDate: v.optional(v.number()),
+    serviceIntervalDays: v.optional(v.number()),
+    
+    // Service Tracking - Hours based
+    hoursAtInstall: v.optional(v.number()),
+    currentHours: v.optional(v.number()),
+    lastServiceHours: v.optional(v.number()),
+    serviceIntervalHours: v.optional(v.number()),
+    
+    // Condition Status
+    conditionStatus: conditionStatusValidator,
+    
+    // Consumables & Parts
+    consumablePartNumbers: consumablePartValidator,
+    
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const equipment = await ctx.db.get(args.equipmentId);
+    if (!equipment) throw new Error("Equipment not found");
+
+    const vessel = await checkVesselAccess(ctx, equipment.vesselId, userId);
+    if (!vessel) throw new Error("Access denied");
+
+    const user = await ctx.db.get(userId);
+    // Only owners and admins can update equipment
+    if (user?.role !== "owner" && user?.role !== "admin") {
+      throw new Error("Only vessel owners can update equipment");
+    }
+
+    const { equipmentId, ...updates } = args;
+    const filteredUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([_, v]) => v !== undefined)
+    );
+
+    await ctx.db.patch(equipmentId, filteredUpdates);
+    return { success: true };
+  },
+});
+
+// Delete equipment item
+export const deleteEquipment = mutation({
+  args: { equipmentId: v.id("vesselEquipment") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const equipment = await ctx.db.get(args.equipmentId);
+    if (!equipment) throw new Error("Equipment not found");
+
+    const vessel = await checkVesselAccess(ctx, equipment.vesselId, userId);
+    if (!vessel) throw new Error("Access denied");
+
+    const user = await ctx.db.get(userId);
+    // Only owners and admins can delete equipment
+    if (user?.role !== "owner" && user?.role !== "admin") {
+      throw new Error("Only vessel owners can delete equipment");
+    }
+
+    await ctx.db.delete(args.equipmentId);
+    return { success: true };
+  },
+});
+
+// Save equipment image
+export const saveEquipmentImage = mutation({
+  args: {
+    equipmentId: v.id("vesselEquipment"),
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const equipment = await ctx.db.get(args.equipmentId);
+    if (!equipment) throw new Error("Equipment not found");
+
+    const vessel = await checkVesselAccess(ctx, equipment.vesselId, userId);
+    if (!vessel) throw new Error("Access denied");
+
+    await ctx.db.patch(args.equipmentId, {
+      imageStorageId: args.storageId,
+    });
+
+    return { success: true };
+  },
+});
+
+// Search equipment across a vessel
+export const searchEquipment = query({
+  args: {
+    vesselId: v.id("vessels"),
+    searchQuery: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const vessel = await checkVesselAccess(ctx, args.vesselId, userId);
+    if (!vessel) return [];
+
+    const equipment = await ctx.db
+      .query("vesselEquipment")
+      .withIndex("by_vessel", (q) => q.eq("vesselId", args.vesselId))
+      .collect();
+
+    const query = args.searchQuery.toLowerCase();
+
+    // Filter by name, manufacturer, model, or serial number
+    const filtered = equipment.filter(
+      (item) =>
+        item.name.toLowerCase().includes(query) ||
+        item.manufacturer?.toLowerCase().includes(query) ||
+        item.model?.toLowerCase().includes(query) ||
+        item.serialNumber?.toLowerCase().includes(query)
+    );
+
+    // Add image URLs
+    const filteredWithImages = await Promise.all(
+      filtered.map(async (item) => ({
+        ...item,
+        imageUrl: item.imageStorageId
+          ? await ctx.storage.getUrl(item.imageStorageId)
+          : null,
+      }))
+    );
+
+    return filteredWithImages;
+  },
+});
+
+// Get equipment needing maintenance (based on service interval)
+export const getMaintenanceDue = query({
+  args: { vesselId: v.id("vessels") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const vessel = await checkVesselAccess(ctx, args.vesselId, userId);
+    if (!vessel) return [];
+
+    const equipment = await ctx.db
+      .query("vesselEquipment")
+      .withIndex("by_vessel", (q) => q.eq("vesselId", args.vesselId))
+      .collect();
+
+    const now = Date.now();
+    const dueSoon: typeof equipment = [];
+
+    for (const item of equipment) {
+      if (item.lastServiceDate && item.serviceIntervalDays) {
+        const nextServiceDate =
+          item.lastServiceDate + item.serviceIntervalDays * 24 * 60 * 60 * 1000;
+        // Due within 30 days
+        if (nextServiceDate - now < 30 * 24 * 60 * 60 * 1000) {
+          dueSoon.push(item);
+        }
+      }
+    }
+
+    return dueSoon;
+  },
+});

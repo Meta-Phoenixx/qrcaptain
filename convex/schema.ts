@@ -50,28 +50,73 @@ export default defineSchema({
     .index("by_owner", ["ownerId"])
     .index("by_qr_code", ["qrCodeData"]),
 
-  // Equipment catalog for each vessel
+  // Equipment catalog for each vessel - 15 categories for comprehensive tracking
   vesselEquipment: defineTable({
     vesselId: v.id("vessels"),
     category: v.union(
-      v.literal("engine"),
-      v.literal("electronics"),
-      v.literal("plumbing"),
-      v.literal("electrical"),
-      v.literal("hvac"),
-      v.literal("safety"),
-      v.literal("navigation"),
-      v.literal("other")
+      v.literal("propulsion"),     // Main Engine, Outboard Motors, Propellers, Transmission
+      v.literal("electrical"),     // Batteries, Generator, Solar Panels, Shore Power
+      v.literal("electronics"),    // Navigation: GPS, VHF Radio, Radar, Autopilot
+      v.literal("plumbing"),       // Fresh Water, Heads, Bilge Pumps, Seacocks
+      v.literal("fuel"),           // Fuel Tanks, Fuel Filters, Fuel Lines
+      v.literal("hvac"),           // AC Units, Heating, Ventilation
+      v.literal("deck"),           // Windlass, Anchors, Winches, Swim Platform
+      v.literal("safety"),         // Life Jackets, Fire Extinguishers, Flares, Life Raft
+      v.literal("steering"),       // Hydraulic System, Rudders, Trim Tabs
+      v.literal("hull"),           // Anti-fouling, Zincs, Thru-hulls
+      v.literal("canvas"),         // Bimini, Enclosure, Covers
+      v.literal("galley"),         // Stove, Refrigerator, Microwave
+      v.literal("entertainment"),  // Stereo, Speakers, TV, Lighting
+      v.literal("rigging"),        // Mast, Boom, Standing Rigging, Sails
+      v.literal("tender")          // Dinghy, Water Toys, Dive Equipment
     ),
     name: v.string(),
     manufacturer: v.optional(v.string()),
     model: v.optional(v.string()),
     serialNumber: v.optional(v.string()),
+    
+    // Installation & Purchase
+    installationDate: v.optional(v.number()),     // Timestamp of installation
+    yearInstalled: v.optional(v.number()),        // Year for backward compatibility
     purchaseDate: v.optional(v.number()),
-    warrantyExpiry: v.optional(v.number()),
+    
+    // Warranty
+    warrantyExpiry: v.optional(v.number()),       // Timestamp
+    warrantyTerms: v.optional(v.string()),        // Description of warranty terms
+    
+    // Service Tracking - Date based
+    lastServiceDate: v.optional(v.number()),      // Timestamp of last service
+    nextServiceDate: v.optional(v.number()),      // Timestamp of next scheduled service
+    serviceIntervalDays: v.optional(v.number()),  // Days between services
+    
+    // Service Tracking - Hours based (for engines, etc.)
+    hoursAtInstall: v.optional(v.number()),       // Equipment hours at installation
+    currentHours: v.optional(v.number()),         // Current equipment hours
+    lastServiceHours: v.optional(v.number()),     // Hours at last service
+    serviceIntervalHours: v.optional(v.number()), // Hours between services
+    
+    // Condition Status
+    conditionStatus: v.optional(
+      v.union(
+        v.literal("good"),
+        v.literal("fair"),
+        v.literal("needs_attention")
+      )
+    ),
+    
+    // Consumables & Parts
+    consumablePartNumbers: v.optional(v.array(v.object({
+      name: v.string(),                           // e.g., "Oil Filter", "Impeller"
+      partNumber: v.string(),                     // Manufacturer part number
+      manufacturer: v.optional(v.string()),
+      notes: v.optional(v.string()),
+    }))),
+    
     notes: v.optional(v.string()),
     imageStorageId: v.optional(v.id("_storage")),
-  }).index("by_vessel", ["vesselId"]),
+  })
+    .index("by_vessel", ["vesselId"])
+    .index("by_vessel_category", ["vesselId", "category"]),
 
   // Work orders created by mechanics
   workOrders: defineTable({
