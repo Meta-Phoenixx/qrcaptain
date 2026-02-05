@@ -47,17 +47,45 @@ export const listMyVessels = query({
       vessels = await ctx.db.query("vessels").collect();
     }
 
-    // Add image URLs
-    const vesselsWithImages = await Promise.all(
-      vessels.map(async (vessel) => ({
-        ...vessel,
-        imageUrl: vessel.imageStorageId
-          ? await ctx.storage.getUrl(vessel.imageStorageId)
-          : null,
-      }))
+    // Add image URLs and work order stats
+    const vesselsWithData = await Promise.all(
+      vessels.map(async (vessel) => {
+        // Get work orders for this vessel
+        const workOrders = await ctx.db
+          .query("workOrders")
+          .withIndex("by_vessel", (q) => q.eq("vesselId", vessel._id))
+          .collect();
+
+        const activeWorkOrders = workOrders.filter((wo) => wo.status === "in_progress");
+        
+        // Get mechanic info for active work order if exists
+        let activeWorkOrderInfo = null;
+        if (activeWorkOrders.length > 0) {
+          const latestActive = activeWorkOrders[0];
+          const mechanic = await ctx.db.get(latestActive.mechanicId);
+          activeWorkOrderInfo = {
+            _id: latestActive._id,
+            description: latestActive.description,
+            startedAt: latestActive.startedAt,
+            mechanicName: mechanic?.fullName || mechanic?.name || "Unknown",
+            mechanicCompany: mechanic?.companyName,
+          };
+        }
+
+        return {
+          ...vessel,
+          imageUrl: vessel.imageStorageId
+            ? await ctx.storage.getUrl(vessel.imageStorageId)
+            : null,
+          activeWorkOrderCount: activeWorkOrders.length,
+          activeWorkOrder: activeWorkOrderInfo,
+          totalWorkOrders: workOrders.length,
+          completedWorkOrders: workOrders.filter((wo) => wo.status === "completed").length,
+        };
+      })
     );
 
-    return vesselsWithImages;
+    return vesselsWithData;
   },
 });
 

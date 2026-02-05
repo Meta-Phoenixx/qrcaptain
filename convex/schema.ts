@@ -205,10 +205,13 @@ export default defineSchema({
     partNumber: v.optional(v.string()),
     serialNumber: v.optional(v.string()),
     manufacturer: v.optional(v.string()),
+    category: v.optional(v.string()),     // Part category
     quantity: v.number(),
     unitCost: v.optional(v.number()),
     warrantyExpiry: v.optional(v.number()),
     warrantyTerms: v.optional(v.string()),
+    photoStorageId: v.optional(v.id("_storage")), // Photo of the part
+    addedAt: v.optional(v.number()),      // When part was added
   }).index("by_work_order", ["workOrderId"]),
 
   // Photos attached to work orders
@@ -223,6 +226,37 @@ export default defineSchema({
     ),
     uploadedAt: v.number(),
   }).index("by_work_order", ["workOrderId"]),
+
+  // Parts catalog database - grows as mechanics add parts
+  partsDatabase: defineTable({
+    partNumber: v.string(),
+    name: v.string(),
+    manufacturer: v.string(),
+    category: v.union(
+      v.literal("engine"),
+      v.literal("electrical"),
+      v.literal("plumbing"),
+      v.literal("fuel"),
+      v.literal("cooling"),
+      v.literal("steering"),
+      v.literal("hvac"),
+      v.literal("safety"),
+      v.literal("general")
+    ),
+    description: v.optional(v.string()),
+    averagePrice: v.optional(v.number()),
+    isSeeded: v.boolean(),      // true for pre-populated, false for user-added
+    usageCount: v.number(),     // track popularity
+    createdAt: v.number(),
+  })
+    .index("by_manufacturer", ["manufacturer"])
+    .index("by_category", ["category"])
+    .index("by_partNumber", ["partNumber"])
+    .index("by_usage", ["usageCount"])
+    .searchIndex("search_parts", { 
+      searchField: "name", 
+      filterFields: ["manufacturer", "category"] 
+    }),
 
   // Ratings given by owners to mechanics
   ratings: defineTable({
@@ -299,6 +333,7 @@ export default defineSchema({
     receiverId: v.id("users"),
     vesselId: v.optional(v.id("vessels")),  // Context: which vessel
     accessRequestId: v.optional(v.id("accessRequests")),  // Context: which request
+    workOrderId: v.optional(v.id("workOrders")),  // Context: which work order
     content: v.string(),
     isRead: v.boolean(),
     createdAt: v.number(),
@@ -306,5 +341,6 @@ export default defineSchema({
     .index("by_sender", ["senderId"])
     .index("by_receiver", ["receiverId"])
     .index("by_access_request", ["accessRequestId"])
-    .index("by_vessel_participants", ["vesselId", "senderId", "receiverId"]),
+    .index("by_vessel_participants", ["vesselId", "senderId", "receiverId"])
+    .index("by_work_order", ["workOrderId"]),
 });

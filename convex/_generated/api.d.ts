@@ -16,11 +16,14 @@ import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as messages from "../messages.js";
 import type * as notifications from "../notifications.js";
+import type * as parts from "../parts.js";
 import type * as ratings from "../ratings.js";
+import type * as seedParts from "../seedParts.js";
 import type * as storage from "../storage.js";
 import type * as users from "../users.js";
 import type * as vesselEquipment from "../vesselEquipment.js";
 import type * as vessels from "../vessels.js";
+import type * as workOrderMessages from "../workOrderMessages.js";
 import type * as workOrders from "../workOrders.js";
 
 import type {
@@ -38,11 +41,14 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   messages: typeof messages;
   notifications: typeof notifications;
+  parts: typeof parts;
   ratings: typeof ratings;
+  seedParts: typeof seedParts;
   storage: typeof storage;
   users: typeof users;
   vesselEquipment: typeof vesselEquipment;
   vessels: typeof vessels;
+  workOrderMessages: typeof workOrderMessages;
   workOrders: typeof workOrders;
 }>;
 

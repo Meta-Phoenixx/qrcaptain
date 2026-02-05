@@ -7,6 +7,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Id } from "../../../convex/_generated/dataModel";
 import { ImageCropper } from "./image-cropper";
 import { EquipmentManifest } from "./equipment-manifest";
+import { OwnerWorkOrderViewer } from "./owner-work-order-viewer";
 import { QRCodeSVG } from "qrcode.react";
 import { QRScanner } from "./qr-scanner";
 import { VesselAccessModal } from "./vessel-access-modal";
@@ -18,6 +19,7 @@ import { MechanicProfile } from "./mechanic-profile";
 import { OwnerOnboarding } from "./owner-onboarding";
 import { VesselOnboarding } from "./vessel-onboarding";
 import { OwnerProfile } from "./owner-profile";
+import { WorkOrderEditor } from "./work-order-editor";
 
 // ============================================
 // PROFILE DROPDOWN COMPONENT
@@ -668,23 +670,30 @@ function OwnerDashboard({ onViewRequest }: OwnerDashboardProps) {
           {vessels.map((vessel) => (
             <div 
               key={vessel._id} 
-              className="rounded-xl border border-gray-200 bg-white overflow-hidden cursor-pointer hover:border-captain-300 hover:shadow-md transition-all"
+              className={`rounded-xl border bg-white overflow-hidden cursor-pointer hover:shadow-md transition-all ${
+                vessel.activeWorkOrderCount > 0 
+                  ? "border-amber-300 ring-2 ring-amber-100" 
+                  : "border-gray-200 hover:border-captain-300"
+              }`}
               onClick={() => setSelectedVessel(vessel._id)}
             >
               {/* Vessel Photo */}
-              {vessel.imageUrl ? (
-                <div className="h-32 overflow-hidden">
-                  <img 
-                    src={vessel.imageUrl} 
-                    alt={vessel.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="h-32 bg-gradient-to-br from-captain-100 to-captain-200 flex items-center justify-center">
-                  <span className="text-5xl opacity-50">🚤</span>
-                </div>
-              )}
+              <div className="relative">
+                {vessel.imageUrl ? (
+                  <div className="h-32 overflow-hidden">
+                    <img 
+                      src={vessel.imageUrl} 
+                      alt={vessel.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-32 bg-gradient-to-br from-captain-100 to-captain-200 flex items-center justify-center">
+                    <span className="text-5xl opacity-50">🚤</span>
+                  </div>
+                )}
+                
+              </div>
               
               <div className="p-4">
                 <div className="flex items-start justify-between">
@@ -695,10 +704,22 @@ function OwnerDashboard({ onViewRequest }: OwnerDashboardProps) {
                   </div>
                   <span className="text-xl">⚓</span>
                 </div>
+                
                 {vessel.registrationNumber && (
                   <p className="mt-2 text-xs text-gray-400">
                     Reg: {vessel.registrationNumber}
                   </p>
+                )}
+                
+                {/* Work In Progress Tag */}
+                {vessel.activeWorkOrderCount > 0 && (
+                  <div className="mt-3 flex items-center gap-1.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                    </span>
+                    <span className="text-xs font-medium text-amber-700">Work In Progress</span>
+                  </div>
                 )}
               </div>
             </div>
@@ -916,6 +937,7 @@ function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onC
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [selectedWorkOrderId, setSelectedWorkOrderId] = useState<Id<"workOrders"> | null>(null);
 
   // Handle file selection - show cropper first
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1081,35 +1103,63 @@ function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onC
           {/* Equipment Manifest Section */}
           <EquipmentManifest vesselId={vesselId} />
 
+          {/* Active Work In Progress Status Bar */}
+          {workOrders && workOrders.filter(wo => wo.status === 'in_progress').length > 0 && (
+            <div className="mt-6 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                </span>
+                <span className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Work In Progress</span>
+              </div>
+              <div className="space-y-1.5">
+                {workOrders.filter(wo => wo.status === 'in_progress').map((order) => (
+                  <div 
+                    key={order._id} 
+                    onClick={() => setSelectedWorkOrderId(order._id)}
+                    className="flex items-center justify-between gap-2 text-xs p-2 -mx-2 rounded-md hover:bg-amber-100 cursor-pointer transition-colors group"
+                  >
+                    <span className="text-gray-700 truncate flex-1">{order.description}</span>
+                    <span className="text-amber-600 flex-shrink-0">{order.mechanicName || "Unknown"}</span>
+                    <span className="text-gray-400 flex-shrink-0">{new Date(order.startedAt).toLocaleDateString()}</span>
+                    <svg className="w-4 h-4 text-amber-400 group-hover:text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Work Orders Section */}
           <div className="mt-6">
-            <h3 className="font-semibold text-gray-900 mb-3">Service History</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">Service History</h3>
             {workOrders === undefined ? (
               <div className="text-center py-4">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-captain-200 border-t-captain-600 mx-auto"></div>
               </div>
-            ) : workOrders.length === 0 ? (
-              <div className="text-center py-6 bg-gray-50 rounded-lg">
-                <p className="text-gray-500">No service history yet</p>
+            ) : workOrders.filter(wo => wo.status !== 'in_progress').length === 0 ? (
+              <div className="text-center py-4 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500">No completed service records yet</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {workOrders.map((order) => (
-                  <div key={order._id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-medium text-gray-900">{order.description}</p>
-                        <p className="text-sm text-gray-500">
-                          {order.mechanicName || "Unknown mechanic"} • {new Date(order.startedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        order.status === 'completed' ? 'bg-green-100 text-green-700' :
-                        order.status === 'in_progress' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {order.status.replace('_', ' ')}
-                      </span>
+              <div className="divide-y divide-gray-100">
+                {workOrders.filter(wo => wo.status !== 'in_progress').map((order) => (
+                  <div 
+                    key={order._id} 
+                    className="flex items-center justify-between py-2"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                        order.status === 'completed' ? 'bg-green-500' : 'bg-gray-400'
+                      }`}></span>
+                      <span className="text-xs text-gray-700 truncate">{order.description}</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0 text-xs">
+                      <span className="text-gray-400">{order.mechanicName}</span>
+                      <span className="text-gray-300">•</span>
+                      <span className="text-gray-400">{new Date(order.startedAt).toLocaleDateString()}</span>
                     </div>
                   </div>
                 ))}
@@ -1128,6 +1178,14 @@ function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onC
           aspectRatio={16 / 9}
         />
       )}
+
+      {/* Owner Work Order Viewer Modal */}
+      {selectedWorkOrderId && (
+        <OwnerWorkOrderViewer
+          workOrderId={selectedWorkOrderId}
+          onClose={() => setSelectedWorkOrderId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -1144,6 +1202,7 @@ function MechanicDashboard() {
   const [scannedVessel, setScannedVessel] = useState<any>(null);
   const [selectedVessel, setSelectedVessel] = useState<any>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [editingWorkOrderId, setEditingWorkOrderId] = useState<Id<"workOrders"> | null>(null);
 
   // Show onboarding modal for new mechanics who haven't completed or skipped
   const shouldShowOnboarding = onboardingStatus && 
@@ -1266,22 +1325,39 @@ function MechanicDashboard() {
         {activeOrders.length === 0 ? (
           <div className="rounded-xl border border-gray-200 bg-white p-6 text-center">
             <p className="text-gray-500">No active work orders</p>
+            <p className="text-sm text-gray-400 mt-1">Scan a vessel QR code or select from authorized vessels to start a work order</p>
           </div>
         ) : (
           <div className="space-y-3">
             {activeOrders.map((order) => (
-              <div key={order._id} className="rounded-xl border border-gray-200 bg-white p-4 hover:border-captain-300 cursor-pointer">
+              <div 
+                key={order._id} 
+                onClick={() => setEditingWorkOrderId(order._id as Id<"workOrders">)}
+                className="rounded-xl border border-gray-200 bg-white p-4 hover:border-captain-300 hover:shadow-md cursor-pointer transition-all"
+              >
                 <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-semibold text-gray-900">{order.vesselName}</p>
-                    <p className="text-sm text-gray-600">{order.description}</p>
-                    <p className="text-xs text-gray-400 mt-1">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-gray-900">{order.vesselName}</p>
+                      <span className="text-gray-400">•</span>
+                      <span className="text-sm text-gray-500">{order.vesselMake} {order.vesselModel}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{order.description}</p>
+                    <p className="text-xs text-gray-400 mt-2">
                       Started {new Date(order.startedAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
-                    In Progress
-                  </span>
+                  <div className="flex flex-col items-end gap-2 ml-4">
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                      In Progress
+                    </span>
+                    <button className="text-captain-600 text-sm font-medium hover:text-captain-700 flex items-center gap-1">
+                      Continue
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1337,8 +1413,6 @@ function MechanicDashboard() {
           vessel={scannedVessel}
           onClose={() => setScannedVessel(null)}
           onStartWorkOrder={() => {
-            // TODO: Navigate to create work order page
-            alert("Work order creation will be implemented in the next update!");
             setScannedVessel(null);
           }}
         />
@@ -1350,10 +1424,17 @@ function MechanicDashboard() {
           vessel={selectedVessel}
           onClose={() => setSelectedVessel(null)}
           onStartWorkOrder={() => {
-            // TODO: Navigate to create work order page
-            alert("Work order creation will be implemented in the next update!");
             setSelectedVessel(null);
           }}
+        />
+      )}
+
+      {/* Work Order Editor Modal */}
+      {editingWorkOrderId && (
+        <WorkOrderEditor
+          workOrderId={editingWorkOrderId}
+          onClose={() => setEditingWorkOrderId(null)}
+          onCompleted={() => setEditingWorkOrderId(null)}
         />
       )}
       </>
@@ -1367,6 +1448,23 @@ function MechanicDashboard() {
 
 function AdminDashboard() {
   const stats = useQuery(api.vessels.getAdminStats);
+  const isPartsSeeded = useQuery(api.parts.isSeeded);
+  const seedParts = useMutation(api.seedParts.seedInitialParts);
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [seedResult, setSeedResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleSeedParts = async () => {
+    setIsSeeding(true);
+    setSeedResult(null);
+    try {
+      const result = await seedParts();
+      setSeedResult(result);
+    } catch (err) {
+      setSeedResult({ success: false, message: err instanceof Error ? err.message : "Failed to seed parts" });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
 
   return (
     <div>
@@ -1393,6 +1491,60 @@ function AdminDashboard() {
           <p className="mt-2 text-3xl font-bold text-captain-600">
             {stats?.workOrderCount ?? "--"}
           </p>
+        </div>
+      </div>
+
+      {/* Database Management */}
+      <div className="rounded-xl border border-gray-200 bg-white p-6 mb-8">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Database Management</h3>
+        
+        {/* Seed Parts Database */}
+        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div>
+            <h4 className="font-medium text-gray-900">Parts Database</h4>
+            <p className="text-sm text-gray-500 mt-1">
+              {isPartsSeeded === undefined 
+                ? "Checking status..." 
+                : isPartsSeeded 
+                  ? "Database has been seeded with common marine parts" 
+                  : "Seed the database with ~25 common marine parts (oil filters, impellers, anodes, etc.)"}
+            </p>
+            {seedResult && (
+              <p className={`text-sm mt-2 ${seedResult.success ? "text-green-600" : "text-red-600"}`}>
+                {seedResult.message}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={handleSeedParts}
+            disabled={isSeeding || isPartsSeeded === true}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+              isPartsSeeded
+                ? "bg-green-100 text-green-700 cursor-default"
+                : "bg-captain-600 text-white hover:bg-captain-700 disabled:opacity-50"
+            }`}
+          >
+            {isSeeding ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Seeding...
+              </>
+            ) : isPartsSeeded ? (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Seeded
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                </svg>
+                Seed Parts Database
+              </>
+            )}
+          </button>
         </div>
       </div>
 

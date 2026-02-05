@@ -104,6 +104,9 @@ export const getWorkOrder = query({
       }))
     );
 
+    // Get owner info for chat
+    const owner = await ctx.db.get(vessel.ownerId);
+
     return {
       ...workOrder,
       vessel: {
@@ -111,6 +114,7 @@ export const getWorkOrder = query({
         make: vessel.make,
         model: vessel.model,
         year: vessel.year,
+        ownerName: owner?.fullName || owner?.name,
       },
       mechanic: {
         name: mechanic?.fullName,
@@ -328,7 +332,7 @@ export const cancelWorkOrder = mutation({
   },
 });
 
-// Add a part to a work order
+// Add a part to a work order (with auto-catalog feature)
 export const addPart = mutation({
   args: {
     workOrderId: v.id("workOrders"),
@@ -336,10 +340,12 @@ export const addPart = mutation({
     partNumber: v.optional(v.string()),
     serialNumber: v.optional(v.string()),
     manufacturer: v.optional(v.string()),
+    category: v.optional(v.string()),
     quantity: v.number(),
     unitCost: v.optional(v.number()),
     warrantyExpiry: v.optional(v.number()),
     warrantyTerms: v.optional(v.string()),
+    photoStorageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -356,16 +362,52 @@ export const addPart = mutation({
       throw new Error("Cannot add parts to a completed work order");
     }
 
+    // Auto-catalog: If part has a part number, add to/update the parts database
+    if (args.partNumber && args.manufacturer) {
+      const existingPart = await ctx.db
+        .query("partsDatabase")
+        .withIndex("by_partNumber", (q) => q.eq("partNumber", args.partNumber!))
+        .first();
+
+      if (existingPart) {
+        // Increment usage count
+        await ctx.db.patch(existingPart._id, {
+          usageCount: existingPart.usageCount + 1,
+        });
+      } else {
+        // Add new part to catalog
+        const validCategories = ["engine", "electrical", "plumbing", "fuel", "cooling", "steering", "hvac", "safety", "general"];
+        const category = args.category && validCategories.includes(args.category) 
+          ? args.category as "engine" | "electrical" | "plumbing" | "fuel" | "cooling" | "steering" | "hvac" | "safety" | "general"
+          : "general";
+
+        await ctx.db.insert("partsDatabase", {
+          partNumber: args.partNumber,
+          name: args.name,
+          manufacturer: args.manufacturer,
+          category,
+          averagePrice: args.unitCost,
+          isSeeded: false,
+          usageCount: 1,
+          createdAt: Date.now(),
+        });
+      }
+    }
+
+    // Add part to work order
     const partId = await ctx.db.insert("workOrderParts", {
       workOrderId: args.workOrderId,
       name: args.name,
       partNumber: args.partNumber,
       serialNumber: args.serialNumber,
       manufacturer: args.manufacturer,
+      category: args.category,
       quantity: args.quantity,
       unitCost: args.unitCost,
       warrantyExpiry: args.warrantyExpiry,
       warrantyTerms: args.warrantyTerms,
+      photoStorageId: args.photoStorageId,
+      addedAt: Date.now(),
     });
 
     return { partId };

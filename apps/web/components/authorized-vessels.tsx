@@ -6,6 +6,8 @@ import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { ManifestViewer } from "./manifest-viewer";
 import { ServiceHistoryViewer } from "./service-history-viewer";
+import { WorkOrderForm } from "./work-order-form";
+import { WorkOrderEditor } from "./work-order-editor";
 
 interface AuthorizedVesselsProps {
   onSelectVessel: (vessel: any) => void;
@@ -28,6 +30,8 @@ export function AuthorizedVessels({ onSelectVessel }: AuthorizedVesselsProps) {
   const authorizedVessels = useQuery(api.vessels.getAuthorizedVessels);
   const [manifestVessel, setManifestVessel] = useState<{ _id: Id<"vessels">; name: string } | null>(null);
   const [historyVessel, setHistoryVessel] = useState<{ _id: Id<"vessels">; name: string } | null>(null);
+  const [workOrderFormVessel, setWorkOrderFormVessel] = useState<{ _id: Id<"vessels">; name: string } | null>(null);
+  const [editingWorkOrderId, setEditingWorkOrderId] = useState<Id<"workOrders"> | null>(null);
 
   if (authorizedVessels === undefined) {
     return (
@@ -187,14 +191,14 @@ export function AuthorizedVessels({ onSelectVessel }: AuthorizedVesselsProps) {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onSelectVessel(vessel);
+                  setWorkOrderFormVessel({ _id: vessel._id, name: vessel.name });
                 }}
                 className="flex-1 py-2 bg-captain-600 text-white text-sm font-medium rounded-lg hover:bg-captain-700 transition-colors flex items-center justify-center gap-1"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                Work Order
+                Start Work Order
               </button>
               
               {/* Equipment Manifest Button */}
@@ -246,6 +250,28 @@ export function AuthorizedVessels({ onSelectVessel }: AuthorizedVesselsProps) {
           vesselId={historyVessel._id}
           vesselName={historyVessel.name}
           onClose={() => setHistoryVessel(null)}
+        />
+      )}
+
+      {/* Work Order Form Modal */}
+      {workOrderFormVessel && (
+        <WorkOrderForm
+          vesselId={workOrderFormVessel._id}
+          vesselName={workOrderFormVessel.name}
+          onSuccess={(workOrderId) => {
+            setWorkOrderFormVessel(null);
+            setEditingWorkOrderId(workOrderId);
+          }}
+          onCancel={() => setWorkOrderFormVessel(null)}
+        />
+      )}
+
+      {/* Work Order Editor Modal */}
+      {editingWorkOrderId && (
+        <WorkOrderEditor
+          workOrderId={editingWorkOrderId}
+          onClose={() => setEditingWorkOrderId(null)}
+          onCompleted={() => setEditingWorkOrderId(null)}
         />
       )}
     </div>
