@@ -447,3 +447,171 @@ export const getMaintenanceDue = query({
     return dueSoon;
   },
 });
+
+// Get upcoming service items across all owner's vessels (for landing page reminders)
+export const getUpcomingServiceItems = query({
+  args: {
+    daysAhead: v.optional(v.number()), // Default 30 days
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const user = await ctx.db.get(userId);
+    if (!user || user.role !== "owner") return [];
+
+    const daysAhead = args.daysAhead || 30;
+    const now = Date.now();
+    const futureLimit = now + daysAhead * 24 * 60 * 60 * 1000;
+
+    // Get all owner's vessels
+    const vessels = await ctx.db
+      .query("vessels")
+      .withIndex("by_owner", (q) => q.eq("ownerId", userId))
+      .collect();
+
+    if (vessels.length === 0) return [];
+
+    const upcomingItems: Array<{
+      equipment: any;
+      vessel: any;
+      dueDate: number;
+      daysUntilDue: number;
+      urgency: "overdue" | "urgent" | "soon" | "upcoming";
+      type: "service" | "warranty";
+    }> = [];
+
+    for (const vessel of vessels) {
+      const equipment = await ctx.db
+        .query("vesselEquipment")
+        .withIndex("by_vessel", (q) => q.eq("vesselId", vessel._id))
+        .collect();
+
+      for (const item of equipment) {
+        // Check for upcoming service based on nextServiceDate
+        if (item.nextServiceDate) {
+          const daysUntilDue = Math.ceil(
+            (item.nextServiceDate - now) / (24 * 60 * 60 * 1000)
+          );
+
+          if (item.nextServiceDate <= futureLimit) {
+            let urgency: "overdue" | "urgent" | "soon" | "upcoming";
+            if (daysUntilDue < 0) {
+              urgency = "overdue";
+            } else if (daysUntilDue <= 7) {
+              urgency = "urgent";
+            } else if (daysUntilDue <= 14) {
+              urgency = "soon";
+            } else {
+              urgency = "upcoming";
+            }
+
+            upcomingItems.push({
+              equipment: {
+                _id: item._id,
+                name: item.name,
+                category: item.category,
+                manufacturer: item.manufacturer,
+                model: item.model,
+              },
+              vessel: {
+                _id: vessel._id,
+                name: vessel.name,
+              },
+              dueDate: item.nextServiceDate,
+              daysUntilDue,
+              urgency,
+              type: "service",
+            });
+          }
+        }
+
+        // Check for calculated service date based on last service + interval
+        if (item.lastServiceDate && item.serviceIntervalDays && !item.nextServiceDate) {
+          const calculatedDueDate =
+            item.lastServiceDate + item.serviceIntervalDays * 24 * 60 * 60 * 1000;
+          const daysUntilDue = Math.ceil(
+            (calculatedDueDate - now) / (24 * 60 * 60 * 1000)
+          );
+
+          if (calculatedDueDate <= futureLimit) {
+            let urgency: "overdue" | "urgent" | "soon" | "upcoming";
+            if (daysUntilDue < 0) {
+              urgency = "overdue";
+            } else if (daysUntilDue <= 7) {
+              urgency = "urgent";
+            } else if (daysUntilDue <= 14) {
+              urgency = "soon";
+            } else {
+              urgency = "upcoming";
+            }
+
+            upcomingItems.push({
+              equipment: {
+                _id: item._id,
+                name: item.name,
+                category: item.category,
+                manufacturer: item.manufacturer,
+                model: item.model,
+              },
+              vessel: {
+                _id: vessel._id,
+                name: vessel.name,
+              },
+              dueDate: calculatedDueDate,
+              daysUntilDue,
+              urgency,
+              type: "service",
+            });
+          }
+        }
+
+        // Check for warranty expiration
+        if (item.warrantyExpiry && item.warrantyExpiry <= futureLimit) {
+          const daysUntilExpiry = Math.ceil(
+            (item.warrantyExpiry - now) / (24 * 60 * 60 * 1000)
+          );
+
+          if (daysUntilExpiry >= 0) {
+            let urgency: "overdue" | "urgent" | "soon" | "upcoming";
+            if (daysUntilExpiry <= 7) {
+              urgency = "urgent";
+            } else if (daysUntilExpiry <= 14) {
+              urgency = "soon";
+            } else {
+              urgency = "upcoming";
+            }
+
+            upcomingItems.push({
+              equipment: {
+                _id: item._id,
+                name: item.name,
+                category: item.category,
+                manufacturer: item.manufacturer,
+                model: item.model,
+              },
+              vessel: {
+                _id: vessel._id,
+                name: vessel.name,
+              },
+              dueDate: item.warrantyExpiry,
+              daysUntilDue: daysUntilExpiry,
+              urgency,
+              type: "warranty",
+            });
+          }
+        }
+      }
+    }
+
+    // Sort by urgency (overdue first, then by days until due)
+    const urgencyOrder = { overdue: 0, urgent: 1, soon: 2, upcoming: 3 };
+    upcomingItems.sort((a, b) => {
+      const urgencyDiff = urgencyOrder[a.urgency] - urgencyOrder[b.urgency];
+      if (urgencyDiff !== 0) return urgencyDiff;
+      return a.daysUntilDue - b.daysUntilDue;
+    });
+
+    return upcomingItems;
+  },
+});

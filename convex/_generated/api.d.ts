@@ -9,10 +9,12 @@
  */
 
 import type * as accessRequests from "../accessRequests.js";
+import type * as announcements from "../announcements.js";
 import type * as auth from "../auth.js";
 import type * as convex__generated_api from "../convex/_generated/api.js";
 import type * as convex__generated_server from "../convex/_generated/server.js";
 import type * as crons from "../crons.js";
+import type * as helpGuides from "../helpGuides.js";
 import type * as http from "../http.js";
 import type * as mechanicDirectory from "../mechanicDirectory.js";
 import type * as messages from "../messages.js";
@@ -37,10 +39,12 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   accessRequests: typeof accessRequests;
+  announcements: typeof announcements;
   auth: typeof auth;
   "convex/_generated/api": typeof convex__generated_api;
   "convex/_generated/server": typeof convex__generated_server;
   crons: typeof crons;
+  helpGuides: typeof helpGuides;
   http: typeof http;
   mechanicDirectory: typeof mechanicDirectory;
   messages: typeof messages;

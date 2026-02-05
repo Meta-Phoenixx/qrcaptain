@@ -2,12 +2,25 @@
 
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { useQuery } from "convex/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { Dashboard } from "@/components/dashboard";
 
 function AuthenticatedContent() {
+  const router = useRouter();
   const user = useQuery(api.users.currentUser);
+  const [fromHome, setFromHome] = useState(false);
+
+  // Check if user came from /home (indicated by URL param or referrer)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const fromHomeParam = urlParams.get("dashboard");
+      setFromHome(fromHomeParam === "true" || document.referrer.includes("/home"));
+    }
+  }, []);
 
   // User data still loading
   if (user === undefined) {
@@ -17,6 +30,19 @@ function AuthenticatedContent() {
       </div>
     );
   }
+
+  // If user hasn't explicitly chosen to view dashboard, redirect to home
+  // Check if they're coming from the home page (they clicked "View Dashboard")
+  // or if they have the dashboard param
+  useEffect(() => {
+    if (user && !fromHome) {
+      // Check localStorage to see if user prefers to go directly to dashboard
+      const preferDashboard = localStorage.getItem("qr-captain-prefer-dashboard");
+      if (!preferDashboard) {
+        router.push("/home");
+      }
+    }
+  }, [user, fromHome, router]);
 
   return <Dashboard />;
 }

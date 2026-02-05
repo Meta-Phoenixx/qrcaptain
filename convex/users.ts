@@ -536,3 +536,40 @@ export const updateOwnerProfile = mutation({
     return { success: true };
   },
 });
+
+// ============ ADMIN STATS ============
+
+// Get admin statistics for landing page
+export const getAdminStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+
+    const user = await ctx.db.get(userId);
+    if (!user || user.role !== "admin") return null;
+
+    // Get all counts
+    const users = await ctx.db.query("users").collect();
+    const vessels = await ctx.db.query("vessels").collect();
+    const workOrders = await ctx.db.query("workOrders").collect();
+
+    // Calculate new users this week
+    const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    // Since we don't have a createdAt on users, we'll use onboardingCompletedAt as a proxy
+    const newUsersThisWeek = users.filter(
+      (u) => u.onboardingCompletedAt && u.onboardingCompletedAt > oneWeekAgo
+    ).length;
+
+    return {
+      totalUsers: users.length,
+      totalVessels: vessels.length,
+      totalWorkOrders: workOrders.length,
+      newUsersThisWeek,
+      ownerCount: users.filter((u) => u.role === "owner").length,
+      mechanicCount: users.filter((u) => u.role === "mechanic").length,
+      activeWorkOrders: workOrders.filter((wo) => wo.status === "in_progress").length,
+      completedWorkOrders: workOrders.filter((wo) => wo.status === "completed").length,
+    };
+  },
+});

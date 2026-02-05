@@ -17,7 +17,9 @@ import {
   Clock,
   FileText,
   X,
+  Megaphone,
 } from "lucide-react";
+import { AnnouncementManager } from "./announcement-manager";
 
 interface AdminControlPanelProps {
   onClose: () => void;
@@ -75,7 +77,7 @@ const CATEGORY_INFO: Record<SettingCategory, { label: string; icon: React.ReactN
 };
 
 export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "settings" | "announcements">("overview");
   const [activeCategory, setActiveCategory] = useState<SettingCategory>("notifications");
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
@@ -196,6 +198,17 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
             >
               <Settings className="w-4 h-4" />
               Settings
+            </button>
+            <button
+              onClick={() => setActiveTab("announcements")}
+              className={`pb-2 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+                activeTab === "announcements"
+                  ? "border-captain-600 text-captain-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <Megaphone className="w-4 h-4" />
+              Announcements
             </button>
           </div>
         </div>
@@ -375,6 +388,11 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
                 )}
               </div>
             </div>
+          )}
+
+          {/* Announcements Tab */}
+          {activeTab === "announcements" && (
+            <AnnouncementManager />
           )}
         </div>
       </div>

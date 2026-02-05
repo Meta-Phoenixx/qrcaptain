@@ -491,3 +491,174 @@ export const searchMechanics = query({
     return results;
   },
 });
+
+// Get featured mechanics for landing page (top-rated, available mechanics)
+export const getFeaturedMechanics = query({
+  args: {
+    limit: v.optional(v.number()),
+    serviceAreas: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const limit = args.limit || 6;
+
+    // Get all mechanics with completed onboarding
+    let mechanics = await ctx.db
+      .query("users")
+      .withIndex("by_role", (q) => q.eq("role", "mechanic"))
+      .filter((q) => q.eq(q.field("onboardingCompleted"), true))
+      .collect();
+
+    // Filter to only available or limited availability mechanics
+    mechanics = mechanics.filter(
+      (m) =>
+        m.availabilityStatus === "available" ||
+        m.availabilityStatus === "limited" ||
+        !m.availabilityStatus // Default to available if not set
+    );
+
+    // Filter by service areas if provided
+    if (args.serviceAreas && args.serviceAreas.length > 0) {
+      const searchAreas = args.serviceAreas.map((a) => a.toLowerCase());
+      mechanics = mechanics.filter((m) =>
+        m.serviceAreas?.some((area) =>
+          searchAreas.some((searchArea) =>
+            area.toLowerCase().includes(searchArea)
+          )
+        )
+      );
+    }
+
+    // Get metrics and enrich data
+    const mechanicsWithMetrics = await Promise.all(
+      mechanics.map(async (mechanic) => {
+        const metrics = await ctx.db
+          .query("mechanicMetrics")
+          .withIndex("by_mechanic", (q) => q.eq("mechanicId", mechanic._id))
+          .first();
+
+        let imageUrl = null;
+        if (mechanic.companyLogoStorageId) {
+          imageUrl = await ctx.storage.getUrl(mechanic.companyLogoStorageId);
+        } else if (mechanic.profilePhotoStorageId) {
+          imageUrl = await ctx.storage.getUrl(mechanic.profilePhotoStorageId);
+        }
+
+        return {
+          _id: mechanic._id,
+          companyName: mechanic.companyName,
+          fullName: mechanic.fullName,
+          imageUrl,
+          availabilityStatus: mechanic.availabilityStatus || "available",
+          serviceAreas: mechanic.serviceAreas || [],
+          specializations: mechanic.specializations || [],
+          isInsured: mechanic.isInsured,
+          hasMobileCapabilities: mechanic.hasMobileCapabilities,
+          avgOverallRating: metrics?.avgOverallRating || null,
+          totalRatings: metrics?.totalRatings || 0,
+          totalJobsCompleted: metrics?.totalJobsCompleted || 0,
+          avgResponseTimeMinutes: metrics?.avgResponseTimeMinutes || null,
+        };
+      })
+    );
+
+    // Score and sort mechanics for featuring
+    // Prioritize: rating, jobs completed, response time, availability
+    const scored = mechanicsWithMetrics.map((m) => {
+      let score = 0;
+
+      // Rating score (0-50 points)
+      if (m.avgOverallRating) {
+        score += m.avgOverallRating * 10;
+      }
+
+      // Jobs completed score (0-20 points)
+      score += Math.min(m.totalJobsCompleted * 2, 20);
+
+      // Response time score (0-15 points, lower is better)
+      if (m.avgResponseTimeMinutes) {
+        if (m.avgResponseTimeMinutes <= 30) score += 15;
+        else if (m.avgResponseTimeMinutes <= 60) score += 12;
+        else if (m.avgResponseTimeMinutes <= 120) score += 9;
+        else if (m.avgResponseTimeMinutes <= 240) score += 6;
+        else if (m.avgResponseTimeMinutes <= 480) score += 3;
+      }
+
+      // Availability bonus (0-10 points)
+      if (m.availabilityStatus === "available") score += 10;
+      else if (m.availabilityStatus === "limited") score += 5;
+
+      // Trust badges (0-5 points)
+      if (m.isInsured) score += 3;
+      if (m.hasMobileCapabilities) score += 2;
+
+      return { ...m, score };
+    });
+
+    // Sort by score descending
+    scored.sort((a, b) => b.score - a.score);
+
+    // Return top mechanics without the score
+    return scored.slice(0, limit).map(({ score, ...mechanic }) => mechanic);
+  },
+});
+
+// Get mechanic stats summary for the current user (for mechanic landing page)
+export const getMechanicStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+
+    const user = await ctx.db.get(userId);
+    if (!user || user.role !== "mechanic") return null;
+
+    // Get work orders for this month
+    const now = Date.now();
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    const startOfMonthMs = startOfMonth.getTime();
+
+    const allWorkOrders = await ctx.db
+      .query("workOrders")
+      .withIndex("by_mechanic", (q) => q.eq("mechanicId", userId))
+      .collect();
+
+    const activeWorkOrders = allWorkOrders.filter(
+      (wo) =>
+        wo.status === "in_progress" ||
+        wo.status === "quote_requested" ||
+        wo.status === "quoted"
+    );
+
+    const completedThisMonth = allWorkOrders.filter(
+      (wo) =>
+        wo.status === "completed" &&
+        wo.completedAt &&
+        wo.completedAt >= startOfMonthMs
+    );
+
+    const pendingQuoteRequests = allWorkOrders.filter(
+      (wo) => wo.status === "quote_requested"
+    );
+
+    // Get metrics
+    const metrics = await ctx.db
+      .query("mechanicMetrics")
+      .withIndex("by_mechanic", (q) => q.eq("mechanicId", userId))
+      .first();
+
+    return {
+      activeJobs: activeWorkOrders.length,
+      completedThisMonth: completedThisMonth.length,
+      pendingQuoteRequests: pendingQuoteRequests.length,
+      totalJobsCompleted: metrics?.totalJobsCompleted || 0,
+      avgOverallRating: metrics?.avgOverallRating || null,
+      totalRatings: metrics?.totalRatings || 0,
+      availabilityStatus: user.availabilityStatus || "available",
+    };
+  },
+});

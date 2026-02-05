@@ -512,4 +512,72 @@ export default defineSchema({
   })
     .index("by_key", ["key"])
     .index("by_category", ["category"]),
+
+  // ============================================
+  // ANNOUNCEMENTS (Admin broadcasts)
+  // ============================================
+  announcements: defineTable({
+    title: v.string(),
+    content: v.string(),
+    type: v.union(
+      v.literal("info"),          // General information
+      v.literal("feature"),       // New feature announcement
+      v.literal("maintenance"),   // Scheduled maintenance
+      v.literal("tip"),           // Seasonal/helpful tips
+      v.literal("urgent")         // Critical alerts
+    ),
+    targetRoles: v.array(v.union(
+      v.literal("owner"),
+      v.literal("mechanic"),
+      v.literal("admin"),
+      v.literal("all")
+    )),
+    isActive: v.boolean(),
+    isPinned: v.boolean(),        // Show at top
+    expiresAt: v.optional(v.number()),
+    createdAt: v.number(),
+    createdBy: v.id("users"),
+  })
+    .index("by_active", ["isActive"])
+    .index("by_type", ["type"])
+    .index("by_created", ["createdAt"]),
+
+  // Track which announcements users have dismissed
+  announcementDismissals: defineTable({
+    userId: v.id("users"),
+    announcementId: v.id("announcements"),
+    dismissedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_announcement", ["userId", "announcementId"]),
+
+  // ============================================
+  // HELP GUIDES (In-app documentation)
+  // ============================================
+  helpGuides: defineTable({
+    title: v.string(),
+    summary: v.string(),
+    content: v.string(),          // Markdown content
+    category: v.union(
+      v.literal("getting_started"),
+      v.literal("vessels"),
+      v.literal("work_orders"),
+      v.literal("mechanics"),
+      v.literal("equipment"),
+      v.literal("billing"),
+      v.literal("troubleshooting")
+    ),
+    targetRoles: v.array(v.union(
+      v.literal("owner"),
+      v.literal("mechanic"),
+      v.literal("admin")
+    )),
+    sortOrder: v.number(),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_category", ["category"])
+    .index("by_active", ["isActive"])
+    .index("by_sort_order", ["sortOrder"]),
 });
