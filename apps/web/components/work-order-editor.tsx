@@ -11,17 +11,40 @@ interface WorkOrderEditorProps {
   workOrderId: Id<"workOrders">;
   onClose: () => void;
   onCompleted?: () => void;
+  initialTab?: "details" | "parts" | "photos" | "chat" | "rating";
 }
 
 type PhotoType = "before" | "during" | "after";
 
-export function WorkOrderEditor({ workOrderId, onClose, onCompleted }: WorkOrderEditorProps) {
-  const [activeTab, setActiveTab] = useState<"details" | "parts" | "photos" | "chat">("details");
+// Helper to get status badge styling
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case "quote_requested":
+      return { bg: "bg-orange-100", text: "text-orange-800", label: "Quote Requested" };
+    case "quoted":
+      return { bg: "bg-blue-100", text: "text-blue-800", label: "Quoted" };
+    case "declined":
+      return { bg: "bg-red-100", text: "text-red-800", label: "Declined" };
+    case "in_progress":
+      return { bg: "bg-yellow-100", text: "text-yellow-800", label: "In Progress" };
+    case "completed":
+      return { bg: "bg-green-100", text: "text-green-800", label: "Completed" };
+    case "cancelled":
+      return { bg: "bg-gray-100", text: "text-gray-800", label: "Cancelled" };
+    default:
+      return { bg: "bg-gray-100", text: "text-gray-800", label: status };
+  }
+};
+
+// Autosave debounce delay (2 seconds - industry standard)
+const AUTOSAVE_DELAY_MS = 2000;
+
+export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab = "details" }: WorkOrderEditorProps) {
+  const [activeTab, setActiveTab] = useState<"details" | "parts" | "photos" | "chat" | "rating">(initialTab);
   const [diagnosis, setDiagnosis] = useState("");
   const [workPerformed, setWorkPerformed] = useState("");
   const [laborHours, setLaborHours] = useState<string>("");
   const [laborRate, setLaborRate] = useState<string>("");
-  const [isSaving, setIsSaving] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
@@ -30,11 +53,27 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted }: WorkOrder
   const [photoCaption, setPhotoCaption] = useState("");
   const [photoType, setPhotoType] = useState<PhotoType>("during");
   const [messageInput, setMessageInput] = useState("");
+  const [estimatedCompletionDate, setEstimatedCompletionDate] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Autosave state
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const isInitializedRef = useRef(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Rating states
+  const [ratingValues, setRatingValues] = useState<Record<string, number>>({});
+  const [ratingReview, setRatingReview] = useState("");
+  const [isSubmittingRating, setIsSubmittingRating] = useState(false);
 
   // Fetch work order data
   const workOrder = useQuery(api.workOrders.getWorkOrder, { workOrderId });
+  
+  // Check if user can rate
+  const canRateResult = useQuery(api.ratings.canRateWorkOrder, { workOrderId });
+  const currentUser = useQuery(api.users.currentUser);
   
   // Chat data
   const messages = useQuery(api.workOrderMessages.getWorkOrderMessages, { workOrderId });
@@ -44,6 +83,8 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted }: WorkOrder
   const updateWorkOrder = useMutation(api.workOrders.updateWorkOrder);
   const completeWorkOrder = useMutation(api.workOrders.completeWorkOrder);
   const cancelWorkOrder = useMutation(api.workOrders.cancelWorkOrder);
+  const createMechanicRating = useMutation(api.ratings.createMechanicRating);
+  const createOwnerRating = useMutation(api.ratings.createOwnerRating);
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const saveWorkOrderPhoto = useMutation(api.storage.saveWorkOrderPhoto);
   const deleteWorkOrderPhoto = useMutation(api.storage.deleteWorkOrderPhoto);
@@ -89,14 +130,92 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted }: WorkOrder
   };
 
   // Initialize form values from work order
-  useState(() => {
-    if (workOrder) {
+  useEffect(() => {
+    if (workOrder && !isInitializedRef.current) {
       setDiagnosis(workOrder.diagnosis || "");
       setWorkPerformed(workOrder.workPerformed || "");
       setLaborHours(workOrder.laborHours?.toString() || "");
       setLaborRate(workOrder.laborRate?.toString() || "");
+      // Initialize estimated completion date
+      if (workOrder.estimatedCompletionDate) {
+        const date = new Date(workOrder.estimatedCompletionDate);
+        setEstimatedCompletionDate(date.toISOString().split('T')[0]);
+      }
+      // Mark as initialized to prevent re-initialization
+      isInitializedRef.current = true;
     }
-  });
+  }, [workOrder?._id]);
+
+  // Autosave effect - debounced save when form values change
+  // This must be before any early returns to satisfy React hooks rules
+  useEffect(() => {
+    // Only trigger autosave after initialization and for in-progress work orders
+    if (!isInitializedRef.current || !workOrder || workOrder.status !== "in_progress") {
+      return;
+    }
+
+    // Mark as having unsaved changes
+    setHasUnsavedChanges(true);
+    setSaveStatus("idle");
+
+    // Clear existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Set new debounced save
+    saveTimeoutRef.current = setTimeout(async () => {
+      setSaveStatus("saving");
+      try {
+        // Calculate totals inside the callback
+        const partsTotal = workOrder.parts.reduce((sum, p) => sum + (p.unitCost || 0) * p.quantity, 0);
+        const laborTotal = (parseFloat(laborHours) || 0) * (parseFloat(laborRate) || 0);
+        const grandTotal = partsTotal + laborTotal;
+        
+        // Convert date string to timestamp if provided
+        const completionTimestamp = estimatedCompletionDate 
+          ? new Date(estimatedCompletionDate).getTime() 
+          : undefined;
+
+        await updateWorkOrder({
+          workOrderId,
+          diagnosis: diagnosis || undefined,
+          workPerformed: workPerformed || undefined,
+          laborHours: laborHours ? parseFloat(laborHours) : undefined,
+          laborRate: laborRate ? parseFloat(laborRate) : undefined,
+          totalCost: grandTotal > 0 ? grandTotal : undefined,
+          estimatedCompletionDate: completionTimestamp,
+        });
+        
+        setSaveStatus("saved");
+        setHasUnsavedChanges(false);
+        
+        // Reset to idle after showing "Saved" for 2 seconds
+        setTimeout(() => {
+          setSaveStatus((current) => current === "saved" ? "idle" : current);
+        }, 2000);
+      } catch (err) {
+        console.error("Failed to autosave:", err);
+        setSaveStatus("error");
+      }
+    }, AUTOSAVE_DELAY_MS);
+
+    // Cleanup on unmount or when dependencies change
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [diagnosis, workPerformed, laborHours, laborRate, estimatedCompletionDate, workOrder, workOrderId, updateWorkOrder]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (!workOrder) {
     return (
@@ -111,29 +230,10 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted }: WorkOrder
     );
   }
 
-  // Calculate totals
+  // Calculate totals (for display purposes)
   const partsTotal = workOrder.parts.reduce((sum, p) => sum + (p.unitCost || 0) * p.quantity, 0);
   const laborTotal = (parseFloat(laborHours) || 0) * (parseFloat(laborRate) || 0);
   const grandTotal = partsTotal + laborTotal;
-
-  // Save changes
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await updateWorkOrder({
-        workOrderId,
-        diagnosis: diagnosis || undefined,
-        workPerformed: workPerformed || undefined,
-        laborHours: laborHours ? parseFloat(laborHours) : undefined,
-        laborRate: laborRate ? parseFloat(laborRate) : undefined,
-        totalCost: grandTotal > 0 ? grandTotal : undefined,
-      });
-    } catch (err) {
-      console.error("Failed to save:", err);
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   // Complete work order
   const handleComplete = async () => {
@@ -232,9 +332,41 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted }: WorkOrder
             <div>
               <div className="flex items-center gap-3">
                 <h2 className="text-xl font-semibold text-gray-900">Work Order</h2>
-                <span className="px-2.5 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full">
-                  In Progress
-                </span>
+                {(() => {
+                  const badge = getStatusBadge(workOrder.status);
+                  return (
+                    <span className={`px-2.5 py-1 ${badge.bg} ${badge.text} text-sm font-medium rounded-full`}>
+                      {badge.label}
+                    </span>
+                  );
+                })()}
+                {/* Autosave indicator in header */}
+                {workOrder.status === "in_progress" && (
+                  <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                    {saveStatus === "saving" && (
+                      <>
+                        <div className="w-2.5 h-2.5 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                        <span>Saving...</span>
+                      </>
+                    )}
+                    {saveStatus === "saved" && (
+                      <>
+                        <svg className="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-green-600">Saved</span>
+                      </>
+                    )}
+                    {saveStatus === "error" && (
+                      <>
+                        <svg className="w-3 h-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
+                        </svg>
+                        <span className="text-red-500">Save failed</span>
+                      </>
+                    )}
+                  </span>
+                )}
               </div>
               <p className="text-sm text-gray-500 mt-0.5">
                 {workOrder.vessel.name} • {workOrder.vessel.make} {workOrder.vessel.model}
@@ -290,6 +422,29 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted }: WorkOrder
                 </span>
               )}
             </button>
+            
+            {/* Rating Tab - Show when completed and can rate */}
+            {workOrder.status === "completed" && canRateResult?.canRate && (
+              <button
+                onClick={() => setActiveTab("rating")}
+                className={`pb-2 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+                  activeTab === "rating"
+                    ? "border-captain-600 text-captain-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {canRateResult.ratingType === "mechanic" ? (
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                )}
+                <span className="text-orange-600 font-semibold">Leave Review</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -307,6 +462,51 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted }: WorkOrder
                   {workOrder.description}
                 </div>
               </div>
+
+              {/* Estimated Completion Date - Editable for mechanics on in_progress, read-only otherwise */}
+              {currentUser?.role === "mechanic" && workOrder.status === "in_progress" ? (
+                <div className="p-4 bg-captain-50 rounded-lg border border-captain-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Estimated Completion Date
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-captain-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-captain-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="date"
+                      value={estimatedCompletionDate}
+                      onChange={(e) => setEstimatedCompletionDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="flex-1 px-3 py-2 border border-captain-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black bg-white"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">Update when you expect to complete the work</p>
+                </div>
+              ) : workOrder.estimatedCompletionDate ? (
+                <div className="p-4 bg-captain-50 rounded-lg border border-captain-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-captain-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-captain-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Estimated Completion Date</p>
+                      <p className="font-semibold text-gray-900">
+                        {new Date(workOrder.estimatedCompletionDate).toLocaleDateString(undefined, {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
 
               {/* Diagnosis */}
               <div>
@@ -388,26 +588,34 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted }: WorkOrder
                 </div>
               </div>
 
-              {/* Save Button */}
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="w-full py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 font-medium transition-colors flex items-center justify-center gap-2"
-              >
-                {isSaving ? (
+              {/* Autosave Status Indicator */}
+              <div className="flex items-center justify-center gap-2 py-2 text-sm">
+                {saveStatus === "saving" && (
                   <>
-                    <div className="w-4 h-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Save Progress
+                    <div className="w-3.5 h-3.5 border-2 border-captain-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-gray-500">Saving changes...</span>
                   </>
                 )}
-              </button>
+                {saveStatus === "saved" && (
+                  <>
+                    <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-green-600">All changes saved</span>
+                  </>
+                )}
+                {saveStatus === "error" && (
+                  <>
+                    <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-red-600">Failed to save</span>
+                  </>
+                )}
+                {saveStatus === "idle" && hasUnsavedChanges && (
+                  <span className="text-gray-400 text-xs">Changes will be saved automatically</span>
+                )}
+              </div>
             </div>
           )}
 
@@ -594,35 +802,212 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted }: WorkOrder
               </div>
             </div>
           )}
+
+          {/* Rating Tab */}
+          {activeTab === "rating" && canRateResult?.canRate && (
+            <div className="space-y-6">
+              <div className="text-center pb-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {canRateResult.ratingType === "mechanic" 
+                    ? "Rate the Mechanic" 
+                    : "Rate the Owner"}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {canRateResult.ratingType === "mechanic"
+                    ? "Your feedback helps other boat owners make informed decisions"
+                    : "Your rating helps build trust in the QR Captain community"}
+                </p>
+              </div>
+
+              {/* Rating Criteria */}
+              <div className="space-y-4">
+                {canRateResult.ratingType === "mechanic" ? (
+                  // Owner rating mechanic (wrench icons)
+                  <>
+                    {[
+                      { key: "quality", label: "Quality of Work", description: "How well was the work performed?" },
+                      { key: "communication", label: "Communication", description: "Were they responsive and clear?" },
+                      { key: "professionalism", label: "Professionalism", description: "Were they courteous and respectful?" },
+                      { key: "value", label: "Value for Money", description: "Was the pricing fair for the work done?" },
+                    ].map((criteria) => (
+                      <div key={criteria.key} className="p-4 bg-gray-50 rounded-lg">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="font-medium text-gray-900">{criteria.label}</p>
+                            <p className="text-xs text-gray-500">{criteria.description}</p>
+                          </div>
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((value) => (
+                              <button
+                                key={value}
+                                onClick={() => setRatingValues(prev => ({ ...prev, [criteria.key]: value }))}
+                                className={`p-1 transition-colors ${
+                                  (ratingValues[criteria.key] || 0) >= value
+                                    ? "text-orange-500"
+                                    : "text-gray-300 hover:text-orange-300"
+                                }`}
+                              >
+                                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                                </svg>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  // Mechanic rating owner (star icons)
+                  <>
+                    {[
+                      { key: "communication", label: "Communication", description: "Were they responsive and clear about their needs?" },
+                      { key: "preparedness", label: "Preparedness", description: "Was the boat ready and accessible for work?" },
+                      { key: "payment", label: "Payment", description: "Was payment prompt and hassle-free?" },
+                      { key: "respect", label: "Respectfulness", description: "Were they courteous and professional?" },
+                    ].map((criteria) => (
+                      <div key={criteria.key} className="p-4 bg-gray-50 rounded-lg">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="font-medium text-gray-900">{criteria.label}</p>
+                            <p className="text-xs text-gray-500">{criteria.description}</p>
+                          </div>
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((value) => (
+                              <button
+                                key={value}
+                                onClick={() => setRatingValues(prev => ({ ...prev, [criteria.key]: value }))}
+                                className={`p-1 transition-colors ${
+                                  (ratingValues[criteria.key] || 0) >= value
+                                    ? "text-yellow-500"
+                                    : "text-gray-300 hover:text-yellow-300"
+                                }`}
+                              >
+                                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                </svg>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+
+              {/* Written Review */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Written Review (optional)
+                </label>
+                <textarea
+                  value={ratingReview}
+                  onChange={(e) => setRatingReview(e.target.value)}
+                  placeholder={canRateResult.ratingType === "mechanic" 
+                    ? "Share details about your experience with this mechanic..."
+                    : "Share details about your experience working with this owner..."}
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black placeholder-gray-400 resize-none"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <button
+                onClick={async () => {
+                  setIsSubmittingRating(true);
+                  try {
+                    if (canRateResult.ratingType === "mechanic") {
+                      await createMechanicRating({
+                        workOrderId,
+                        qualityRating: ratingValues.quality || 3,
+                        communicationRating: ratingValues.communication || 3,
+                        professionalismRating: ratingValues.professionalism || 3,
+                        valueRating: ratingValues.value || 3,
+                        review: ratingReview || undefined,
+                      });
+                    } else {
+                      await createOwnerRating({
+                        workOrderId,
+                        communicationRating: ratingValues.communication || 3,
+                        preparednessRating: ratingValues.preparedness || 3,
+                        paymentRating: ratingValues.payment || 3,
+                        respectRating: ratingValues.respect || 3,
+                        review: ratingReview || undefined,
+                      });
+                    }
+                    onClose();
+                  } catch (err) {
+                    console.error("Failed to submit rating:", err);
+                    alert(err instanceof Error ? err.message : "Failed to submit rating");
+                  } finally {
+                    setIsSubmittingRating(false);
+                  }
+                }}
+                disabled={isSubmittingRating || Object.keys(ratingValues).length === 0}
+                className="w-full py-3 bg-captain-600 text-white rounded-lg hover:bg-captain-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2"
+              >
+                {isSubmittingRating ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Submit Review
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Footer Actions */}
-        <div className="flex-shrink-0 border-t border-gray-200 px-6 py-4">
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowCancelConfirm(true)}
-              className="px-4 py-2.5 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium"
-            >
-              Cancel Order
-            </button>
-            <div className="flex-1"></div>
-            <button
-              onClick={onClose}
-              className="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-            >
-              Close
-            </button>
-            <button
-              onClick={() => setShowCompleteConfirm(true)}
-              className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Complete Work Order
-            </button>
+        {/* Footer Actions - Only show for in_progress orders and for mechanics */}
+        {workOrder.status === "in_progress" && currentUser?.role === "mechanic" && (
+          <div className="flex-shrink-0 border-t border-gray-200 px-6 py-4">
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelConfirm(true)}
+                className="px-4 py-2.5 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium"
+              >
+                Cancel Order
+              </button>
+              <div className="flex-1"></div>
+              <button
+                onClick={onClose}
+                className="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => setShowCompleteConfirm(true)}
+                className="px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Complete Work Order
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Footer for completed/other status - just a close button */}
+        {(workOrder.status !== "in_progress" || currentUser?.role !== "mechanic") && (
+          <div className="flex-shrink-0 border-t border-gray-200 px-6 py-4">
+            <div className="flex justify-end">
+              <button
+                onClick={onClose}
+                className="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Complete Confirmation Modal */}
         {showCompleteConfirm && (

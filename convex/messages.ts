@@ -220,7 +220,7 @@ export const getRecentConversations = query({
   },
 });
 
-// Mark messages as read
+// Mark messages as read (with timestamp for response time calculation)
 export const markConversationAsRead = mutation({
   args: {
     otherUserId: v.id("users"),
@@ -229,6 +229,8 @@ export const markConversationAsRead = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
+
+    const now = Date.now();
 
     // Get unread messages from the other user
     const unreadMessages = await ctx.db
@@ -248,7 +250,10 @@ export const markConversationAsRead = mutation({
       : unreadMessages;
 
     await Promise.all(
-      messagesToUpdate.map((m) => ctx.db.patch(m._id, { isRead: true }))
+      messagesToUpdate.map((m) => ctx.db.patch(m._id, { 
+        isRead: true,
+        readAt: now,  // Track when message was read for response time
+      }))
     );
 
     return { success: true, count: messagesToUpdate.length };
@@ -269,5 +274,160 @@ export const getUnreadMessageCount = query({
       .collect();
 
     return unreadMessages.length;
+  },
+});
+
+// ============ RESPONSE TIME TRACKING ============
+
+// Calculate average response time for a user (typically a mechanic)
+// This measures how long it takes them to send their first reply after receiving a message
+export const calculateAverageResponseTime = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    // Get all messages received by this user in the last 30 days
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    
+    const receivedMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_receiver_created", (q) => q.eq("receiverId", args.userId))
+      .filter((q) => q.gte(q.field("createdAt"), thirtyDaysAgo))
+      .collect();
+
+    // Get all messages sent by this user in the last 30 days
+    const sentMessages = await ctx.db
+      .query("messages")
+      .withIndex("by_sender", (q) => q.eq("senderId", args.userId))
+      .filter((q) => q.gte(q.field("createdAt"), thirtyDaysAgo))
+      .collect();
+
+    // Group received messages by sender to find conversation threads
+    const conversationStarts = new Map<string, typeof receivedMessages[0][]>();
+    for (const msg of receivedMessages) {
+      const senderId = msg.senderId;
+      if (!conversationStarts.has(senderId)) {
+        conversationStarts.set(senderId, []);
+      }
+      conversationStarts.get(senderId)!.push(msg);
+    }
+
+    // Calculate response times
+    const responseTimes: number[] = [];
+
+    for (const [senderId, incomingMessages] of conversationStarts) {
+      // Sort incoming messages by time
+      incomingMessages.sort((a, b) => a.createdAt - b.createdAt);
+
+      // Find replies from the user to this sender
+      const replies = sentMessages
+        .filter(m => m.receiverId === senderId)
+        .sort((a, b) => a.createdAt - b.createdAt);
+
+      // For each incoming message, find the next reply
+      for (const incoming of incomingMessages) {
+        // Find the first reply after this incoming message
+        const reply = replies.find(r => r.createdAt > incoming.createdAt);
+        
+        if (reply) {
+          const responseTimeMs = reply.createdAt - incoming.createdAt;
+          // Only count reasonable response times (less than 7 days)
+          if (responseTimeMs < 7 * 24 * 60 * 60 * 1000) {
+            responseTimes.push(responseTimeMs);
+          }
+        }
+      }
+    }
+
+    if (responseTimes.length === 0) {
+      return {
+        avgResponseTimeMinutes: null,
+        totalConversations: conversationStarts.size,
+        responsesAnalyzed: 0,
+      };
+    }
+
+    // Calculate average in minutes
+    const avgMs = responseTimes.reduce((sum, t) => sum + t, 0) / responseTimes.length;
+    const avgMinutes = Math.round(avgMs / (60 * 1000));
+
+    return {
+      avgResponseTimeMinutes: avgMinutes,
+      totalConversations: conversationStarts.size,
+      responsesAnalyzed: responseTimes.length,
+    };
+  },
+});
+
+// Get formatted response time display string
+export const getResponseTimeDisplay = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    // First check if we have cached metrics
+    const metrics = await ctx.db
+      .query("mechanicMetrics")
+      .withIndex("by_mechanic", (q) => q.eq("mechanicId", args.userId))
+      .first();
+
+    const minutes = metrics?.avgResponseTimeMinutes;
+    
+    if (!minutes) {
+      return { display: "No data yet", minutes: null };
+    }
+
+    // Format the display string
+    let display: string;
+    if (minutes < 60) {
+      display = `Usually responds in ${minutes} min`;
+    } else if (minutes < 1440) {
+      const hours = Math.round(minutes / 60);
+      display = `Usually responds in ${hours} ${hours === 1 ? "hour" : "hours"}`;
+    } else {
+      const days = Math.round(minutes / 1440);
+      display = `Usually responds in ${days} ${days === 1 ? "day" : "days"}`;
+    }
+
+    return { display, minutes };
+  },
+});
+
+// Update mechanic's response time metrics (called after calculating)
+export const updateResponseTimeMetrics = mutation({
+  args: {
+    mechanicId: v.id("users"),
+    avgResponseTimeMinutes: v.number(),
+  },
+  handler: async (ctx, args) => {
+    // This should only be called internally or by admin
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const user = await ctx.db.get(userId);
+    // Allow mechanics to update their own metrics or admins
+    if (user?.role !== "admin" && userId !== args.mechanicId) {
+      throw new Error("Not authorized");
+    }
+
+    const existingMetrics = await ctx.db
+      .query("mechanicMetrics")
+      .withIndex("by_mechanic", (q) => q.eq("mechanicId", args.mechanicId))
+      .first();
+
+    if (existingMetrics) {
+      await ctx.db.patch(existingMetrics._id, {
+        avgResponseTimeMinutes: args.avgResponseTimeMinutes,
+        responseTimeCalculatedAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    } else {
+      await ctx.db.insert("mechanicMetrics", {
+        mechanicId: args.mechanicId,
+        avgResponseTimeMinutes: args.avgResponseTimeMinutes,
+        responseTimeCalculatedAt: Date.now(),
+        totalJobsCompleted: 0,
+        totalRatings: 0,
+        updatedAt: Date.now(),
+      });
+    }
+
+    return { success: true };
   },
 });

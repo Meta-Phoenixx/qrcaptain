@@ -20,6 +20,10 @@ import { OwnerOnboarding } from "./owner-onboarding";
 import { VesselOnboarding } from "./vessel-onboarding";
 import { OwnerProfile } from "./owner-profile";
 import { WorkOrderEditor } from "./work-order-editor";
+import { MechanicQuoteForm } from "./mechanic-quote-form";
+import { QuoteViewer } from "./quote-viewer";
+import { WorkOrderRequestForm } from "./work-order-request-form";
+import { AdminControlPanel } from "./admin-control-panel";
 
 // ============================================
 // PROFILE DROPDOWN COMPONENT
@@ -140,6 +144,14 @@ export function Dashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<Id<"accessRequests"> | null>(null);
   const [showProfile, setShowProfile] = useState(false);
+  
+  // Notification-linked states
+  const [viewingQuoteId, setViewingQuoteId] = useState<Id<"workOrders"> | null>(null);
+  const [viewingWorkOrderId, setViewingWorkOrderId] = useState<Id<"workOrders"> | null>(null);
+  const [viewingOwnerWorkOrderId, setViewingOwnerWorkOrderId] = useState<Id<"workOrders"> | null>(null);
+  const [viewingWorkOrderForRating, setViewingWorkOrderForRating] = useState<Id<"workOrders"> | null>(null);
+  const [respondingToRequestId, setRespondingToRequestId] = useState<Id<"workOrders"> | null>(null);
+  const [viewingVesselId, setViewingVesselId] = useState<Id<"vessels"> | null>(null);
 
   if (!user) {
     return (
@@ -165,6 +177,31 @@ export function Dashboard() {
                 onViewRequest={(requestId) => {
                   setShowNotifications(false);
                   setSelectedRequestId(requestId);
+                }}
+                onViewQuote={(workOrderId) => {
+                  setShowNotifications(false);
+                  setViewingQuoteId(workOrderId);
+                }}
+                onViewWorkOrder={(workOrderId) => {
+                  setShowNotifications(false);
+                  // Route to appropriate viewer based on user role
+                  if (user.role === "owner") {
+                    setViewingOwnerWorkOrderId(workOrderId);
+                  } else {
+                    setViewingWorkOrderId(workOrderId);
+                  }
+                }}
+                onRespondToRequest={(workOrderId) => {
+                  setShowNotifications(false);
+                  setRespondingToRequestId(workOrderId);
+                }}
+                onViewVessel={(vesselId) => {
+                  setShowNotifications(false);
+                  setViewingVesselId(vesselId);
+                }}
+                onLeaveRating={(workOrderId) => {
+                  setShowNotifications(false);
+                  setViewingWorkOrderForRating(workOrderId);
                 }}
               />
             </div>
@@ -205,6 +242,57 @@ export function Dashboard() {
       )}
       {showProfile && user.role === "mechanic" && (
         <MechanicProfile onClose={() => setShowProfile(false)} />
+      )}
+
+      {/* Notification-linked modals */}
+      {/* Quote Viewer - Owner viewing mechanic's quote */}
+      {viewingQuoteId && (
+        <QuoteViewer
+          workOrderId={viewingQuoteId}
+          onClose={() => setViewingQuoteId(null)}
+        />
+      )}
+
+      {/* Work Order Editor - View work order details (Mechanic view) */}
+      {viewingWorkOrderId && (
+        <WorkOrderEditor
+          workOrderId={viewingWorkOrderId}
+          onClose={() => setViewingWorkOrderId(null)}
+        />
+      )}
+
+      {/* Owner Work Order Viewer - View work order details (Owner view) */}
+      {viewingOwnerWorkOrderId && (
+        <OwnerWorkOrderViewer
+          workOrderId={viewingOwnerWorkOrderId}
+          onClose={() => setViewingOwnerWorkOrderId(null)}
+        />
+      )}
+
+      {/* Work Order Editor - For leaving a rating (opens to rating tab) */}
+      {viewingWorkOrderForRating && (
+        <WorkOrderEditor
+          workOrderId={viewingWorkOrderForRating}
+          onClose={() => setViewingWorkOrderForRating(null)}
+          initialTab="rating"
+        />
+      )}
+
+      {/* Mechanic Quote Form - Mechanic responding to work order request */}
+      {respondingToRequestId && (
+        <MechanicQuoteForm
+          workOrderId={respondingToRequestId}
+          onClose={() => setRespondingToRequestId(null)}
+          onSuccess={() => setRespondingToRequestId(null)}
+        />
+      )}
+
+      {/* Vessel Detail Modal - View vessel (e.g., after access approved) */}
+      {viewingVesselId && (
+        <VesselDetailModal
+          vesselId={viewingVesselId}
+          onClose={() => setViewingVesselId(null)}
+        />
       )}
     </div>
   );
@@ -471,9 +559,15 @@ function OwnerDashboard({ onViewRequest }: OwnerDashboardProps) {
   const user = useQuery(api.users.currentUser);
   const vessels = useQuery(api.vessels.listMyVessels) ?? [];
   const onboardingStatus = useQuery(api.users.getOwnerOnboardingStatus);
+  const pendingQuotes = useQuery(api.workOrders.getMyWorkOrderRequests, { status: "quoted" });
+  const pendingRequests = useQuery(api.workOrders.getMyWorkOrderRequests, { status: "quote_requested" });
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedVessel, setSelectedVessel] = useState<Id<"vessels"> | null>(null);
   const [activeTab, setActiveTab] = useState<OwnerDashboardTab>("vessels");
+  
+  // Work Order Request state
+  const [showWorkOrderRequest, setShowWorkOrderRequest] = useState(false);
+  const [viewingQuoteId, setViewingQuoteId] = useState<Id<"workOrders"> | null>(null);
   
   // Onboarding flow state
   const [onboardingStage, setOnboardingStage] = useState<OwnerOnboardingStage | null>(null);
@@ -594,6 +688,108 @@ function OwnerDashboard({ onViewRequest }: OwnerDashboardProps) {
                 Add Vessel Now
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Actions Bar */}
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {/* Request Work Order Button */}
+          <button
+            onClick={() => setShowWorkOrderRequest(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-captain-600 text-white rounded-lg hover:bg-captain-700 transition-colors font-medium shadow-sm"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Request Work Order
+          </button>
+        </div>
+      </div>
+
+      {/* Pending Quotes Section - Quotes awaiting owner response */}
+      {pendingQuotes && pendingQuotes.length > 0 && (
+        <div className="mb-6 p-4 bg-green-50 border-2 border-green-200 rounded-xl">
+          <h3 className="text-lg font-medium text-gray-900 mb-3 flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            Quotes Ready for Review ({pendingQuotes.length})
+          </h3>
+          <div className="space-y-3">
+            {pendingQuotes.map((quote) => (
+              <div 
+                key={quote._id}
+                className="bg-white rounded-lg p-4 border border-green-200 hover:border-green-300 hover:shadow-md transition-all"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-gray-900">{quote.vesselName}</p>
+                      <span className="text-gray-400">•</span>
+                      <span className="text-sm text-gray-500">{quote.mechanicCompany || quote.mechanicName}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-1">{quote.description}</p>
+                    <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-2">
+                      <span className="text-lg font-bold text-green-600">
+                        ${(quote.quotedTotalEstimate || 0).toFixed(2)}
+                      </span>
+                      {quote.estimatedCompletionDate && (
+                        <span className="text-xs text-captain-600 bg-captain-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          Est. {new Date(quote.estimatedCompletionDate).toLocaleDateString()}
+                        </span>
+                      )}
+                      <span className="text-xs text-gray-400">
+                        Quote received {quote.quotedAt ? new Date(quote.quotedAt).toLocaleDateString() : ""}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setViewingQuoteId(quote._id as Id<"workOrders">)}
+                    className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors font-medium"
+                  >
+                    Review Quote
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Pending Requests Section - Awaiting mechanic response */}
+      {pendingRequests && pendingRequests.length > 0 && (
+        <div className="mb-6 p-4 bg-orange-50 border-2 border-orange-200 rounded-xl">
+          <h3 className="text-lg font-medium text-gray-900 mb-3 flex items-center gap-2">
+            <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Awaiting Mechanic Response ({pendingRequests.length})
+          </h3>
+          <div className="space-y-2">
+            {pendingRequests.map((request) => (
+              <div 
+                key={request._id}
+                className="bg-white rounded-lg p-3 border border-orange-200"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-gray-900">{request.vesselName}</span>
+                    <span className="text-gray-300">|</span>
+                    <span className="text-sm text-gray-500">{request.mechanicCompany || request.mechanicName}</span>
+                  </div>
+                  <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full font-medium">
+                    Pending Quote
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1 line-clamp-1">{request.description}</p>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -744,6 +940,22 @@ function OwnerDashboard({ onViewRequest }: OwnerDashboardProps) {
         <VesselDetailModal 
           vesselId={selectedVessel} 
           onClose={() => setSelectedVessel(null)} 
+        />
+      )}
+
+      {/* Work Order Request Modal */}
+      {showWorkOrderRequest && (
+        <WorkOrderRequestForm
+          onCancel={() => setShowWorkOrderRequest(false)}
+          onSuccess={() => setShowWorkOrderRequest(false)}
+        />
+      )}
+
+      {/* Quote Viewer Modal */}
+      {viewingQuoteId && (
+        <QuoteViewer
+          workOrderId={viewingQuoteId}
+          onClose={() => setViewingQuoteId(null)}
         />
       )}
     </div>
@@ -938,6 +1150,7 @@ function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onC
   const [isUploading, setIsUploading] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [selectedWorkOrderId, setSelectedWorkOrderId] = useState<Id<"workOrders"> | null>(null);
+  const [showWorkOrderRequest, setShowWorkOrderRequest] = useState(false);
 
   // Handle file selection - show cropper first
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1013,9 +1226,20 @@ function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onC
             <h2 className="text-xl font-semibold text-gray-900">{vessel.name}</h2>
             <p className="text-sm text-gray-500">{vessel.make} {vessel.model} ({vessel.year})</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">
-            ✕
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowWorkOrderRequest(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-captain-600 text-white rounded-lg hover:bg-captain-700 transition-colors text-sm font-medium"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Request Service
+            </button>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl">
+              ✕
+            </button>
+          </div>
         </div>
 
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
@@ -1186,6 +1410,15 @@ function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onC
           onClose={() => setSelectedWorkOrderId(null)}
         />
       )}
+
+      {/* Work Order Request Modal - with vessel pre-selected */}
+      {showWorkOrderRequest && (
+        <WorkOrderRequestForm
+          preSelectedVesselId={vesselId}
+          onCancel={() => setShowWorkOrderRequest(false)}
+          onSuccess={() => setShowWorkOrderRequest(false)}
+        />
+      )}
     </div>
   );
 }
@@ -1198,11 +1431,13 @@ function MechanicDashboard() {
   const user = useQuery(api.users.currentUser);
   const onboardingStatus = useQuery(api.users.getMechanicOnboardingStatus);
   const workOrders = useQuery(api.workOrders.getMyWorkOrders, {});
+  const pendingRequests = useQuery(api.workOrders.getPendingQuoteRequests);
   const [showScanner, setShowScanner] = useState(false);
   const [scannedVessel, setScannedVessel] = useState<any>(null);
   const [selectedVessel, setSelectedVessel] = useState<any>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [editingWorkOrderId, setEditingWorkOrderId] = useState<Id<"workOrders"> | null>(null);
+  const [selectedPendingRequestId, setSelectedPendingRequestId] = useState<Id<"workOrders"> | null>(null);
 
   // Show onboarding modal for new mechanics who haven't completed or skipped
   const shouldShowOnboarding = onboardingStatus && 
@@ -1316,6 +1551,63 @@ function MechanicDashboard() {
           )}
         </button>
       </div>
+
+      {/* Pending Work Order Requests */}
+      {pendingRequests && pendingRequests.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-lg font-medium text-gray-700 mb-4 flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+            </span>
+            Pending Requests ({pendingRequests.length})
+          </h3>
+          <div className="space-y-3">
+            {pendingRequests.map((request) => (
+              <div 
+                key={request._id} 
+                className="rounded-xl border-2 border-orange-200 bg-orange-50 p-4 hover:border-orange-300 hover:shadow-md transition-all"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-gray-900">{request.vesselName}</p>
+                      <span className="text-gray-400">•</span>
+                      <span className="text-sm text-gray-500">{request.ownerName || "Owner"}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{request.description}</p>
+                    <div className="flex items-center gap-3 mt-2">
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                        request.urgency === "urgent" 
+                          ? "bg-red-100 text-red-700" 
+                          : request.urgency === "soon" 
+                          ? "bg-yellow-100 text-yellow-700" 
+                          : "bg-gray-100 text-gray-600"
+                      }`}>
+                        {request.urgency === "urgent" ? "Urgent" : request.urgency === "soon" ? "Soon" : "Routine"}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        Requested {new Date(request.startedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2 ml-4">
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                      Quote Requested
+                    </span>
+                    <button
+                      onClick={() => setSelectedPendingRequestId(request._id as Id<"workOrders">)}
+                      className="px-3 py-1.5 bg-captain-600 text-white text-sm rounded-lg hover:bg-captain-700 transition-colors"
+                    >
+                      Respond
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Active Work Orders */}
       <div className="mb-8">
@@ -1437,6 +1729,15 @@ function MechanicDashboard() {
           onCompleted={() => setEditingWorkOrderId(null)}
         />
       )}
+
+      {/* Mechanic Quote Form Modal - for responding to pending requests */}
+      {selectedPendingRequestId && (
+        <MechanicQuoteForm
+          workOrderId={selectedPendingRequestId}
+          onClose={() => setSelectedPendingRequestId(null)}
+          onSuccess={() => setSelectedPendingRequestId(null)}
+        />
+      )}
       </>
     </div>
   );
@@ -1452,6 +1753,7 @@ function AdminDashboard() {
   const seedParts = useMutation(api.seedParts.seedInitialParts);
   const [isSeeding, setIsSeeding] = useState(false);
   const [seedResult, setSeedResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [showControlPanel, setShowControlPanel] = useState(false);
 
   const handleSeedParts = async () => {
     setIsSeeding(true);
@@ -1468,9 +1770,27 @@ function AdminDashboard() {
 
   return (
     <div>
-      <h2 className="mb-6 text-2xl font-semibold text-gray-900">
-        Admin Dashboard
-      </h2>
+      {/* Header with Control Panel Button */}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-semibold text-gray-900">
+          Admin Dashboard
+        </h2>
+        <button
+          onClick={() => setShowControlPanel(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-captain-600 text-white rounded-lg hover:bg-captain-700 transition-colors font-medium"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Control Panel
+        </button>
+      </div>
+
+      {/* Admin Control Panel Modal */}
+      {showControlPanel && (
+        <AdminControlPanel onClose={() => setShowControlPanel(false)} />
+      )}
       
       {/* Stats Grid */}
       <div className="grid gap-6 md:grid-cols-3 mb-8">
@@ -1549,12 +1869,138 @@ function AdminDashboard() {
       </div>
 
       {/* Recent Activity */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+      <RecentActivityFeed />
+    </div>
+  );
+}
+
+// ============================================
+// RECENT ACTIVITY FEED COMPONENT
+// ============================================
+
+function RecentActivityFeed() {
+  const activities = useQuery(api.settings.getRecentActivity, { limit: 15 });
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case "user_signup":
+        return (
+          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+          </div>
+        );
+      case "vessel_added":
+        return (
+          <div className="w-8 h-8 bg-captain-100 rounded-full flex items-center justify-center">
+            <svg className="w-4 h-4 text-captain-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+          </div>
+        );
+      case "work_order_created":
+        return (
+          <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+            <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+        );
+      case "work_order_completed":
+        return (
+          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        );
+      case "rating_submitted":
+        return (
+          <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+            <svg className="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+          </div>
+        );
+      case "access_request":
+        return (
+          <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+            <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            </svg>
+          </div>
+        );
+      default:
+        return (
+          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        );
+    }
+  };
+
+  const formatTimeAgo = (timestamp: number) => {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 7) {
+      return new Date(timestamp).toLocaleDateString();
+    } else if (days > 0) {
+      return `${days}d ago`;
+    } else if (hours > 0) {
+      return `${hours}h ago`;
+    } else if (minutes > 0) {
+      return `${minutes}m ago`;
+    } else {
+      return "Just now";
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-6">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+      
+      {!activities && (
+        <div className="flex items-center justify-center py-8">
+          <div className="w-6 h-6 border-2 border-captain-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+
+      {activities && activities.length === 0 && (
         <p className="text-gray-500 text-center py-8">
-          Activity feed coming soon...
+          No recent activity
         </p>
-      </div>
+      )}
+
+      {activities && activities.length > 0 && (
+        <div className="space-y-4 max-h-[400px] overflow-y-auto">
+          {activities.map((activity) => (
+            <div key={activity.id} className="flex items-start gap-3">
+              {getActivityIcon(activity.type)}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {activity.title}
+                  </p>
+                  <span className="text-xs text-gray-400 whitespace-nowrap">
+                    {formatTimeAgo(activity.timestamp)}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 truncate">
+                  {activity.description}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

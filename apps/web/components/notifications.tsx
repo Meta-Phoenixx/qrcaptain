@@ -38,9 +38,23 @@ interface NotificationsPanelProps {
   isOpen: boolean;
   onClose: () => void;
   onViewRequest?: (requestId: Id<"accessRequests">) => void;
+  onViewQuote?: (workOrderId: Id<"workOrders">) => void;
+  onViewWorkOrder?: (workOrderId: Id<"workOrders">) => void;
+  onRespondToRequest?: (workOrderId: Id<"workOrders">) => void;
+  onViewVessel?: (vesselId: Id<"vessels">) => void;
+  onLeaveRating?: (workOrderId: Id<"workOrders">) => void;
 }
 
-export function NotificationsPanel({ isOpen, onClose, onViewRequest }: NotificationsPanelProps) {
+export function NotificationsPanel({ 
+  isOpen, 
+  onClose, 
+  onViewRequest,
+  onViewQuote,
+  onViewWorkOrder,
+  onRespondToRequest,
+  onViewVessel,
+  onLeaveRating,
+}: NotificationsPanelProps) {
   const notifications = useQuery(api.notifications.getMyNotifications, { limit: 20 });
   const markAsRead = useMutation(api.notifications.markAsRead);
   const markAllAsRead = useMutation(api.notifications.markAllAsRead);
@@ -53,10 +67,88 @@ export function NotificationsPanel({ isOpen, onClose, onViewRequest }: Notificat
       await markAsRead({ notificationId: notification._id });
     }
 
-    // Handle specific notification types
-    if (notification.type === "access_request" && notification.relatedId && onViewRequest) {
-      onViewRequest(notification.relatedId as Id<"accessRequests">);
+    // Handle specific notification types based on relatedType and type
+    if (!notification.relatedId) return;
+
+    switch (notification.type) {
+      // Access requests (owner viewing mechanic's request)
+      case "access_request":
+        if (onViewRequest) {
+          onViewRequest(notification.relatedId as Id<"accessRequests">);
+        }
+        break;
+
+      // Quote submitted (owner views the quote)
+      case "quote_submitted":
+        if (onViewQuote) {
+          onViewQuote(notification.relatedId as Id<"workOrders">);
+        }
+        break;
+
+      // Work order requested (mechanic responds to request)
+      case "work_order_requested":
+        if (onRespondToRequest) {
+          onRespondToRequest(notification.relatedId as Id<"workOrders">);
+        }
+        break;
+
+      // Quote accepted/declined or work order updates (view work order details)
+      case "quote_accepted":
+      case "quote_declined":
+      case "request_declined":
+      case "work_order_started":
+      case "work_order_completed":
+      case "work_order_updated":
+        if (onViewWorkOrder) {
+          onViewWorkOrder(notification.relatedId as Id<"workOrders">);
+        }
+        break;
+
+      // Access approved/denied - view the vessel
+      case "access_approved":
+        if (notification.relatedType === "vessel" && onViewVessel) {
+          onViewVessel(notification.relatedId as Id<"vessels">);
+        }
+        break;
+
+      // Rating reminders - open to rating tab
+      case "rate_mechanic_reminder":
+      case "rate_owner_reminder":
+        if (onLeaveRating) {
+          onLeaveRating(notification.relatedId as Id<"workOrders">);
+        }
+        break;
+
+      // New rating received - view the work order details
+      case "new_rating_received":
+        if (onViewWorkOrder && notification.relatedType === "workOrder") {
+          onViewWorkOrder(notification.relatedId as Id<"workOrders">);
+        }
+        break;
+
+      default:
+        // No specific action for other notification types
+        break;
     }
+  };
+
+  // Check if notification has an actionable link
+  const isClickable = (type: string) => {
+    return [
+      "access_request",
+      "quote_submitted", 
+      "work_order_requested",
+      "quote_accepted",
+      "quote_declined",
+      "request_declined",
+      "work_order_started",
+      "work_order_completed",
+      "work_order_updated",
+      "access_approved",
+      "new_rating_received",
+      "rate_mechanic_reminder",
+      "rate_owner_reminder",
+    ].includes(type);
   };
 
   const handleMarkAllRead = async () => {
@@ -82,6 +174,7 @@ export function NotificationsPanel({ isOpen, onClose, onViewRequest }: Notificat
           </div>
         );
       case "access_denied":
+      case "access_revoked":
         return (
           <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
             <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,11 +183,59 @@ export function NotificationsPanel({ isOpen, onClose, onViewRequest }: Notificat
           </div>
         );
       case "work_order_started":
-      case "work_order_completed":
         return (
           <div className="w-10 h-10 bg-captain-100 rounded-full flex items-center justify-center">
             <svg className="w-5 h-5 text-captain-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+        );
+      case "work_order_completed":
+        return (
+          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        );
+      case "work_order_updated":
+        return (
+          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+        );
+      case "work_order_requested":
+        return (
+          <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        );
+      case "quote_submitted":
+        return (
+          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+          </div>
+        );
+      case "quote_accepted":
+        return (
+          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+        );
+      case "quote_declined":
+      case "request_declined":
+        return (
+          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </div>
         );
@@ -103,6 +244,24 @@ export function NotificationsPanel({ isOpen, onClose, onViewRequest }: Notificat
           <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
             <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          </div>
+        );
+      case "rate_mechanic_reminder":
+      case "rate_owner_reminder":
+      case "new_rating_received":
+        return (
+          <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+            </svg>
+          </div>
+        );
+      case "added_to_preferred_list":
+        return (
+          <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
           </div>
         );
@@ -179,46 +338,59 @@ export function NotificationsPanel({ isOpen, onClose, onViewRequest }: Notificat
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {notifications.map((notification) => (
-                <div
-                  key={notification._id}
-                  onClick={() => handleNotificationClick(notification)}
-                  className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                    !notification.isRead ? "bg-captain-50/50" : ""
-                  }`}
-                >
-                  <div className="flex gap-3">
-                    {getNotificationIcon(notification.type)}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className={`text-sm ${!notification.isRead ? "font-semibold" : "font-medium"} text-gray-900`}>
-                          {notification.title}
+              {notifications.map((notification) => {
+                const clickable = isClickable(notification.type) && notification.relatedId;
+                return (
+                  <div
+                    key={notification._id}
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`p-4 transition-colors ${
+                      clickable ? "hover:bg-gray-50 cursor-pointer" : ""
+                    } ${!notification.isRead ? "bg-captain-50/50" : ""}`}
+                  >
+                    <div className="flex gap-3">
+                      {getNotificationIcon(notification.type)}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className={`text-sm ${!notification.isRead ? "font-semibold" : "font-medium"} text-gray-900`}>
+                            {notification.title}
+                          </p>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteNotification({ notificationId: notification._id });
+                            }}
+                            className="p-1 text-gray-400 hover:text-red-500 rounded"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">
+                          {notification.message}
                         </p>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteNotification({ notificationId: notification._id });
-                          }}
-                          className="p-1 text-gray-400 hover:text-red-500 rounded"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-xs text-gray-400">
+                            {formatTime(notification.createdAt)}
+                          </p>
+                          {clickable && (
+                            <span className="text-xs text-captain-600 font-medium flex items-center gap-1">
+                              View
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {formatTime(notification.createdAt)}
-                      </p>
+                      {!notification.isRead && (
+                        <div className="w-2 h-2 bg-captain-500 rounded-full flex-shrink-0 mt-2"></div>
+                      )}
                     </div>
-                    {!notification.isRead && (
-                      <div className="w-2 h-2 bg-captain-500 rounded-full flex-shrink-0 mt-2"></div>
-                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

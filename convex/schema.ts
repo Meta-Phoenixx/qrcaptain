@@ -86,6 +86,17 @@ export default defineSchema({
     hasMobileCapabilities: v.optional(v.boolean()),       // Can come to vessel
     languagesSpoken: v.optional(v.array(v.string())),     // Languages
     bio: v.optional(v.string()),                          // About the mechanic/company
+    
+    // ============ MECHANIC AVAILABILITY STATUS ============
+    availabilityStatus: v.optional(v.union(
+      v.literal("available"),      // Open for new work
+      v.literal("limited"),        // Taking selective jobs
+      v.literal("at_capacity"),    // Fully booked
+      v.literal("unavailable")     // Not taking work
+    )),
+    availabilityStatusUpdatedAt: v.optional(v.number()),  // When status was last updated
+    isAvailabilityManuallySet: v.optional(v.boolean()),   // True if manually set (vs auto-calculated)
+    maxConcurrentJobs: v.optional(v.number()),            // Threshold for auto-calculation
   })
     .index("by_email", ["email"])
     .index("by_role", ["role"])
@@ -176,14 +187,17 @@ export default defineSchema({
     .index("by_vessel", ["vesselId"])
     .index("by_vessel_category", ["vesselId", "category"]),
 
-  // Work orders created by mechanics
+  // Work orders created by mechanics or requested by owners
   workOrders: defineTable({
     vesselId: v.id("vessels"),
     mechanicId: v.id("users"),
     status: v.union(
-      v.literal("in_progress"),
-      v.literal("completed"),
-      v.literal("cancelled")
+      v.literal("quote_requested"),  // Owner requested work, awaiting mechanic quote
+      v.literal("quoted"),           // Mechanic provided quote, awaiting owner approval
+      v.literal("declined"),         // Mechanic declined the request
+      v.literal("in_progress"),      // Work is being done
+      v.literal("completed"),        // Work finished
+      v.literal("cancelled")         // Cancelled by either party
     ),
     description: v.string(),
     diagnosis: v.optional(v.string()),
@@ -193,10 +207,37 @@ export default defineSchema({
     totalCost: v.optional(v.number()),
     startedAt: v.number(),
     completedAt: v.optional(v.number()),
+    
+    // ============ OWNER REQUEST FIELDS ============
+    requestedByOwnerId: v.optional(v.id("users")),        // Owner who initiated the request
+    urgency: v.optional(v.union(
+      v.literal("routine"),          // No rush, schedule when convenient
+      v.literal("soon"),             // Within the next week or two
+      v.literal("urgent")            // ASAP
+    )),
+    equipmentId: v.optional(v.id("vesselEquipment")),     // Related equipment if specified
+    
+    // ============ QUOTE FIELDS ============
+    quotedLaborHours: v.optional(v.number()),             // Estimated labor hours
+    quotedLaborRate: v.optional(v.number()),              // Mechanic's hourly rate
+    quotedPartsEstimate: v.optional(v.number()),          // Estimated parts cost
+    quotedTotalEstimate: v.optional(v.number()),          // Total estimated cost
+    quoteNotes: v.optional(v.string()),                   // Mechanic's notes on the quote
+    quotedAt: v.optional(v.number()),                     // When quote was submitted
+    quoteExpiresAt: v.optional(v.number()),               // Quote expiration timestamp
+    estimatedCompletionDate: v.optional(v.number()),      // Estimated date of work completion
+    
+    // ============ UPDATE NOTIFICATION THROTTLING ============
+    lastUpdateNotifiedAt: v.optional(v.number()),         // Throttle owner notifications
+    
+    // ============ DECLINE FIELDS ============
+    declineReason: v.optional(v.string()),                // Why mechanic declined
+    declinedAt: v.optional(v.number()),                   // When request was declined
   })
     .index("by_vessel", ["vesselId"])
     .index("by_mechanic", ["mechanicId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_requested_owner", ["requestedByOwnerId"]),
 
   // Parts used in work orders
   workOrderParts: defineTable({
@@ -258,7 +299,7 @@ export default defineSchema({
       filterFields: ["manufacturer", "category"] 
     }),
 
-  // Ratings given by owners to mechanics
+  // Legacy ratings table (kept for backward compatibility)
   ratings: defineTable({
     workOrderId: v.id("workOrders"),
     ownerId: v.id("users"),
@@ -269,6 +310,89 @@ export default defineSchema({
     .index("by_work_order", ["workOrderId"])
     .index("by_mechanic", ["mechanicId"])
     .index("by_owner", ["ownerId"]),
+
+  // ============ DUAL RATING SYSTEM ============
+  
+  // Mechanic ratings (owners rate mechanics) - displayed with wrench icons
+  mechanicRatings: defineTable({
+    workOrderId: v.id("workOrders"),
+    ownerId: v.id("users"),           // The owner giving the rating
+    mechanicId: v.id("users"),        // The mechanic being rated
+    
+    // Individual criteria ratings (1-5)
+    qualityRating: v.number(),        // Quality of work - Did they fix it right?
+    communicationRating: v.number(),  // Responsiveness and clarity
+    professionalismRating: v.number(),// On time, clean, courteous
+    valueRating: v.number(),          // Fair pricing for work performed
+    
+    // Overall rating (auto-calculated average, can be adjusted by user)
+    overallRating: v.number(),        // 1-5, displayed as wrenches
+    
+    review: v.optional(v.string()),   // Written review
+    createdAt: v.number(),
+  })
+    .index("by_work_order", ["workOrderId"])
+    .index("by_mechanic", ["mechanicId"])
+    .index("by_owner", ["ownerId"])
+    .index("by_mechanic_created", ["mechanicId", "createdAt"]),
+
+  // Owner ratings (mechanics rate owners) - displayed with star icons
+  ownerRatings: defineTable({
+    workOrderId: v.id("workOrders"),
+    mechanicId: v.id("users"),        // The mechanic giving the rating
+    ownerId: v.id("users"),           // The owner being rated
+    
+    // Individual criteria ratings (1-5)
+    communicationRating: v.number(),  // Clear about needs, responsive to questions
+    preparednessRating: v.number(),   // Vessel accessible, info provided
+    paymentRating: v.number(),        // Timely and fair payment
+    respectRating: v.number(),        // Professional and courteous treatment
+    
+    // Overall rating (auto-calculated average, can be adjusted by user)
+    overallRating: v.number(),        // 1-5, displayed as stars
+    
+    review: v.optional(v.string()),   // Written review
+    createdAt: v.number(),
+  })
+    .index("by_work_order", ["workOrderId"])
+    .index("by_owner", ["ownerId"])
+    .index("by_mechanic", ["mechanicId"])
+    .index("by_owner_created", ["ownerId", "createdAt"]),
+
+  // ============ PREFERRED MECHANICS ============
+  
+  // Owner's preferred mechanic list (separate from vessel-level authorizations)
+  preferredMechanics: defineTable({
+    ownerId: v.id("users"),           // The owner
+    mechanicId: v.id("users"),        // The preferred mechanic
+    addedAt: v.number(),              // When added to preferred list
+    notes: v.optional(v.string()),    // Owner's private notes about this mechanic
+  })
+    .index("by_owner", ["ownerId"])
+    .index("by_mechanic", ["mechanicId"])
+    .index("by_owner_mechanic", ["ownerId", "mechanicId"]),
+
+  // ============ MECHANIC METRICS ============
+  
+  // Cached metrics for mechanics (updated periodically)
+  mechanicMetrics: defineTable({
+    mechanicId: v.id("users"),
+    
+    // Response time metrics
+    avgResponseTimeMinutes: v.optional(v.number()),   // Average time to respond to messages
+    responseTimeCalculatedAt: v.optional(v.number()), // When response time was calculated
+    
+    // Job metrics
+    totalJobsCompleted: v.number(),                   // Total completed work orders
+    totalJobsCancelled: v.optional(v.number()),       // Total cancelled work orders
+    
+    // Rating summary (cached for performance)
+    avgOverallRating: v.optional(v.number()),         // Average overall wrench rating
+    totalRatings: v.number(),                         // Number of ratings received
+    
+    updatedAt: v.number(),                            // Last metrics update
+  })
+    .index("by_mechanic", ["mechanicId"]),
 
   // Mechanic authorizations for vessels
   mechanicAuthorizations: defineTable({
@@ -308,14 +432,37 @@ export default defineSchema({
   notifications: defineTable({
     userId: v.id("users"),
     type: v.union(
-      v.literal("access_request"),       // Mechanic requested access
-      v.literal("access_approved"),      // Owner approved access
-      v.literal("access_denied"),        // Owner denied access
-      v.literal("access_revoked"),       // Owner revoked mechanic access
-      v.literal("work_order_started"),   // Mechanic started work
-      v.literal("work_order_completed"), // Mechanic completed work
-      v.literal("new_message"),          // New message received
-      v.literal("onboarding_reminder")   // Reminder to complete profile
+      // Access-related
+      v.literal("access_request"),           // Mechanic requested access
+      v.literal("access_approved"),          // Owner approved access
+      v.literal("access_denied"),            // Owner denied access
+      v.literal("access_revoked"),           // Owner revoked mechanic access
+      
+      // Work order lifecycle
+      v.literal("work_order_started"),       // Mechanic started work
+      v.literal("work_order_completed"),     // Mechanic completed work
+      v.literal("work_order_updated"),       // Mechanic updated work order progress
+      
+      // Quote workflow (owner-initiated work orders)
+      v.literal("work_order_requested"),     // Mechanic receives request from owner
+      v.literal("quote_submitted"),          // Owner receives quote from mechanic
+      v.literal("quote_accepted"),           // Mechanic notified of quote acceptance
+      v.literal("quote_declined"),           // Mechanic notified of quote decline
+      v.literal("request_declined"),         // Owner notified mechanic declined request
+      
+      // Messaging
+      v.literal("new_message"),              // New message received
+      
+      // Ratings
+      v.literal("rate_mechanic_reminder"),   // Prompt owner to rate mechanic
+      v.literal("rate_owner_reminder"),      // Prompt mechanic to rate owner
+      v.literal("new_rating_received"),      // You received a new rating
+      
+      // Preferred mechanics
+      v.literal("added_to_preferred_list"),  // Mechanic added by owner (includes QR codes)
+      
+      // Onboarding
+      v.literal("onboarding_reminder")       // Reminder to complete profile
     ),
     title: v.string(),
     message: v.string(),
@@ -336,11 +483,33 @@ export default defineSchema({
     workOrderId: v.optional(v.id("workOrders")),  // Context: which work order
     content: v.string(),
     isRead: v.boolean(),
+    readAt: v.optional(v.number()),         // Timestamp when message was read (for response time calc)
     createdAt: v.number(),
   })
     .index("by_sender", ["senderId"])
     .index("by_receiver", ["receiverId"])
     .index("by_access_request", ["accessRequestId"])
     .index("by_vessel_participants", ["vesselId", "senderId", "receiverId"])
-    .index("by_work_order", ["workOrderId"]),
+    .index("by_work_order", ["workOrderId"])
+    .index("by_receiver_created", ["receiverId", "createdAt"]),
+
+  // ============================================
+  // APP SETTINGS (Admin configurable)
+  // ============================================
+  appSettings: defineTable({
+    key: v.string(),                           // Setting identifier
+    value: v.string(),                         // JSON-encoded value
+    description: v.string(),                   // Human-readable description
+    category: v.union(
+      v.literal("notifications"),              // Notification-related settings
+      v.literal("system"),                     // System-wide settings
+      v.literal("mechanics"),                  // Mechanic-related settings
+      v.literal("owners"),                     // Owner-related settings
+      v.literal("work_orders")                 // Work order settings
+    ),
+    updatedAt: v.number(),
+    updatedBy: v.optional(v.id("users")),      // Admin who last updated
+  })
+    .index("by_key", ["key"])
+    .index("by_category", ["category"]),
 });
