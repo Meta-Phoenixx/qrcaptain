@@ -8,11 +8,16 @@ import { Id } from "../../../convex/_generated/dataModel";
 import { ImageCropper } from "./image-cropper";
 import { EquipmentManifest } from "./equipment-manifest";
 import { QRCodeSVG } from "qrcode.react";
-import { QRScanner, VesselInfoModal } from "./qr-scanner";
+import { QRScanner } from "./qr-scanner";
+import { VesselAccessModal } from "./vessel-access-modal";
+import { NotificationBell, NotificationsPanel } from "./notifications";
+import { AccessRequestModal, PendingAccessRequests } from "./access-request-modal";
 
 export function Dashboard() {
   const { signOut } = useAuthActions();
   const user = useQuery(api.users.currentUser);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [selectedRequestId, setSelectedRequestId] = useState<Id<"accessRequests"> | null>(null);
 
   if (!user) {
     return (
@@ -29,6 +34,19 @@ export function Dashboard() {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
           <h1 className="text-2xl font-bold text-captain-900">⚓ QR Captain</h1>
           <div className="flex items-center gap-4">
+            {/* Notifications */}
+            <div className="relative">
+              <NotificationBell onClick={() => setShowNotifications(!showNotifications)} />
+              <NotificationsPanel 
+                isOpen={showNotifications} 
+                onClose={() => setShowNotifications(false)}
+                onViewRequest={(requestId) => {
+                  setShowNotifications(false);
+                  setSelectedRequestId(requestId);
+                }}
+              />
+            </div>
+            
             <span className="text-sm text-gray-600">
               {user.fullName || user.name} ({user.role})
             </span>
@@ -44,10 +62,22 @@ export function Dashboard() {
 
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-4 py-8">
-        {user.role === "owner" && <OwnerDashboard />}
+        {user.role === "owner" && (
+          <OwnerDashboard 
+            onViewRequest={setSelectedRequestId}
+          />
+        )}
         {user.role === "mechanic" && <MechanicDashboard />}
         {user.role === "admin" && <AdminDashboard />}
       </main>
+
+      {/* Access Request Modal */}
+      {selectedRequestId && (
+        <AccessRequestModal
+          requestId={selectedRequestId}
+          onClose={() => setSelectedRequestId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -56,7 +86,11 @@ export function Dashboard() {
 // OWNER DASHBOARD
 // ============================================
 
-function OwnerDashboard() {
+interface OwnerDashboardProps {
+  onViewRequest: (requestId: Id<"accessRequests">) => void;
+}
+
+function OwnerDashboard({ onViewRequest }: OwnerDashboardProps) {
   const vessels = useQuery(api.vessels.listMyVessels) ?? [];
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedVessel, setSelectedVessel] = useState<Id<"vessels"> | null>(null);
@@ -71,6 +105,9 @@ function OwnerDashboard() {
 
   return (
     <div>
+      {/* Pending Access Requests */}
+      <PendingAccessRequests onViewRequest={onViewRequest} />
+
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-semibold text-gray-900">My Vessels</h2>
         <button 
@@ -664,9 +701,9 @@ function MechanicDashboard() {
         />
       )}
 
-      {/* Scanned Vessel Info Modal */}
+      {/* Scanned Vessel Access Modal - handles access request flow */}
       {scannedVessel && (
-        <VesselInfoModal
+        <VesselAccessModal
           vessel={scannedVessel}
           onClose={() => setScannedVessel(null)}
           onStartWorkOrder={() => {
@@ -677,6 +714,11 @@ function MechanicDashboard() {
           onViewHistory={() => {
             // TODO: Navigate to vessel history page
             alert("Vessel history view will be implemented in the next update!");
+            setScannedVessel(null);
+          }}
+          onViewManifest={() => {
+            // TODO: Navigate to vessel manifest page
+            alert("Vessel manifest view will be implemented in the next update!");
             setScannedVessel(null);
           }}
         />

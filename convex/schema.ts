@@ -189,4 +189,62 @@ export default defineSchema({
     .index("by_vessel", ["vesselId"])
     .index("by_mechanic", ["mechanicId"])
     .index("by_vessel_mechanic", ["vesselId", "mechanicId"]),
+
+  // Access requests from mechanics to vessel owners
+  accessRequests: defineTable({
+    vesselId: v.id("vessels"),
+    mechanicId: v.id("users"),
+    ownerId: v.id("users"),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("approved"),
+      v.literal("denied")
+    ),
+    requestMessage: v.optional(v.string()),  // Message from mechanic
+    responseMessage: v.optional(v.string()), // Message from owner
+    requestedAt: v.number(),
+    respondedAt: v.optional(v.number()),
+  })
+    .index("by_vessel", ["vesselId"])
+    .index("by_mechanic", ["mechanicId"])
+    .index("by_owner", ["ownerId"])
+    .index("by_owner_status", ["ownerId", "status"])
+    .index("by_mechanic_status", ["mechanicId", "status"])
+    .index("by_vessel_mechanic", ["vesselId", "mechanicId"]),
+
+  // Notifications for users
+  notifications: defineTable({
+    userId: v.id("users"),
+    type: v.union(
+      v.literal("access_request"),      // Mechanic requested access
+      v.literal("access_approved"),     // Owner approved access
+      v.literal("access_denied"),       // Owner denied access
+      v.literal("work_order_started"),  // Mechanic started work
+      v.literal("work_order_completed"),// Mechanic completed work
+      v.literal("new_message")          // New message received
+    ),
+    title: v.string(),
+    message: v.string(),
+    relatedId: v.optional(v.string()),  // ID of related entity (request, work order, etc.)
+    relatedType: v.optional(v.string()), // Type of related entity
+    isRead: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_unread", ["userId", "isRead"]),
+
+  // Messages between owners and mechanics
+  messages: defineTable({
+    senderId: v.id("users"),
+    receiverId: v.id("users"),
+    vesselId: v.optional(v.id("vessels")),  // Context: which vessel
+    accessRequestId: v.optional(v.id("accessRequests")),  // Context: which request
+    content: v.string(),
+    isRead: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_sender", ["senderId"])
+    .index("by_receiver", ["receiverId"])
+    .index("by_access_request", ["accessRequestId"])
+    .index("by_vessel_participants", ["vesselId", "senderId", "receiverId"]),
 });
