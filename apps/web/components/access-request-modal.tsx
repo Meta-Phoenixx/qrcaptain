@@ -180,7 +180,7 @@ export function AccessRequestModal({ requestId, onClose }: AccessRequestModalPro
                       ? "Welcome! Feel free to reach out if you have any questions..."
                       : "Sorry, we're currently not accepting new service providers..."
                   }
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 resize-none"
                   rows={3}
                 />
               </div>

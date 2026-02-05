@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { Id } from "./_generated/dataModel";
 
 // Request access to a vessel (mechanic scans QR code)
 export const requestAccess = mutation({
@@ -299,5 +300,295 @@ export const getMyRequests = query({
     );
 
     return enrichedRequests;
+  },
+});
+
+// ============================================
+// OWNER'S MECHANICS MANAGEMENT
+// ============================================
+
+// Get all mechanics associated with owner's vessels
+export const getMechanicsForOwner = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const user = await ctx.db.get(userId);
+    if (!user || user.role !== "owner") return [];
+
+    // Get all owner's vessels
+    const vessels = await ctx.db
+      .query("vessels")
+      .withIndex("by_owner", (q) => q.eq("ownerId", userId))
+      .collect();
+
+    if (vessels.length === 0) return [];
+
+    const vesselIds = vessels.map((v) => v._id);
+
+    // Get all authorizations for these vessels
+    const allAuthorizations: any[] = [];
+    for (const vesselId of vesselIds) {
+      const auths = await ctx.db
+        .query("mechanicAuthorizations")
+        .withIndex("by_vessel", (q) => q.eq("vesselId", vesselId))
+        .collect();
+      allAuthorizations.push(...auths);
+    }
+
+    // Get all work orders for these vessels to include mechanics who have done work
+    const allWorkOrders: any[] = [];
+    for (const vesselId of vesselIds) {
+      const orders = await ctx.db
+        .query("workOrders")
+        .withIndex("by_vessel", (q) => q.eq("vesselId", vesselId))
+        .collect();
+      allWorkOrders.push(...orders);
+    }
+
+    // Build a map of unique mechanics with their data
+    const mechanicMap = new Map<string, {
+      mechanicId: string;
+      vessels: {
+        vesselId: string;
+        vesselName: string;
+        isActive: boolean;
+        authorizationId: string | null;
+        authorizedAt: number | null;
+      }[];
+      workOrderCount: number;
+      completedOrderCount: number;
+      lastWorkDate: number | null;
+    }>();
+
+    // Process authorizations
+    for (const auth of allAuthorizations) {
+      const vessel = vessels.find((v) => v._id === auth.vesselId);
+      if (!vessel) continue;
+
+      const mechanicId = auth.mechanicId.toString();
+      if (!mechanicMap.has(mechanicId)) {
+        mechanicMap.set(mechanicId, {
+          mechanicId: auth.mechanicId,
+          vessels: [],
+          workOrderCount: 0,
+          completedOrderCount: 0,
+          lastWorkDate: null,
+        });
+      }
+
+      const mechData = mechanicMap.get(mechanicId)!;
+      // Check if vessel already added
+      const existingVessel = mechData.vessels.find((v) => v.vesselId === auth.vesselId.toString());
+      if (!existingVessel) {
+        mechData.vessels.push({
+          vesselId: auth.vesselId.toString(),
+          vesselName: vessel.name,
+          isActive: auth.isActive,
+          authorizationId: auth._id.toString(),
+          authorizedAt: auth.authorizedAt,
+        });
+      } else {
+        // Update with latest auth info
+        existingVessel.isActive = auth.isActive;
+        existingVessel.authorizationId = auth._id.toString();
+        existingVessel.authorizedAt = auth.authorizedAt;
+      }
+    }
+
+    // Process work orders
+    for (const order of allWorkOrders) {
+      const mechanicId = order.mechanicId.toString();
+      const vessel = vessels.find((v) => v._id === order.vesselId);
+      
+      if (!mechanicMap.has(mechanicId)) {
+        mechanicMap.set(mechanicId, {
+          mechanicId: order.mechanicId,
+          vessels: [],
+          workOrderCount: 0,
+          completedOrderCount: 0,
+          lastWorkDate: null,
+        });
+      }
+
+      const mechData = mechanicMap.get(mechanicId)!;
+      mechData.workOrderCount++;
+      
+      if (order.status === "completed") {
+        mechData.completedOrderCount++;
+        if (order.completedAt && (!mechData.lastWorkDate || order.completedAt > mechData.lastWorkDate)) {
+          mechData.lastWorkDate = order.completedAt;
+        }
+      }
+
+      // Add vessel if not already in list (from work order but no authorization)
+      if (vessel) {
+        const existingVessel = mechData.vessels.find((v) => v.vesselId === order.vesselId.toString());
+        if (!existingVessel) {
+          mechData.vessels.push({
+            vesselId: order.vesselId.toString(),
+            vesselName: vessel.name,
+            isActive: false,
+            authorizationId: null,
+            authorizedAt: null,
+          });
+        }
+      }
+    }
+
+    // Fetch mechanic user data and build final result
+    const mechanicsWithProfiles = await Promise.all(
+      Array.from(mechanicMap.values()).map(async (mechData) => {
+        const mechanic = await ctx.db.get(mechData.mechanicId as Id<"users">);
+        if (!mechanic) return null;
+
+        // Get profile photo URL
+        let profilePhotoUrl: string | null = null;
+        if (mechanic.profilePhotoStorageId) {
+          profilePhotoUrl = await ctx.storage.getUrl(mechanic.profilePhotoStorageId);
+        }
+
+        return {
+          _id: mechanic._id,
+          name: mechanic.fullName || mechanic.name || "Unknown",
+          email: mechanic.email,
+          companyName: mechanic.companyName,
+          phone: mechanic.phone,
+          profilePhotoUrl,
+          vessels: mechData.vessels,
+          workOrderCount: mechData.workOrderCount,
+          completedOrderCount: mechData.completedOrderCount,
+          lastWorkDate: mechData.lastWorkDate,
+          hasActiveAccess: mechData.vessels.some((v) => v.isActive),
+        };
+      })
+    );
+
+    // Filter out nulls and sort by most recent work or authorization
+    return mechanicsWithProfiles
+      .filter(Boolean)
+      .sort((a, b) => {
+        // Sort by active access first, then by last work date
+        if (a!.hasActiveAccess !== b!.hasActiveAccess) {
+          return a!.hasActiveAccess ? -1 : 1;
+        }
+        return (b!.lastWorkDate || 0) - (a!.lastWorkDate || 0);
+      });
+  },
+});
+
+// Toggle mechanic access for a specific vessel
+export const toggleMechanicAccess = mutation({
+  args: {
+    mechanicId: v.id("users"),
+    vesselId: v.id("vessels"),
+    isActive: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const user = await ctx.db.get(userId);
+    if (!user || user.role !== "owner") {
+      throw new Error("Only owners can manage mechanic access");
+    }
+
+    // Verify the vessel belongs to this owner
+    const vessel = await ctx.db.get(args.vesselId);
+    if (!vessel || vessel.ownerId !== userId) {
+      throw new Error("Vessel not found or you don't have permission");
+    }
+
+    // Find the authorization
+    const auth = await ctx.db
+      .query("mechanicAuthorizations")
+      .withIndex("by_vessel_mechanic", (q) =>
+        q.eq("vesselId", args.vesselId).eq("mechanicId", args.mechanicId)
+      )
+      .first();
+
+    const mechanic = await ctx.db.get(args.mechanicId);
+
+    if (auth) {
+      // Update existing authorization
+      await ctx.db.patch(auth._id, { isActive: args.isActive });
+    } else if (args.isActive) {
+      // Create new authorization if granting access
+      await ctx.db.insert("mechanicAuthorizations", {
+        vesselId: args.vesselId,
+        mechanicId: args.mechanicId,
+        authorizedAt: Date.now(),
+        authorizedBy: userId,
+        isActive: true,
+      });
+    }
+
+    // Notify the mechanic
+    await ctx.db.insert("notifications", {
+      userId: args.mechanicId,
+      type: args.isActive ? "access_approved" : "access_revoked",
+      title: args.isActive ? "Access Restored" : "Access Revoked",
+      message: args.isActive 
+        ? `${user.fullName || "The owner"} has restored your access to ${vessel.name}`
+        : `${user.fullName || "The owner"} has revoked your access to ${vessel.name}`,
+      relatedId: args.vesselId,
+      relatedType: "vessel",
+      isRead: false,
+      createdAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+// Revoke all access for a mechanic across all owner's vessels
+export const revokeAllMechanicAccess = mutation({
+  args: {
+    mechanicId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const user = await ctx.db.get(userId);
+    if (!user || user.role !== "owner") {
+      throw new Error("Only owners can manage mechanic access");
+    }
+
+    // Get all owner's vessels
+    const vessels = await ctx.db
+      .query("vessels")
+      .withIndex("by_owner", (q) => q.eq("ownerId", userId))
+      .collect();
+
+    // Revoke access for each vessel
+    for (const vessel of vessels) {
+      const auth = await ctx.db
+        .query("mechanicAuthorizations")
+        .withIndex("by_vessel_mechanic", (q) =>
+          q.eq("vesselId", vessel._id).eq("mechanicId", args.mechanicId)
+        )
+        .first();
+
+      if (auth && auth.isActive) {
+        await ctx.db.patch(auth._id, { isActive: false });
+      }
+    }
+
+    // Notify the mechanic
+    const mechanic = await ctx.db.get(args.mechanicId);
+    await ctx.db.insert("notifications", {
+      userId: args.mechanicId,
+      type: "access_revoked",
+      title: "Access Revoked",
+      message: `${user.fullName || "The owner"} has revoked your access to all their vessels`,
+      relatedId: userId,
+      relatedType: "user",
+      isRead: false,
+      createdAt: Date.now(),
+    });
+
+    return { success: true };
   },
 });

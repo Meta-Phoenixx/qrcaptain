@@ -226,7 +226,7 @@ export function EquipmentManifest({ vesselId }: EquipmentManifestProps) {
           placeholder="Search equipment..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 transition-all"
+          className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 transition-all"
         />
         <Search
           size={16}
@@ -495,7 +495,7 @@ function AddEquipmentModal({ vesselId, defaultCategory, onClose }: AddEquipmentM
               name="category"
               required
               defaultValue={defaultCategory || ""}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
             >
               <option value="" disabled>
                 Select a category
@@ -515,7 +515,7 @@ function AddEquipmentModal({ vesselId, defaultCategory, onClose }: AddEquipmentM
             <input
               name="name"
               required
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
               placeholder="e.g., Main Engine"
             />
           </div>
@@ -527,7 +527,7 @@ function AddEquipmentModal({ vesselId, defaultCategory, onClose }: AddEquipmentM
               </label>
               <input
                 name="manufacturer"
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                 placeholder="e.g., Yamaha"
               />
             </div>
@@ -537,7 +537,7 @@ function AddEquipmentModal({ vesselId, defaultCategory, onClose }: AddEquipmentM
               </label>
               <input
                 name="model"
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                 placeholder="e.g., F250XCA"
               />
             </div>
@@ -550,7 +550,7 @@ function AddEquipmentModal({ vesselId, defaultCategory, onClose }: AddEquipmentM
               </label>
               <input
                 name="serialNumber"
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                 placeholder="e.g., 12345678"
               />
             </div>
@@ -563,7 +563,7 @@ function AddEquipmentModal({ vesselId, defaultCategory, onClose }: AddEquipmentM
                 type="number"
                 min="1900"
                 max={new Date().getFullYear() + 1}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                 placeholder="2023"
               />
             </div>
@@ -576,7 +576,7 @@ function AddEquipmentModal({ vesselId, defaultCategory, onClose }: AddEquipmentM
             <textarea
               name="notes"
               rows={2}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
               placeholder="Additional details..."
             />
           </div>
@@ -809,7 +809,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                       name="name"
                       required
                       defaultValue={equipment.name}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     />
                   </div>
                   <div>
@@ -819,7 +819,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                     <input
                       name="manufacturer"
                       defaultValue={equipment.manufacturer || ""}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     />
                   </div>
                   <div>
@@ -829,7 +829,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                     <input
                       name="model"
                       defaultValue={equipment.model || ""}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     />
                   </div>
                   <div>
@@ -839,7 +839,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                     <input
                       name="serialNumber"
                       defaultValue={equipment.serialNumber || ""}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     />
                   </div>
                   <div>
@@ -849,7 +849,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                     <select
                       name="conditionStatus"
                       defaultValue={equipment.conditionStatus || ""}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     >
                       <option value="">Select condition</option>
                       <option value="good">Good</option>
@@ -875,7 +875,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                       name="installationDate"
                       type="date"
                       defaultValue={formatDateForInput(equipment.installationDate)}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     />
                   </div>
                   <div>
@@ -886,7 +886,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                       name="lastServiceDate"
                       type="date"
                       defaultValue={formatDateForInput(equipment.lastServiceDate)}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     />
                   </div>
                   <div>
@@ -897,7 +897,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                       name="nextServiceDate"
                       type="date"
                       defaultValue={formatDateForInput(equipment.nextServiceDate)}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     />
                   </div>
                   <div>
@@ -909,7 +909,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                       type="number"
                       min="1"
                       defaultValue={equipment.serviceIntervalDays || ""}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                       placeholder="e.g., 365"
                     />
                   </div>
@@ -933,7 +933,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                       step="0.1"
                       min="0"
                       defaultValue={equipment.currentHours || ""}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                       placeholder="e.g., 450.5"
                     />
                   </div>
@@ -946,7 +946,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                       type="number"
                       min="1"
                       defaultValue={equipment.serviceIntervalHours || ""}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                       placeholder="e.g., 100"
                     />
                   </div>
@@ -968,7 +968,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                       name="warrantyExpiry"
                       type="date"
                       defaultValue={formatDateForInput(equipment.warrantyExpiry)}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     />
                   </div>
                   <div>
@@ -978,7 +978,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                     <input
                       name="warrantyTerms"
                       defaultValue={equipment.warrantyTerms || ""}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                       placeholder="e.g., 3 year limited"
                     />
                   </div>
@@ -994,7 +994,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                   name="notes"
                   rows={3}
                   defaultValue={equipment.notes || ""}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                   placeholder="Additional notes..."
                 />
               </div>

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { internal } from "./_generated/api";
 
 // Get all notifications for the current user
 export const getMyNotifications = query({
@@ -136,7 +137,8 @@ export const createNotification = mutation({
       v.literal("access_denied"),
       v.literal("work_order_started"),
       v.literal("work_order_completed"),
-      v.literal("new_message")
+      v.literal("new_message"),
+      v.literal("onboarding_reminder")
     ),
     title: v.string(),
     message: v.string(),
@@ -156,5 +158,61 @@ export const createNotification = mutation({
     });
 
     return { notificationId };
+  },
+});
+
+// Internal: Send onboarding reminder notifications to mechanics
+// This is called by a cron job twice daily
+export const sendOnboardingReminders = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    // Find all mechanics who haven't completed onboarding
+    const incompleteMechanics = await ctx.db
+      .query("users")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("role"), "mechanic"),
+          q.or(
+            q.eq(q.field("onboardingCompleted"), false),
+            q.eq(q.field("onboardingCompleted"), undefined)
+          )
+        )
+      )
+      .collect();
+
+    const now = Date.now();
+    const TWELVE_HOURS = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+    let sentCount = 0;
+
+    for (const mechanic of incompleteMechanics) {
+      // Skip if we sent a reminder in the last 12 hours
+      if (mechanic.lastOnboardingReminder && 
+          (now - mechanic.lastOnboardingReminder) < TWELVE_HOURS) {
+        continue;
+      }
+
+      // Create reminder notification
+      await ctx.db.insert("notifications", {
+        userId: mechanic._id,
+        type: "onboarding_reminder",
+        title: "Complete Your Profile",
+        message: "Complete your mechanic profile to unlock all features including QR scanning, vessel access requests, and work order creation.",
+        isRead: false,
+        createdAt: now,
+      });
+
+      // Update last reminder timestamp
+      await ctx.db.patch(mechanic._id, {
+        lastOnboardingReminder: now,
+      });
+
+      sentCount++;
+    }
+
+    return { 
+      sentCount, 
+      totalIncomplete: incompleteMechanics.length,
+      message: `Sent ${sentCount} onboarding reminders` 
+    };
   },
 });

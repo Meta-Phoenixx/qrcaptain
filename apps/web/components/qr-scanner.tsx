@@ -331,7 +331,7 @@ export function QRScanner({ onClose, onVesselFound }: QRScannerProps) {
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value)}
                   placeholder="QRC-XXXXXXXXX-XXXXXXXX"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 font-mono text-center uppercase"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 font-mono text-center uppercase"
                   autoFocus
                 />
                 <p className="mt-2 text-xs text-gray-500 text-center">

@@ -29,9 +29,67 @@ export default defineSchema({
     licenseNumber: v.optional(v.string()),
     avatarStorageId: v.optional(v.id("_storage")),
     isActive: v.optional(v.boolean()),
+
+    // ============ SHARED PROFILE FIELDS ============
+    
+    // Profile images (used by both owners and mechanics)
+    profilePhotoStorageId: v.optional(v.id("_storage")),  // Personal photo
+    
+    // Personal address (used by owners)
+    address: v.optional(v.object({
+      street: v.string(),
+      city: v.string(),
+      state: v.string(),
+      zipCode: v.string(),
+      country: v.optional(v.string()),
+    })),
+    
+    // Onboarding status (used by both owners and mechanics)
+    onboardingCompleted: v.optional(v.boolean()),
+    onboardingCompletedAt: v.optional(v.number()),
+    onboardingSkippedAt: v.optional(v.number()),  // Track if/when they skipped
+    lastOnboardingReminder: v.optional(v.number()), // For reminder throttling
+    
+    // ============ MECHANIC-SPECIFIC FIELDS ============
+    
+    companyLogoStorageId: v.optional(v.id("_storage")),   // Company logo (mechanics only)
+    
+    // Required for onboarding completion
+    businessYearsInOperation: v.optional(v.number()),     // How long in business
+    businessLicenseNumber: v.optional(v.string()),        // Business license #
+    businessAddress: v.optional(v.object({
+      street: v.string(),
+      city: v.string(),
+      state: v.string(),
+      zipCode: v.string(),
+      country: v.optional(v.string()),
+    })),
+    serviceAreas: v.optional(v.array(v.string())),        // Geographic regions served
+    serviceTypes: v.optional(v.array(v.string())),        // Types of services offered
+    hoursOfOperation: v.optional(v.object({
+      monday: v.optional(v.object({ open: v.string(), close: v.string(), closed: v.optional(v.boolean()) })),
+      tuesday: v.optional(v.object({ open: v.string(), close: v.string(), closed: v.optional(v.boolean()) })),
+      wednesday: v.optional(v.object({ open: v.string(), close: v.string(), closed: v.optional(v.boolean()) })),
+      thursday: v.optional(v.object({ open: v.string(), close: v.string(), closed: v.optional(v.boolean()) })),
+      friday: v.optional(v.object({ open: v.string(), close: v.string(), closed: v.optional(v.boolean()) })),
+      saturday: v.optional(v.object({ open: v.string(), close: v.string(), closed: v.optional(v.boolean()) })),
+      sunday: v.optional(v.object({ open: v.string(), close: v.string(), closed: v.optional(v.boolean()) })),
+    })),
+    
+    // Optional mechanic profile enhancements
+    certifications: v.optional(v.array(v.string())),      // EPA, Yamaha, Mercury, etc.
+    googleMyBusinessUrl: v.optional(v.string()),          // GMB profile link
+    websiteUrl: v.optional(v.string()),                   // Company website
+    isInsured: v.optional(v.boolean()),                   // Has insurance
+    isBonded: v.optional(v.boolean()),                    // Is bonded
+    specializations: v.optional(v.array(v.string())),     // Engine, electrical, etc.
+    hasMobileCapabilities: v.optional(v.boolean()),       // Can come to vessel
+    languagesSpoken: v.optional(v.array(v.string())),     // Languages
+    bio: v.optional(v.string()),                          // About the mechanic/company
   })
     .index("by_email", ["email"])
-    .index("by_role", ["role"]),
+    .index("by_role", ["role"])
+    .index("by_onboarding_status", ["role", "onboardingCompleted"]),
 
   // Vessels owned by users
   vessels: defineTable({
@@ -216,12 +274,14 @@ export default defineSchema({
   notifications: defineTable({
     userId: v.id("users"),
     type: v.union(
-      v.literal("access_request"),      // Mechanic requested access
-      v.literal("access_approved"),     // Owner approved access
-      v.literal("access_denied"),       // Owner denied access
-      v.literal("work_order_started"),  // Mechanic started work
-      v.literal("work_order_completed"),// Mechanic completed work
-      v.literal("new_message")          // New message received
+      v.literal("access_request"),       // Mechanic requested access
+      v.literal("access_approved"),      // Owner approved access
+      v.literal("access_denied"),        // Owner denied access
+      v.literal("access_revoked"),       // Owner revoked mechanic access
+      v.literal("work_order_started"),   // Mechanic started work
+      v.literal("work_order_completed"), // Mechanic completed work
+      v.literal("new_message"),          // New message received
+      v.literal("onboarding_reminder")   // Reminder to complete profile
     ),
     title: v.string(),
     message: v.string(),

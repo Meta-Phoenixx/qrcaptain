@@ -166,3 +166,134 @@ export const getVesselImageUrl = query({
     return await ctx.storage.getUrl(vessel.imageStorageId);
   },
 });
+
+// ============================================
+// USER PROFILE IMAGES (Both Owners & Mechanics)
+// ============================================
+
+// Save user profile photo (works for both owners and mechanics)
+export const saveUserProfilePhoto = mutation({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+
+    // Delete old image if exists
+    if (user.profilePhotoStorageId) {
+      await ctx.storage.delete(user.profilePhotoStorageId);
+    }
+
+    await ctx.db.patch(userId, {
+      profilePhotoStorageId: args.storageId,
+    });
+
+    return { success: true };
+  },
+});
+
+// Alias for backward compatibility
+export const saveMechanicProfilePhoto = mutation({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+
+    // Delete old image if exists
+    if (user.profilePhotoStorageId) {
+      await ctx.storage.delete(user.profilePhotoStorageId);
+    }
+
+    await ctx.db.patch(userId, {
+      profilePhotoStorageId: args.storageId,
+    });
+
+    return { success: true };
+  },
+});
+
+// Save mechanic company logo
+export const saveMechanicCompanyLogo = mutation({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User not found");
+
+    if (user.role !== "mechanic") {
+      throw new Error("Only mechanics can update company logo");
+    }
+
+    // Delete old logo if exists
+    if (user.companyLogoStorageId) {
+      await ctx.storage.delete(user.companyLogoStorageId);
+    }
+
+    await ctx.db.patch(userId, {
+      companyLogoStorageId: args.storageId,
+    });
+
+    return { success: true };
+  },
+});
+
+// Get user profile photo URL (works for both owners and mechanics)
+export const getUserProfilePhotoUrl = query({
+  args: { userId: v.optional(v.id("users")) },
+  handler: async (ctx, args) => {
+    const currentUserId = await getAuthUserId(ctx);
+    const targetUserId = args.userId || currentUserId;
+    
+    if (!targetUserId) return null;
+
+    const user = await ctx.db.get(targetUserId);
+    if (!user || !user.profilePhotoStorageId) return null;
+
+    return await ctx.storage.getUrl(user.profilePhotoStorageId);
+  },
+});
+
+// Alias for backward compatibility
+export const getMechanicProfilePhotoUrl = query({
+  args: { userId: v.optional(v.id("users")) },
+  handler: async (ctx, args) => {
+    const currentUserId = await getAuthUserId(ctx);
+    const targetUserId = args.userId || currentUserId;
+    
+    if (!targetUserId) return null;
+
+    const user = await ctx.db.get(targetUserId);
+    if (!user || !user.profilePhotoStorageId) return null;
+
+    return await ctx.storage.getUrl(user.profilePhotoStorageId);
+  },
+});
+
+// Get mechanic company logo URL
+export const getMechanicCompanyLogoUrl = query({
+  args: { userId: v.optional(v.id("users")) },
+  handler: async (ctx, args) => {
+    const currentUserId = await getAuthUserId(ctx);
+    const targetUserId = args.userId || currentUserId;
+    
+    if (!targetUserId) return null;
+
+    const user = await ctx.db.get(targetUserId);
+    if (!user || !user.companyLogoStorageId) return null;
+
+    return await ctx.storage.getUrl(user.companyLogoStorageId);
+  },
+});

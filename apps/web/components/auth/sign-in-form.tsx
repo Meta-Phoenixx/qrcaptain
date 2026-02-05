@@ -36,6 +36,7 @@ export function SignInForm() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedRole, setSelectedRole] = useState("owner");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -50,7 +51,8 @@ export function SignInForm() {
       
       // If there's a redirect (OAuth), handle it
       if (result && typeof result === 'object' && 'redirect' in result) {
-        window.location.href = result.redirect as string;
+        const redirect = result.redirect;
+        window.location.href = typeof redirect === 'string' ? redirect : redirect?.toString() || '/';
         return;
       }
       
@@ -62,6 +64,8 @@ export function SignInForm() {
       setIsLoading(false);
     }
   };
+
+  const isMechanic = isSignUp && selectedRole === "mechanic";
 
   return (
     <div className="rounded-2xl bg-white p-8 shadow-xl">
@@ -84,7 +88,7 @@ export function SignInForm() {
                 name="name"
                 type="text"
                 required={isSignUp}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                 placeholder="John Smith"
               />
             </div>
@@ -99,12 +103,57 @@ export function SignInForm() {
                 id="role"
                 name="role"
                 required={isSignUp}
-                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
+                className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
               >
                 <option value="owner">Boat Owner</option>
                 <option value="mechanic">Marine Mechanic</option>
               </select>
             </div>
+
+            {/* Additional required fields for mechanics */}
+            {isMechanic && (
+              <>
+                <div className="pt-2 border-t border-gray-100">
+                  <p className="text-xs text-gray-500 mb-3">
+                    As a marine mechanic, we need a few more details to set up your account.
+                  </p>
+                </div>
+                <div>
+                  <label
+                    htmlFor="companyName"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Business Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="companyName"
+                    name="companyName"
+                    type="text"
+                    required
+                    className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                    placeholder="ABC Marine Services"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="phone"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Phone Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    required
+                    className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+              </>
+            )}
           </>
         )}
 
@@ -120,7 +169,7 @@ export function SignInForm() {
             name="email"
             type="email"
             required
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+            className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
             placeholder="you@example.com"
           />
         </div>
@@ -138,7 +187,7 @@ export function SignInForm() {
             type="password"
             required
             minLength={8}
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+            className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-3 text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
             placeholder="••••••••"
           />
         </div>

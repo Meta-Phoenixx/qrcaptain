@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import { ManifestViewer } from "./manifest-viewer";
+import { ServiceHistoryViewer } from "./service-history-viewer";
 
 interface VesselAccessModalProps {
   vessel: {
@@ -20,20 +22,21 @@ interface VesselAccessModalProps {
   };
   onClose: () => void;
   onStartWorkOrder: () => void;
-  onViewHistory: () => void;
-  onViewManifest: () => void;
+  // These are now handled internally - kept for backwards compatibility
+  onViewHistory?: () => void;
+  onViewManifest?: () => void;
 }
 
 export function VesselAccessModal({
   vessel,
   onClose,
   onStartWorkOrder,
-  onViewHistory,
-  onViewManifest,
 }: VesselAccessModalProps) {
   const [requestMessage, setRequestMessage] = useState("");
   const [isRequesting, setIsRequesting] = useState(false);
   const [showMessageInput, setShowMessageInput] = useState(false);
+  const [showManifest, setShowManifest] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   // Check current access status
   const accessStatus = useQuery(api.accessRequests.getMyRequestStatus, {
@@ -157,7 +160,7 @@ export function VesselAccessModal({
               </button>
               
               <button
-                onClick={onViewHistory}
+                onClick={() => setShowHistory(true)}
                 className="w-full py-3.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,7 +170,7 @@ export function VesselAccessModal({
               </button>
 
               <button
-                onClick={onViewManifest}
+                onClick={() => setShowManifest(true)}
                 className="w-full py-3.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,6 +181,24 @@ export function VesselAccessModal({
             </div>
           </div>
         </div>
+
+        {/* Manifest Viewer Modal */}
+        {showManifest && (
+          <ManifestViewer
+            vesselId={vessel._id}
+            vesselName={vessel.name}
+            onClose={() => setShowManifest(false)}
+          />
+        )}
+
+        {/* Service History Viewer Modal */}
+        {showHistory && (
+          <ServiceHistoryViewer
+            vesselId={vessel._id}
+            vesselName={vessel.name}
+            onClose={() => setShowHistory(false)}
+          />
+        )}
       </div>
     );
   }
@@ -385,7 +406,7 @@ export function VesselAccessModal({
                   value={requestMessage}
                   onChange={(e) => setRequestMessage(e.target.value)}
                   placeholder="Introduce yourself or explain why you need access..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 resize-none"
                   rows={3}
                 />
               </div>

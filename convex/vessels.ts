@@ -102,6 +102,74 @@ export const getVessel = query({
   },
 });
 
+// Get authorized vessels for a mechanic with owner info
+export const getAuthorizedVessels = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+
+    const user = await ctx.db.get(userId);
+    if (!user || user.role !== "mechanic") return [];
+
+    // Get all active authorizations
+    const authorizations = await ctx.db
+      .query("mechanicAuthorizations")
+      .withIndex("by_mechanic", (q) => q.eq("mechanicId", userId))
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    // Get vessels with owner info
+    const vesselsWithOwnerInfo = await Promise.all(
+      authorizations.map(async (auth) => {
+        const vessel = await ctx.db.get(auth.vesselId);
+        if (!vessel) return null;
+
+        const owner = await ctx.db.get(vessel.ownerId);
+        
+        // Get work order count for this vessel by this mechanic
+        const workOrders = await ctx.db
+          .query("workOrders")
+          .withIndex("by_vessel", (q) => q.eq("vesselId", vessel._id))
+          .filter((q) => q.eq(q.field("mechanicId"), userId))
+          .collect();
+
+        const activeWorkOrders = workOrders.filter(wo => wo.status === "in_progress");
+        const completedWorkOrders = workOrders.filter(wo => wo.status === "completed");
+
+        return {
+          _id: vessel._id,
+          name: vessel.name,
+          make: vessel.make,
+          model: vessel.model,
+          year: vessel.year,
+          vesselType: vessel.vesselType,
+          qrCodeData: vessel.qrCodeData,
+          imageUrl: vessel.imageStorageId
+            ? await ctx.storage.getUrl(vessel.imageStorageId)
+            : null,
+          owner: owner ? {
+            _id: owner._id,
+            name: owner.fullName || owner.name || "Unknown",
+            email: owner.email,
+            phone: owner.phone,
+          } : null,
+          authorization: {
+            authorizedAt: auth.authorizedAt,
+          },
+          stats: {
+            activeWorkOrders: activeWorkOrders.length,
+            completedWorkOrders: completedWorkOrders.length,
+            totalWorkOrders: workOrders.length,
+          },
+        };
+      })
+    );
+
+    return vesselsWithOwnerInfo.filter(Boolean);
+  },
+});
+
 // Get vessel by QR code (for mechanics scanning)
 export const getVesselByQRCode = query({
   args: { qrCodeData: v.string() },
