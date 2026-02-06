@@ -6,6 +6,8 @@ import { api } from "../../../convex/_generated/api";
 import { useState } from "react";
 import { Id } from "../../../convex/_generated/dataModel";
 import { useRouter } from "next/navigation";
+import { GlassCard, GlassButton, GlassBadge } from "./ui/glass";
+import { useTheme } from "./providers/theme-provider";
 
 // Import landing page components
 import { AnnouncementsFeed } from "./announcements-feed";
@@ -22,7 +24,8 @@ import { MechanicSpotlight } from "./mechanic-spotlight";
 
 interface ProfileDropdownProps {
   user: {
-    fullName?: string;
+    firstName?: string;
+    lastName?: string;
     name?: string;
     email?: string;
     role?: string;
@@ -34,8 +37,11 @@ interface ProfileDropdownProps {
 
 function ProfileDropdown({ user, profilePhotoUrl, onProfileClick, onSignOut }: ProfileDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const { mode } = useTheme();
 
-  const displayName = user.fullName || user.name || "User";
+  const displayName = user.firstName && user.lastName 
+    ? `${user.firstName} ${user.lastName}` 
+    : user.name || "User";
   const initials = displayName
     .split(" ")
     .map((n) => n[0])
@@ -47,16 +53,16 @@ function ProfileDropdown({ user, profilePhotoUrl, onProfileClick, onSignOut }: P
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-full focus:outline-none focus:ring-2 focus:ring-captain-500 focus:ring-offset-2"
+        className="flex items-center gap-2 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
       >
         {profilePhotoUrl ? (
           <img
             src={profilePhotoUrl}
             alt={displayName}
-            className="w-10 h-10 rounded-full object-cover border-2 border-captain-200 hover:border-captain-400 transition-colors"
+            className={`w-10 h-10 rounded-full object-cover border-2 transition-colors ${mode === 'dark' ? "border-blue-500/30 hover:border-blue-500" : "border-blue-200 hover:border-blue-400"}`}
           />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-captain-600 flex items-center justify-center text-white font-semibold text-sm border-2 border-captain-200 hover:border-captain-400 transition-colors">
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm border-2 transition-colors ${mode === 'dark' ? "bg-blue-600 text-white border-blue-400" : "bg-blue-100 text-blue-700 border-blue-200"}`}>
             {initials}
           </div>
         )}
@@ -68,11 +74,11 @@ function ProfileDropdown({ user, profilePhotoUrl, onProfileClick, onSignOut }: P
             className="fixed inset-0 z-40" 
             onClick={() => setIsOpen(false)} 
           />
-          <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
-            <div className="px-4 py-3 border-b border-gray-100">
-              <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
-              <p className="text-xs text-gray-500 truncate">{user.email}</p>
-              <span className="inline-block mt-1 px-2 py-0.5 bg-captain-100 text-captain-700 text-xs font-medium rounded-full capitalize">
+          <GlassCard className="absolute right-0 mt-2 w-64 py-2 z-50">
+            <div className={`px-4 py-3 border-b ${mode === 'dark' ? "border-white/10" : "border-gray-100"}`}>
+              <p className={`text-sm font-semibold truncate ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{displayName}</p>
+              <p className={`text-xs truncate ${mode === 'dark' ? "text-gray-300" : "text-gray-500"}`}>{user.email}</p>
+              <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full capitalize ${mode === 'dark' ? "bg-blue-500/20 text-blue-300" : "bg-blue-100 text-blue-700"}`}>
                 {user.role}
               </span>
             </div>
@@ -82,7 +88,7 @@ function ProfileDropdown({ user, profilePhotoUrl, onProfileClick, onSignOut }: P
                   setIsOpen(false);
                   onProfileClick();
                 }}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                className={`w-full px-4 py-2 text-left text-sm flex items-center gap-3 transition-colors ${mode === 'dark' ? "text-gray-300 hover:bg-white/10" : "text-gray-700 hover:bg-gray-50"}`}
               >
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -90,13 +96,13 @@ function ProfileDropdown({ user, profilePhotoUrl, onProfileClick, onSignOut }: P
                 My Profile
               </button>
             </div>
-            <div className="border-t border-gray-100 pt-1">
+            <div className={`border-t pt-1 ${mode === 'dark' ? "border-white/10" : "border-gray-100"}`}>
               <button
                 onClick={() => {
                   setIsOpen(false);
                   onSignOut();
                 }}
-                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"
+                className={`w-full px-4 py-2 text-left text-sm flex items-center gap-3 transition-colors ${mode === 'dark' ? "text-red-400 hover:bg-red-500/10" : "text-red-600 hover:bg-red-50"}`}
               >
                 <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -104,7 +110,7 @@ function ProfileDropdown({ user, profilePhotoUrl, onProfileClick, onSignOut }: P
                 Sign Out
               </button>
             </div>
-          </div>
+          </GlassCard>
         </>
       )}
     </div>
@@ -126,18 +132,15 @@ function QuickActions({ actions }: { actions: QuickAction[] }) {
   return (
     <div className="flex flex-wrap gap-3">
       {actions.map((action, index) => (
-        <button
+        <GlassButton
           key={index}
           onClick={action.onClick}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
-            action.variant === "primary"
-              ? "bg-captain-600 text-white hover:bg-captain-700 shadow-md hover:shadow-lg"
-              : "bg-white text-gray-700 border border-gray-200 hover:border-captain-300 hover:bg-captain-50"
-          }`}
+          variant={action.variant === "primary" ? "primary" : "secondary"}
+          className="text-sm py-2.5 px-4"
         >
           {action.icon}
           {action.label}
-        </button>
+        </GlassButton>
       ))}
     </div>
   );
@@ -155,21 +158,22 @@ interface StatItem {
 }
 
 function StatsCard({ title, stats }: { title: string; stats: StatItem[] }) {
+  const { mode } = useTheme();
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-6">
-      <h3 className="text-sm font-medium text-gray-500 mb-4">{title}</h3>
+    <GlassCard className="p-6">
+      <h3 className={`text-sm font-medium mb-4 ${mode === 'dark' ? "text-gray-300" : "text-gray-500"}`}>{title}</h3>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {stats.map((stat, index) => (
           <div key={index} className="text-center">
-            <div className={`inline-flex p-3 rounded-xl ${stat.color} mb-2`}>
+            <div className={`inline-flex p-3 rounded-xl mb-2 ${stat.color} bg-opacity-20`}>
               {stat.icon}
             </div>
-            <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-            <p className="text-xs text-gray-500">{stat.label}</p>
+            <p className={`text-2xl font-bold font-heading ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{stat.value}</p>
+            <p className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>{stat.label}</p>
           </div>
         ))}
       </div>
-    </div>
+    </GlassCard>
   );
 }
 
@@ -188,24 +192,25 @@ function SectionCard({
   children: React.ReactNode;
   action?: { label: string; onClick: () => void };
 }) {
+  const { mode } = useTheme();
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+    <GlassCard>
+      <div className={`flex items-center justify-between px-6 py-4 border-b ${mode === 'dark' ? "border-white/10" : "border-gray-100"}`}>
         <div className="flex items-center gap-3">
-          <h3 className="font-semibold text-gray-900">{title}</h3>
+          <h3 className={`font-semibold font-heading ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{title}</h3>
           {badge}
         </div>
         {action && (
           <button
             onClick={action.onClick}
-            className="text-sm text-captain-600 hover:text-captain-700 font-medium"
+            className={`text-sm font-medium transition-colors ${mode === 'dark' ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-700"}`}
           >
             {action.label}
           </button>
         )}
       </div>
       <div className="p-6">{children}</div>
-    </div>
+    </GlassCard>
   );
 }
 
@@ -226,6 +231,7 @@ function OwnerLandingPage({
   const vessels = useQuery(api.vessels.listMyVessels);
   const workOrderRequests = useQuery(api.workOrders.getMyWorkOrderRequests);
   const [selectedMechanicId, setSelectedMechanicId] = useState<Id<"users"> | null>(null);
+  const { mode } = useTheme();
 
   // Calculate stats
   const vesselCount = vessels?.length || 0;
@@ -239,25 +245,25 @@ function OwnerLandingPage({
       label: "Vessels",
       value: vesselCount,
       icon: <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" /></svg>,
-      color: "bg-blue-100",
+      color: "bg-blue-500",
     },
     {
       label: "Active Work Orders",
       value: activeWorkOrders,
       icon: <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>,
-      color: "bg-green-100",
+      color: "bg-green-500",
     },
     {
       label: "Pending Quotes",
       value: pendingQuotes,
       icon: <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
-      color: "bg-amber-100",
+      color: "bg-amber-500",
     },
     {
       label: "Completed",
       value: workOrderRequests?.filter(wo => wo.status === "completed").length || 0,
       icon: <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>,
-      color: "bg-purple-100",
+      color: "bg-purple-500",
     },
   ];
 
@@ -290,10 +296,10 @@ function OwnerLandingPage({
       {/* Welcome and Quick Actions */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
-            Welcome back, {user.fullName?.split(" ")[0] || "Captain"}!
+          <h2 className={`text-2xl font-bold font-heading ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
+            Welcome back, {user.firstName || "Captain"}!
           </h2>
-          <p className="text-gray-600 mt-1">Here's what's happening with your fleet</p>
+          <p className={mode === 'dark' ? "text-gray-300" : "text-gray-600"}>Here's what's happening with your fleet</p>
         </div>
         <QuickActions actions={quickActions} />
       </div>
@@ -361,31 +367,32 @@ function MechanicLandingPage({
   onViewDashboard: () => void;
 }) {
   const mechanicStats = useQuery(api.mechanicDirectory.getMechanicStats);
+  const { mode } = useTheme();
 
   const stats: StatItem[] = [
     {
       label: "Active Jobs",
       value: mechanicStats?.activeJobs || 0,
       icon: <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>,
-      color: "bg-blue-100",
+      color: "bg-blue-500",
     },
     {
       label: "Pending Requests",
       value: mechanicStats?.pendingQuoteRequests || 0,
       icon: <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
-      color: "bg-amber-100",
+      color: "bg-amber-500",
     },
     {
       label: "Completed This Month",
       value: mechanicStats?.completedThisMonth || 0,
       icon: <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>,
-      color: "bg-green-100",
+      color: "bg-green-500",
     },
     {
       label: "Total Jobs",
       value: mechanicStats?.totalJobsCompleted || 0,
       icon: <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>,
-      color: "bg-purple-100",
+      color: "bg-purple-500",
     },
   ];
 
@@ -418,10 +425,10 @@ function MechanicLandingPage({
       {/* Welcome */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
-            Welcome back, {user.companyName || user.fullName?.split(" ")[0] || "Mechanic"}!
+          <h2 className={`text-2xl font-bold font-heading ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
+            Welcome back, {user.companyName || user.firstName || "Mechanic"}!
           </h2>
-          <p className="text-gray-600 mt-1">Here's your work summary</p>
+          <p className={mode === 'dark' ? "text-gray-300" : "text-gray-600"}>Here's your work summary</p>
         </div>
         <QuickActions actions={quickActions} />
       </div>
@@ -460,31 +467,32 @@ function AdminLandingPage({
   onViewDashboard: () => void;
 }) {
   const stats = useQuery(api.users.getAdminStats);
+  const { mode } = useTheme();
 
   const adminStats: StatItem[] = [
     {
       label: "Total Users",
       value: stats?.totalUsers || 0,
       icon: <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>,
-      color: "bg-blue-100",
+      color: "bg-blue-500",
     },
     {
       label: "Total Vessels",
       value: stats?.totalVessels || 0,
       icon: <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" /></svg>,
-      color: "bg-green-100",
+      color: "bg-green-500",
     },
     {
       label: "Work Orders",
       value: stats?.totalWorkOrders || 0,
       icon: <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>,
-      color: "bg-amber-100",
+      color: "bg-amber-500",
     },
     {
       label: "New This Week",
       value: stats?.newUsersThisWeek || 0,
       icon: <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>,
-      color: "bg-purple-100",
+      color: "bg-purple-500",
     },
   ];
 
@@ -512,10 +520,10 @@ function AdminLandingPage({
       {/* Welcome */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className={`text-2xl font-bold font-heading ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
             Admin Dashboard
           </h2>
-          <p className="text-gray-600 mt-1">System overview and management</p>
+          <p className={mode === 'dark' ? "text-gray-300" : "text-gray-600"}>System overview and management</p>
         </div>
         <QuickActions actions={quickActions} />
       </div>
@@ -553,10 +561,12 @@ export function LandingPage() {
   const profilePhotoUrl = useQuery(api.storage.getUserProfilePhotoUrl, {});
   const [showNotifications, setShowNotifications] = useState(false);
 
+  const { mode } = useTheme();
+
   if (!user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-captain-200 border-t-captain-600"></div>
+        <div className={`h-8 w-8 animate-spin rounded-full border-4 ${mode === 'dark' ? "border-white/10 border-t-blue-500" : "border-gray-200 border-t-blue-600"}`}></div>
       </div>
     );
   }
@@ -581,13 +591,13 @@ export function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-captain-50 to-gray-100">
+    <div className="min-h-screen bg-transparent">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-captain-200 bg-white/90 backdrop-blur-sm">
+      <header className={`sticky top-0 z-50 border-b backdrop-blur-xl ${mode === 'dark' ? "bg-black/20 border-white/10" : "bg-white/80 border-gray-200"}`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
           <a href="/home" className="flex items-center gap-2">
-            <span className="text-2xl">⚓</span>
-            <span className="text-2xl font-bold text-captain-900">QR Captain</span>
+            <img src="/qr-captain-logo.png" alt="QR Captain" className={`h-8 w-8 ${mode === 'dark' ? '' : 'brightness-0'}`} />
+            <span className={`text-2xl font-bold font-heading ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>QR Captain</span>
           </a>
           <div className="flex items-center gap-4">
             <HelpButton />
@@ -596,13 +606,12 @@ export function LandingPage() {
               <NotificationsPanel 
                 isOpen={showNotifications} 
                 onClose={() => setShowNotifications(false)}
-                onViewRequest={() => router.push("/")}
-                onViewQuote={() => router.push("/")}
-                onViewWorkOrder={() => router.push("/")}
-                onRespondToRequest={() => router.push("/")}
-                onViewVessel={() => router.push("/")}
-                onRateMechanic={() => router.push("/")}
-                onRateOwner={() => router.push("/")}
+                onViewRequest={() => router.push("/?dashboard=true")}
+                onViewQuote={(workOrderId) => router.push(`/?dashboard=true&viewQuote=${workOrderId}`)}
+                onViewWorkOrder={(workOrderId) => router.push(`/?dashboard=true&viewWorkOrder=${workOrderId}`)}
+                onRespondToRequest={(workOrderId) => router.push(`/?dashboard=true&respondToRequest=${workOrderId}`)}
+                onViewVessel={() => router.push("/?dashboard=true")}
+                onLeaveRating={(workOrderId) => router.push(`/?dashboard=true&viewRating=${workOrderId}`)}
               />
             </div>
             <ProfileDropdown
@@ -618,29 +627,35 @@ export function LandingPage() {
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-4 py-8">
         {user.role === "owner" && (
-          <OwnerLandingPage 
-            user={user} 
-            onViewDashboard={handleViewDashboard}
-            onViewMechanics={handleViewMechanics}
-          />
+          <div className={mode === 'dark' ? "text-white" : "text-gray-900"}>
+            <OwnerLandingPage 
+              user={user} 
+              onViewDashboard={handleViewDashboard}
+              onViewMechanics={handleViewMechanics}
+            />
+          </div>
         )}
         {user.role === "mechanic" && (
-          <MechanicLandingPage 
-            user={user} 
-            onViewDashboard={handleViewDashboard}
-          />
+          <div className={mode === 'dark' ? "text-white" : "text-gray-900"}>
+            <MechanicLandingPage 
+              user={user} 
+              onViewDashboard={handleViewDashboard}
+            />
+          </div>
         )}
         {user.role === "admin" && (
-          <AdminLandingPage 
-            user={user} 
-            onViewDashboard={handleViewDashboard}
-          />
+          <div className={mode === 'dark' ? "text-white" : "text-gray-900"}>
+            <AdminLandingPage 
+              user={user} 
+              onViewDashboard={handleViewDashboard}
+            />
+          </div>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white py-6 mt-8">
-        <div className="mx-auto max-w-7xl px-4 text-center text-sm text-gray-500">
+      <footer className={`border-t py-6 mt-8 ${mode === 'dark' ? "bg-black/20 border-white/10 text-gray-400" : "bg-white border-gray-200 text-gray-500"}`}>
+        <div className="mx-auto max-w-7xl px-4 text-center text-sm">
           <p>&copy; {new Date().getFullYear()} QR Captain. All rights reserved.</p>
         </div>
       </footer>

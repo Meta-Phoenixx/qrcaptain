@@ -44,7 +44,9 @@ export const getVesselWorkOrders = query({
         const mechanic = await ctx.db.get(wo.mechanicId);
         return {
           ...wo,
-          mechanicName: mechanic?.fullName,
+          mechanicName: mechanic?.firstName && mechanic?.lastName 
+            ? `${mechanic.firstName} ${mechanic.lastName}` 
+            : mechanic?.name,
           mechanicCompany: mechanic?.companyName,
         };
       })
@@ -114,10 +116,14 @@ export const getWorkOrder = query({
         make: vessel.make,
         model: vessel.model,
         year: vessel.year,
-        ownerName: owner?.fullName || owner?.name,
+        ownerName: owner?.firstName && owner?.lastName 
+          ? `${owner.firstName} ${owner.lastName}` 
+          : owner?.name,
       },
       mechanic: {
-        name: mechanic?.fullName,
+        name: mechanic?.firstName && mechanic?.lastName 
+          ? `${mechanic.firstName} ${mechanic.lastName}` 
+          : mechanic?.name,
         company: mechanic?.companyName,
         phone: mechanic?.phone,
       },
@@ -172,8 +178,12 @@ export const getMyWorkOrders = query({
           vesselName: vessel?.name,
           vesselMake: vessel?.make,
           vesselModel: vessel?.model,
-          ownerName: owner?.fullName || owner?.name,
-          requestingOwnerName: requestingOwner?.fullName || requestingOwner?.name,
+          ownerName: owner?.firstName && owner?.lastName 
+            ? `${owner.firstName} ${owner.lastName}` 
+            : owner?.name,
+          requestingOwnerName: requestingOwner?.firstName && requestingOwner?.lastName 
+            ? `${requestingOwner.firstName} ${requestingOwner.lastName}` 
+            : requestingOwner?.name,
         };
       })
     );
@@ -215,9 +225,13 @@ export const getPendingQuoteRequests = query({
           vesselName: vessel?.name,
           vesselMake: vessel?.make,
           vesselModel: vessel?.model,
-          ownerName: owner?.fullName || owner?.name,
+          ownerName: owner?.firstName && owner?.lastName 
+            ? `${owner.firstName} ${owner.lastName}` 
+            : owner?.name,
           ownerPhone: owner?.phone,
-          requestingOwnerName: requestingOwner?.fullName || requestingOwner?.name,
+          requestingOwnerName: requestingOwner?.firstName && requestingOwner?.lastName 
+            ? `${requestingOwner.firstName} ${requestingOwner.lastName}` 
+            : requestingOwner?.name,
           equipmentName: equipment?.name,
           equipmentCategory: equipment?.category,
         };
@@ -272,7 +286,9 @@ export const getMyWorkOrderRequests = query({
           vesselName: vessel?.name,
           vesselMake: vessel?.make,
           vesselModel: vessel?.model,
-          mechanicName: mechanic?.fullName || mechanic?.name,
+          mechanicName: mechanic?.firstName && mechanic?.lastName 
+            ? `${mechanic.firstName} ${mechanic.lastName}` 
+            : mechanic?.name,
           mechanicCompany: mechanic?.companyName,
           mechanicPhone: mechanic?.phone,
           equipmentName: equipment?.name,
@@ -329,7 +345,7 @@ export const createWorkOrder = mutation({
       userId: vessel.ownerId,
       type: "work_order_started",
       title: "Work Order Started",
-      message: `${user.companyName || user.fullName || "A mechanic"} has started work on ${vessel.name}`,
+      message: `${user.companyName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "A mechanic")} has started work on ${vessel.name}`,
       relatedId: workOrderId,
       relatedType: "workOrder",
       isRead: false,
@@ -426,7 +442,7 @@ export const requestWorkOrder = mutation({
       userId: args.mechanicId,
       type: "work_order_requested",
       title: "New Work Order Request",
-      message: `${user.fullName || "An owner"} has requested work on ${vessel.name}: ${args.description.substring(0, 100)}${args.description.length > 100 ? "..." : ""}`,
+      message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "An owner"} has requested work on ${vessel.name}: ${args.description.substring(0, 100)}${args.description.length > 100 ? "..." : ""}`,
       relatedId: workOrderId,
       relatedType: "workOrder",
       isRead: false,
@@ -496,7 +512,7 @@ export const submitQuote = mutation({
         userId: ownerId,
         type: "quote_submitted",
         title: "Quote Received",
-        message: `${user.companyName || user.fullName || "A mechanic"} has submitted a quote for $${quotedTotalEstimate.toFixed(2)}`,
+        message: `${user.companyName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "A mechanic")} has submitted a quote for $${quotedTotalEstimate.toFixed(2)}`,
         relatedId: args.workOrderId,
         relatedType: "workOrder",
         isRead: false,
@@ -549,7 +565,7 @@ export const declineWorkOrderRequest = mutation({
         userId: ownerId,
         type: "request_declined",
         title: "Work Order Request Declined",
-        message: `${user.companyName || user.fullName || "The mechanic"} has declined your work order request${args.declineReason ? `: ${args.declineReason}` : ""}`,
+        message: `${user.companyName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The mechanic")} has declined your work order request${args.declineReason ? `: ${args.declineReason}` : ""}`,
         relatedId: args.workOrderId,
         relatedType: "workOrder",
         isRead: false,
@@ -605,7 +621,7 @@ export const acceptQuote = mutation({
       userId: workOrder.mechanicId,
       type: "quote_accepted",
       title: "Quote Accepted",
-      message: `${user.fullName || "The owner"} has accepted your quote for ${vessel.name}. You can now begin work.`,
+      message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner"} has accepted your quote for ${vessel.name}. You can now begin work.`,
       relatedId: args.workOrderId,
       relatedType: "workOrder",
       isRead: false,
@@ -656,7 +672,7 @@ export const declineQuote = mutation({
       userId: workOrder.mechanicId,
       type: "quote_declined",
       title: "Quote Declined",
-      message: `${user.fullName || "The owner"} has declined your quote for ${vessel.name}${args.reason ? `: ${args.reason}` : ""}`,
+      message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner"} has declined your quote for ${vessel.name}${args.reason ? `: ${args.reason}` : ""}`,
       relatedId: args.workOrderId,
       relatedType: "workOrder",
       isRead: false,
@@ -814,7 +830,7 @@ export const completeWorkOrder = mutation({
         userId: vessel.ownerId,
         type: "work_order_completed",
         title: "Work Order Completed",
-        message: `${user?.companyName || user?.fullName || "The mechanic"} has completed work on ${vessel.name}`,
+        message: `${user?.companyName || (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : "The mechanic")} has completed work on ${vessel.name}`,
         relatedId: args.workOrderId,
         relatedType: "workOrder",
         isRead: false,
@@ -826,7 +842,7 @@ export const completeWorkOrder = mutation({
         userId: vessel.ownerId,
         type: "rate_mechanic_reminder",
         title: "Rate Your Mechanic",
-        message: `How was your experience with ${user?.companyName || user?.fullName || "the mechanic"}? Leave a review to help other boat owners.`,
+        message: `How was your experience with ${user?.companyName || (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : "the mechanic")}? Leave a review to help other boat owners.`,
         relatedId: args.workOrderId,
         relatedType: "workOrder",
         isRead: false,
@@ -898,7 +914,7 @@ export const cancelWorkOrder = mutation({
         userId: workOrder.mechanicId,
         type: "work_order_completed", // Using existing type for cancellation notice
         title: "Work Order Cancelled",
-        message: `${user.fullName || "The owner"} has cancelled the work order for ${vessel.name}${args.reason ? `: ${args.reason}` : ""}`,
+        message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner"} has cancelled the work order for ${vessel.name}${args.reason ? `: ${args.reason}` : ""}`,
         relatedId: args.workOrderId,
         relatedType: "workOrder",
         isRead: false,
@@ -910,7 +926,7 @@ export const cancelWorkOrder = mutation({
         userId: vessel.ownerId,
         type: "work_order_completed",
         title: "Work Order Cancelled",
-        message: `${user.companyName || user.fullName || "The mechanic"} has cancelled the work order for ${vessel.name}${args.reason ? `: ${args.reason}` : ""}`,
+        message: `${user.companyName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The mechanic")} has cancelled the work order for ${vessel.name}${args.reason ? `: ${args.reason}` : ""}`,
         relatedId: args.workOrderId,
         relatedType: "workOrder",
         isRead: false,

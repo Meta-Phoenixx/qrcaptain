@@ -39,7 +39,9 @@ export const getWorkOrderMessages = query({
         const sender = await ctx.db.get(msg.senderId);
         return {
           ...msg,
-          senderName: sender?.fullName || sender?.name || "Unknown",
+          senderName: sender?.firstName && sender?.lastName 
+            ? `${sender.firstName} ${sender.lastName}` 
+            : sender?.name || "Unknown",
           senderRole: msg.senderId === vessel.ownerId ? "owner" : "mechanic",
           isCurrentUser: msg.senderId === userId,
         };

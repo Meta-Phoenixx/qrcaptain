@@ -70,7 +70,7 @@ export const requestAccess = mutation({
       userId: vessel.ownerId,
       type: "access_request",
       title: "New Access Request",
-      message: `${user.fullName || user.name || "A mechanic"} is requesting access to ${vessel.name}`,
+      message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.name || "A mechanic"} is requesting access to ${vessel.name}`,
       relatedId: requestId,
       relatedType: "accessRequest",
       isRead: false,
@@ -149,7 +149,7 @@ export const respondToRequest = mutation({
         userId: request.mechanicId,
         type: "access_approved",
         title: "Access Approved",
-        message: `${owner?.fullName || "The owner"} has approved your access to ${vessel?.name || "the vessel"}${args.message ? `: "${args.message}"` : ""}`,
+        message: `${owner?.firstName && owner?.lastName ? `${owner.firstName} ${owner.lastName}` : "The owner"} has approved your access to ${vessel?.name || "the vessel"}${args.message ? `: "${args.message}"` : ""}`,
         relatedId: request.vesselId,
         relatedType: "vessel",
         isRead: false,
@@ -161,7 +161,7 @@ export const respondToRequest = mutation({
         userId: request.mechanicId,
         type: "access_denied",
         title: "Access Denied",
-        message: `${owner?.fullName || "The owner"} has denied your access to ${vessel?.name || "the vessel"}${args.message ? `: "${args.message}"` : ""}`,
+        message: `${owner?.firstName && owner?.lastName ? `${owner.firstName} ${owner.lastName}` : "The owner"} has denied your access to ${vessel?.name || "the vessel"}${args.message ? `: "${args.message}"` : ""}`,
         relatedId: args.requestId,
         relatedType: "accessRequest",
         isRead: false,
@@ -207,7 +207,9 @@ export const getPendingRequestsForOwner = query({
           } : null,
           mechanic: mechanic ? {
             _id: mechanic._id,
-            name: mechanic.fullName || mechanic.name,
+            name: mechanic.firstName && mechanic.lastName 
+              ? `${mechanic.firstName} ${mechanic.lastName}` 
+              : mechanic.name,
             email: mechanic.email,
             companyName: mechanic.companyName,
             licenseNumber: mechanic.licenseNumber,
@@ -451,7 +453,9 @@ export const getMechanicsForOwner = query({
 
         return {
           _id: mechanic._id,
-          name: mechanic.fullName || mechanic.name || "Unknown",
+          name: mechanic.firstName && mechanic.lastName 
+            ? `${mechanic.firstName} ${mechanic.lastName}` 
+            : mechanic.name || "Unknown",
           email: mechanic.email,
           companyName: mechanic.companyName,
           phone: mechanic.phone,
@@ -530,8 +534,8 @@ export const toggleMechanicAccess = mutation({
       type: args.isActive ? "access_approved" : "access_revoked",
       title: args.isActive ? "Access Restored" : "Access Revoked",
       message: args.isActive 
-        ? `${user.fullName || "The owner"} has restored your access to ${vessel.name}`
-        : `${user.fullName || "The owner"} has revoked your access to ${vessel.name}`,
+        ? `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner"} has restored your access to ${vessel.name}`
+        : `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner"} has revoked your access to ${vessel.name}`,
       relatedId: args.vesselId,
       relatedType: "vessel",
       isRead: false,
@@ -582,7 +586,7 @@ export const revokeAllMechanicAccess = mutation({
       userId: args.mechanicId,
       type: "access_revoked",
       title: "Access Revoked",
-      message: `${user.fullName || "The owner"} has revoked your access to all their vessels`,
+      message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner"} has revoked your access to all their vessels`,
       relatedId: userId,
       relatedType: "user",
       isRead: false,

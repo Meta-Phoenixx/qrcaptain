@@ -3,6 +3,9 @@
 import { useState, useRef, useCallback } from "react";
 import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
+import { GlassModal, GlassButton } from "./ui/glass";
+import { useTheme } from "./providers/theme-provider";
+import { X } from "lucide-react";
 
 interface ImageCropperProps {
   imageSrc: string;
@@ -37,6 +40,7 @@ export function ImageCropper({
   onCancel,
   aspectRatio = 16 / 9,
 }: ImageCropperProps) {
+  const { mode } = useTheme();
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const imgRef = useRef<HTMLImageElement>(null);
@@ -104,62 +108,62 @@ export function ImageCropper({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70">
-      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-gray-900">Crop Image</h2>
-          <button
-            onClick={onCancel}
-            className="text-gray-400 hover:text-gray-600 text-2xl"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Crop Area */}
-        <div className="p-6 flex items-center justify-center bg-gray-100">
-          <ReactCrop
-            crop={crop}
-            onChange={(_, percentCrop) => setCrop(percentCrop)}
-            onComplete={(c) => setCompletedCrop(c)}
-            aspect={aspectRatio}
-            className="max-h-[60vh]"
-          >
-            <img
-              ref={imgRef}
-              src={imageSrc}
-              alt="Crop preview"
-              onLoad={onImageLoad}
-              className="max-h-[60vh] max-w-full"
-            />
-          </ReactCrop>
-        </div>
-
-        {/* Instructions */}
-        <div className="px-6 py-3 bg-gray-50 text-center">
-          <p className="text-sm text-gray-500">
-            Drag to reposition. Drag corners to resize.
-          </p>
-        </div>
-
-        {/* Actions */}
-        <div className="border-t border-gray-200 px-6 py-4 flex gap-3">
-          <button
-            onClick={onCancel}
-            className="flex-1 rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isProcessing || !completedCrop}
-            className="flex-1 rounded-lg bg-captain-600 px-4 py-2 font-semibold text-white hover:bg-captain-700 disabled:opacity-50"
-          >
-            {isProcessing ? "Processing..." : "Save Cropped Image"}
-          </button>
-        </div>
+    <GlassModal onClose={onCancel} className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+      {/* Header */}
+      <div className={`border-b px-6 py-4 flex items-center justify-between ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}>
+        <h2 className={`text-xl font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Crop Image</h2>
+        <button
+          onClick={onCancel}
+          className={`text-2xl transition-colors ${mode === 'dark' ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-600"}`}
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
-    </div>
+
+      {/* Crop Area */}
+      <div className={`p-6 flex items-center justify-center ${mode === 'dark' ? "bg-black/40" : "bg-gray-100"}`}>
+        <ReactCrop
+          crop={crop}
+          onChange={(_, percentCrop) => setCrop(percentCrop)}
+          onComplete={(c) => setCompletedCrop(c)}
+          aspect={aspectRatio}
+          className="max-h-[60vh]"
+        >
+          <img
+            ref={imgRef}
+            src={imageSrc}
+            alt="Crop preview"
+            onLoad={onImageLoad}
+            className="max-h-[60vh] max-w-full"
+          />
+        </ReactCrop>
+      </div>
+
+      {/* Instructions */}
+      <div className={`px-6 py-3 text-center ${mode === 'dark' ? "bg-white/5" : "bg-gray-50"}`}>
+        <p className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
+          Drag to reposition. Drag corners to resize.
+        </p>
+      </div>
+
+      {/* Actions */}
+      <div className={`border-t px-6 py-4 flex gap-3 ${mode === 'dark' ? "border-white/10 bg-white/5" : "border-gray-200 bg-gray-50"}`}>
+        <GlassButton
+          variant="secondary"
+          onClick={onCancel}
+          className="flex-1 justify-center"
+        >
+          Cancel
+        </GlassButton>
+        <GlassButton
+          variant="primary"
+          onClick={handleSave}
+          disabled={isProcessing || !completedCrop}
+          className="flex-1 justify-center"
+        >
+          {isProcessing ? "Processing..." : "Save Cropped Image"}
+        </GlassButton>
+      </div>
+    </GlassModal>
   );
 }

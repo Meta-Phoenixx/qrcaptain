@@ -81,7 +81,8 @@ export const listMechanics = query({
         return {
           _id: mechanic._id,
           companyName: mechanic.companyName,
-          fullName: mechanic.fullName,
+          firstName: mechanic.firstName,
+          lastName: mechanic.lastName,
           imageUrl,
           availabilityStatus: mechanic.availabilityStatus || "available",
           serviceAreas: mechanic.serviceAreas || [],
@@ -124,8 +125,8 @@ export const listMechanics = query({
         case "jobsCompleted":
           return (b.totalJobsCompleted - a.totalJobsCompleted) * sortMultiplier;
         case "name":
-          const aName = a.companyName || a.fullName || "";
-          const bName = b.companyName || b.fullName || "";
+          const aName = a.companyName || (a.firstName && a.lastName ? `${a.firstName} ${a.lastName}` : "") || "";
+          const bName = b.companyName || (b.firstName && b.lastName ? `${b.firstName} ${b.lastName}` : "") || "";
           return aName.localeCompare(bName) * sortMultiplier;
         default:
           // Default: sort by rating then jobs completed
@@ -222,7 +223,8 @@ export const getMechanicSpotlight = query({
     return {
       _id: mechanic._id,
       companyName: mechanic.companyName,
-      fullName: mechanic.fullName,
+      firstName: mechanic.firstName,
+      lastName: mechanic.lastName,
       companyLogoUrl,
       profilePhotoUrl,
       bio: mechanic.bio,
@@ -458,7 +460,8 @@ export const searchMechanics = query({
 
     const matched = mechanics.filter(m => 
       m.companyName?.toLowerCase().includes(searchLower) ||
-      m.fullName?.toLowerCase().includes(searchLower)
+      m.firstName?.toLowerCase().includes(searchLower) ||
+      m.lastName?.toLowerCase().includes(searchLower)
     );
 
     // Get basic info for results
@@ -479,7 +482,8 @@ export const searchMechanics = query({
         return {
           _id: mechanic._id,
           companyName: mechanic.companyName,
-          fullName: mechanic.fullName,
+          firstName: mechanic.firstName,
+          lastName: mechanic.lastName,
           imageUrl,
           availabilityStatus: mechanic.availabilityStatus || "available",
           avgOverallRating: metrics?.avgOverallRating || null,
@@ -549,7 +553,8 @@ export const getFeaturedMechanics = query({
         return {
           _id: mechanic._id,
           companyName: mechanic.companyName,
-          fullName: mechanic.fullName,
+          firstName: mechanic.firstName,
+          lastName: mechanic.lastName,
           imageUrl,
           availabilityStatus: mechanic.availabilityStatus || "available",
           serviceAreas: mechanic.serviceAreas || [],

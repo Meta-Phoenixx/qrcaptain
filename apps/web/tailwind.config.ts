@@ -24,6 +24,10 @@ const config: Config = {
           950: "#082f49",
         },
       },
+      fontFamily: {
+        heading: ["var(--font-ubuntu)", "sans-serif"],
+        inter: ["var(--font-inter)", "sans-serif"],
+      },
     },
   },
   plugins: [],

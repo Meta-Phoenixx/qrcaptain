@@ -43,7 +43,7 @@ export const sendMessage = mutation({
       userId: args.receiverId,
       type: "new_message",
       title: "New Message",
-      message: `${sender.fullName || sender.name || "Someone"} sent you a message${vesselName ? ` about ${vesselName}` : ""}`,
+      message: `${sender.firstName && sender.lastName ? `${sender.firstName} ${sender.lastName}` : sender.name || "Someone"} sent you a message${vesselName ? ` about ${vesselName}` : ""}`,
       relatedId: messageId,
       relatedType: "message",
       isRead: false,
@@ -100,7 +100,9 @@ export const getConversation = query({
         const sender = await ctx.db.get(message.senderId);
         return {
           ...message,
-          senderName: sender?.fullName || sender?.name || "Unknown",
+          senderName: sender?.firstName && sender?.lastName 
+            ? `${sender.firstName} ${sender.lastName}` 
+            : sender?.name || "Unknown",
           isFromMe: message.senderId === userId,
         };
       })
@@ -139,7 +141,9 @@ export const getAccessRequestMessages = query({
         const sender = await ctx.db.get(message.senderId);
         return {
           ...message,
-          senderName: sender?.fullName || sender?.name || "Unknown",
+          senderName: sender?.firstName && sender?.lastName 
+            ? `${sender.firstName} ${sender.lastName}` 
+            : sender?.name || "Unknown",
           isFromMe: message.senderId === userId,
         };
       })
@@ -200,7 +204,9 @@ export const getRecentConversations = query({
         return {
           otherUser: isUserDoc ? {
             _id: otherUser._id,
-            name: (otherUser as any).fullName || (otherUser as any).name || "Unknown",
+            name: (otherUser as any).firstName && (otherUser as any).lastName 
+              ? `${(otherUser as any).firstName} ${(otherUser as any).lastName}` 
+              : (otherUser as any).name || "Unknown",
             role: (otherUser as any).role,
           } : null,
           lastMessage: {

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import { GlassModal, GlassButton, GlassSelect, GlassInput } from "./ui/glass";
+import { useTheme } from "./providers/theme-provider";
 
 interface WorkOrderRequestFormProps {
   onSuccess?: (workOrderId: Id<"workOrders">) => void;
@@ -25,6 +27,7 @@ export function WorkOrderRequestForm({
   const [urgency, setUrgency] = useState<"routine" | "soon" | "urgent">("routine");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { mode } = useTheme();
 
   // Get owner's preferred mechanics
   const preferredMechanics = useQuery(api.preferredMechanics.getPreferredMechanics);
@@ -95,24 +98,23 @@ export function WorkOrderRequestForm({
   }, {} as Record<string, typeof equipment>);
 
   const urgencyOptions = [
-    { value: "routine", label: "Routine", description: "Schedule when convenient", color: "bg-gray-100 text-gray-700" },
-    { value: "soon", label: "Soon", description: "Within 1-2 weeks", color: "bg-yellow-100 text-yellow-700" },
-    { value: "urgent", label: "Urgent", description: "As soon as possible", color: "bg-red-100 text-red-700" },
+    { value: "routine", label: "Routine", description: "Schedule when convenient", color: "bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-300 dark:border-gray-500/30" },
+    { value: "soon", label: "Soon", description: "Within 1-2 weeks", color: "bg-yellow-100 text-yellow-700 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30" },
+    { value: "urgent", label: "Urgent", description: "As soon as possible", color: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300 dark:border-red-500/30" },
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+    <GlassModal onClose={onCancel} className="max-w-lg">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-xl">
+        <div className={`sticky top-0 border-b px-6 py-4 rounded-t-xl backdrop-blur-md ${mode === 'dark' ? "bg-black/20 border-white/10" : "bg-white border-gray-200"}`}>
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Request Work Order</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Get a quote from your mechanic</p>
+              <h2 className={`text-xl font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Request Work Order</h2>
+              <p className={`text-sm mt-0.5 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>Get a quote from your mechanic</p>
             </div>
             <button
               onClick={onCancel}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+              className={`p-2 transition-colors ${mode === 'dark' ? "text-gray-400 hover:text-white" : "text-gray-400 hover:text-gray-600"}`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -125,17 +127,17 @@ export function WorkOrderRequestForm({
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Error Message */}
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className={`p-3 border rounded-lg text-sm ${mode === 'dark' ? "bg-red-500/10 border-red-500/20 text-red-300" : "bg-red-50 border-red-200 text-red-700"}`}>
               {error}
             </div>
           )}
 
           {/* Vessel Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label className={`block text-sm font-medium mb-1.5 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
               Select Vessel <span className="text-red-500">*</span>
             </label>
-            <select
+            <GlassSelect
               value={selectedVesselId}
               onChange={(e) => {
                 setSelectedVesselId(e.target.value);
@@ -149,7 +151,6 @@ export function WorkOrderRequestForm({
                   }
                 }
               }}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black bg-white"
               disabled={!!preSelectedVesselId}
             >
               <option value="">Choose a vessel...</option>
@@ -158,55 +159,53 @@ export function WorkOrderRequestForm({
                   {vessel.name} - {vessel.year} {vessel.make} {vessel.model}
                 </option>
               ))}
-            </select>
+            </GlassSelect>
           </div>
 
           {/* Mechanic Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label className={`block text-sm font-medium mb-1.5 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
               Select Mechanic <span className="text-red-500">*</span>
             </label>
             {!preferredMechanics || preferredMechanics.length === 0 ? (
-              <div className="p-4 bg-gray-50 rounded-lg text-center">
-                <p className="text-sm text-gray-600 mb-2">
+              <div className={`p-4 rounded-lg text-center ${mode === 'dark' ? "bg-white/5" : "bg-gray-50"}`}>
+                <p className={`text-sm mb-2 ${mode === 'dark' ? "text-gray-400" : "text-gray-600"}`}>
                   You don't have any preferred mechanics yet.
                 </p>
                 <a
                   href="/mechanics"
-                  className="text-sm text-captain-600 hover:text-captain-700 font-medium"
+                  className={mode === 'dark' ? "text-sm text-blue-400 hover:text-blue-300 font-medium" : "text-sm text-captain-600 hover:text-captain-700 font-medium"}
                 >
                   Browse the Mechanic Directory
                 </a>
               </div>
             ) : (
-              <select
+              <GlassSelect
                 value={selectedMechanicId}
                 onChange={(e) => setSelectedMechanicId(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black bg-white"
                 disabled={!!preSelectedMechanicId}
               >
                 <option value="">Choose a mechanic...</option>
                 {availableMechanics.map((mechanic) => (
                   <option key={mechanic.mechanicId} value={mechanic.mechanicId}>
-                    {mechanic.companyName || mechanic.fullName}
+                    {mechanic.companyName || (mechanic.firstName && mechanic.lastName ? `${mechanic.firstName} ${mechanic.lastName}` : "Unknown")}
                     {mechanic.avgOverallRating ? ` (${mechanic.avgOverallRating.toFixed(1)} wrenches)` : ""}
                   </option>
                 ))}
-              </select>
+              </GlassSelect>
             )}
           </div>
 
           {/* Equipment Reference (Optional) */}
           {equipment && equipment.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className={`block text-sm font-medium mb-1.5 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                 Related Equipment
-                <span className="text-gray-400 font-normal ml-1">(optional)</span>
+                <span className={`font-normal ml-1 ${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`}>(optional)</span>
               </label>
-              <select
+              <GlassSelect
                 value={selectedEquipmentId}
                 onChange={(e) => setSelectedEquipmentId(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black bg-white"
               >
                 <option value="">Select equipment if applicable...</option>
                 {equipmentByCategory && Object.entries(equipmentByCategory).map(([category, items]) => (
@@ -218,13 +217,13 @@ export function WorkOrderRequestForm({
                     ))}
                   </optgroup>
                 ))}
-              </select>
+              </GlassSelect>
             </div>
           )}
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label className={`block text-sm font-medium mb-1.5 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
               Describe the Work Needed <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -232,16 +231,20 @@ export function WorkOrderRequestForm({
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe the issue or work to be performed..."
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black placeholder-gray-400 resize-none"
+              className={`w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-1 resize-none ${
+                mode === 'dark' 
+                  ? "bg-black/20 border border-white/10 text-white placeholder-gray-500 focus:border-blue-500/50 focus:ring-blue-500/50" 
+                  : "bg-white/50 border border-gray-300 text-black placeholder-gray-400 focus:ring-captain-500 focus:border-captain-500"
+              }`}
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className={`mt-1 text-xs ${mode === 'dark' ? "text-gray-500" : "text-gray-500"}`}>
               Be specific about symptoms, when the issue started, and any relevant details
             </p>
           </div>
 
           {/* Urgency */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className={`block text-sm font-medium mb-2 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
               How urgent is this?
             </label>
             <div className="grid grid-cols-3 gap-2">
@@ -252,23 +255,23 @@ export function WorkOrderRequestForm({
                   onClick={() => setUrgency(option.value as typeof urgency)}
                   className={`p-3 rounded-lg border-2 transition-all text-center ${
                     urgency === option.value
-                      ? "border-captain-500 bg-captain-50"
-                      : "border-gray-200 hover:border-gray-300"
+                      ? mode === 'dark' ? "border-blue-500/50 bg-blue-500/10" : "border-captain-500 bg-captain-50"
+                      : mode === 'dark' ? "border-white/5 hover:border-white/20" : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
-                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${option.color}`}>
+                  <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium border ${mode === 'dark' ? "backdrop-blur-sm" : ""} ${option.color}`}>
                     {option.label}
                   </span>
-                  <p className="text-xs text-gray-500 mt-1">{option.description}</p>
+                  <p className={`text-xs mt-1 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>{option.description}</p>
                 </button>
               ))}
             </div>
           </div>
 
           {/* Info Box */}
-          <div className="bg-blue-50 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">What happens next?</h4>
-            <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
+          <div className={`rounded-lg p-4 ${mode === 'dark' ? "bg-blue-500/10 border border-blue-500/20" : "bg-blue-50"}`}>
+            <h4 className={`text-sm font-medium mb-2 ${mode === 'dark' ? "text-blue-300" : "text-blue-900"}`}>What happens next?</h4>
+            <ol className={`text-sm space-y-1 list-decimal list-inside ${mode === 'dark' ? "text-blue-200" : "text-blue-700"}`}>
               <li>The mechanic will be authorized for this vessel automatically</li>
               <li>They'll receive your request and provide a quote</li>
               <li>You can accept or decline the quote</li>
@@ -278,17 +281,19 @@ export function WorkOrderRequestForm({
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">
-            <button
+            <GlassButton
               type="button"
+              variant="secondary"
               onClick={onCancel}
-              className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              className="flex-1"
             >
               Cancel
-            </button>
-            <button
+            </GlassButton>
+            <GlassButton
               type="submit"
+              variant="primary"
               disabled={isSubmitting || !selectedVesselId || !selectedMechanicId || !description.trim()}
-              className="flex-1 px-4 py-2.5 bg-captain-600 text-white rounded-lg hover:bg-captain-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2"
+              className="flex-1 flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>
@@ -303,10 +308,9 @@ export function WorkOrderRequestForm({
                   Request Quote
                 </>
               )}
-            </button>
+            </GlassButton>
           </div>
         </form>
-      </div>
-    </div>
+    </GlassModal>
   );
 }

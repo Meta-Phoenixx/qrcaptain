@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { GlassModal, GlassButton, GlassInput } from "./ui/glass";
+import { useTheme } from "./providers/theme-provider";
 import {
   Building2,
   MapPin,
@@ -133,6 +135,7 @@ export function MechanicOnboarding({
   onComplete,
   onSkip,
 }: MechanicOnboardingProps) {
+  const { mode } = useTheme();
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -391,176 +394,163 @@ export function MechanicOnboarding({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-y-auto py-8">
-      <div className="w-full max-w-2xl mx-4 rounded-2xl bg-white shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-captain-600 to-captain-700 px-6 py-5 text-white">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-xl font-bold">Welcome to QR Captain!</h2>
-              <p className="text-captain-100 text-sm">
-                Let's set up your mechanic profile, {userName.split(" ")[0]}
-              </p>
-            </div>
-            <button
-              onClick={handleSkip}
-              disabled={isSubmitting}
-              className="text-sm text-captain-200 hover:text-white transition-colors"
-            >
-              Skip for now
-            </button>
+    <GlassModal onClose={handleSkip} className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+      {/* Header */}
+      <div className={`px-6 py-5 flex-shrink-0 ${mode === 'dark' ? "bg-gradient-to-r from-blue-900/40 to-cyan-900/40 border-b border-white/10" : "bg-gradient-to-r from-captain-600 to-captain-700 text-white"}`}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className={`text-xl font-bold ${mode === 'dark' ? "text-white" : "text-white"}`}>Welcome to QR Captain!</h2>
+            <p className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-captain-100"}`}>
+              Let's set up your mechanic profile, {userName.split(" ")[0]}
+            </p>
           </div>
-
-          {/* Progress Steps */}
-          <div className="flex items-center justify-between">
-            {steps.map((step, index) => {
-              const StepIcon = step.icon;
-              const isActive = currentStep === step.num;
-              const isCompleted = currentStep > step.num;
-
-              return (
-                <div key={step.num} className="flex items-center">
-                  <div className="flex flex-col items-center">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                        isCompleted
-                          ? "bg-white text-captain-600"
-                          : isActive
-                          ? "bg-white/20 text-white ring-2 ring-white"
-                          : "bg-white/10 text-white/60"
-                      }`}
-                    >
-                      {isCompleted ? <Check size={20} /> : <StepIcon size={20} />}
-                    </div>
-                    <span
-                      className={`text-xs mt-1 ${
-                        isActive ? "text-white" : "text-captain-200"
-                      }`}
-                    >
-                      {step.title}
-                    </span>
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div
-                      className={`w-12 h-0.5 mx-2 ${
-                        isCompleted ? "bg-white" : "bg-white/20"
-                      }`}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <button
+            onClick={handleSkip}
+            disabled={isSubmitting}
+            className={`text-sm transition-colors ${mode === 'dark' ? "text-gray-400 hover:text-white" : "text-captain-200 hover:text-white"}`}
+          >
+            Skip for now
+          </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 max-h-[60vh] overflow-y-auto">
-          {/* Step 1: Business Information */}
-          {currentStep === 1 && (
-            <div className="space-y-4 animate-fadeIn">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                  Business Information
-                </h3>
-                <p className="text-sm text-gray-500 mb-4">
-                  Tell us about {companyName}
-                </p>
-              </div>
+        {/* Progress Steps */}
+        <div className="flex items-center justify-between">
+          {steps.map((step, index) => {
+            const StepIcon = step.icon;
+            const isActive = currentStep === step.num;
+            const isCompleted = currentStep > step.num;
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Years in Business <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.businessYearsInOperation}
-                    onChange={(e) => updateFormData("businessYearsInOperation", e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
-                    placeholder="5"
-                  />
+            return (
+              <div key={step.num} className="flex items-center">
+                <div className="flex flex-col items-center">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                      isCompleted
+                        ? mode === 'dark' ? "bg-blue-500 text-white" : "bg-white text-captain-600"
+                        : isActive
+                        ? mode === 'dark' ? "bg-white/20 text-white ring-2 ring-blue-500" : "bg-white/20 text-white ring-2 ring-white"
+                        : mode === 'dark' ? "bg-white/10 text-gray-500" : "bg-white/10 text-white/60"
+                    }`}
+                  >
+                    {isCompleted ? <Check size={20} /> : <StepIcon size={20} />}
+                  </div>
+                  <span
+                    className={`text-xs mt-1 ${
+                      isActive ? "text-white" : mode === 'dark' ? "text-gray-500" : "text-captain-200"
+                    }`}
+                  >
+                    {step.title}
+                  </span>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Business License # <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.businessLicenseNumber}
-                    onChange={(e) => updateFormData("businessLicenseNumber", e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
-                    placeholder="BL-123456"
+                {index < steps.length - 1 && (
+                  <div
+                    className={`w-12 h-0.5 mx-2 ${
+                      isCompleted ? (mode === 'dark' ? "bg-blue-500" : "bg-white") : (mode === 'dark' ? "bg-white/10" : "bg-white/20")
+                    }`}
                   />
-                </div>
+                )}
               </div>
+            );
+          })}
+        </div>
+      </div>
 
+      {/* Content */}
+      <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+        {/* Step 1: Business Information */}
+        {currentStep === 1 && (
+          <div className="space-y-4 animate-fadeIn">
+            <div>
+              <h3 className={`text-lg font-semibold mb-1 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
+                Business Information
+              </h3>
+              <p className={`text-sm mb-4 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
+                Tell us about {companyName}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <MapPin size={14} className="inline mr-1" />
-                  Business Address <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.street}
-                  onChange={(e) => updateFormData("street", e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 mb-2"
-                  placeholder="Street Address"
+                <GlassInput
+                  label="Years in Business *"
+                  type="number"
+                  min="0"
+                  value={formData.businessYearsInOperation}
+                  onChange={(e) => updateFormData("businessYearsInOperation", e.target.value)}
+                  placeholder="5"
                 />
-                <div className="grid grid-cols-3 gap-2">
-                  <input
-                    type="text"
-                    value={formData.city}
-                    onChange={(e) => updateFormData("city", e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
-                    placeholder="City"
-                  />
-                  <input
-                    type="text"
-                    value={formData.state}
-                    onChange={(e) => updateFormData("state", e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
-                    placeholder="State"
-                  />
-                  <input
-                    type="text"
-                    value={formData.zipCode}
-                    onChange={(e) => updateFormData("zipCode", e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
-                    placeholder="ZIP"
-                  />
-                </div>
+              </div>
+              <div>
+                <GlassInput
+                  label="Business License # *"
+                  value={formData.businessLicenseNumber}
+                  onChange={(e) => updateFormData("businessLicenseNumber", e.target.value)}
+                  placeholder="BL-123456"
+                />
               </div>
             </div>
-          )}
+
+            <div>
+              <div className="mb-2">
+                <GlassInput
+                  label={
+                    <>
+                      <MapPin size={14} className="inline mr-1" />
+                      Business Address <span className="text-red-500">*</span>
+                    </>
+                  }
+                  value={formData.street}
+                  onChange={(e) => updateFormData("street", e.target.value)}
+                  placeholder="Street Address"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <GlassInput
+                  value={formData.city}
+                  onChange={(e) => updateFormData("city", e.target.value)}
+                  placeholder="City"
+                />
+                <GlassInput
+                  value={formData.state}
+                  onChange={(e) => updateFormData("state", e.target.value)}
+                  placeholder="State"
+                />
+                <GlassInput
+                  value={formData.zipCode}
+                  onChange={(e) => updateFormData("zipCode", e.target.value)}
+                  placeholder="ZIP"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
           {/* Step 2: Service Areas & Types */}
           {currentStep === 2 && (
             <div className="space-y-4 animate-fadeIn">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                <h3 className={`text-lg font-semibold mb-1 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                   Services & Coverage
                 </h3>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className={`text-sm mb-4 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                   What areas do you serve and what services do you offer?
                 </p>
               </div>
 
               {/* Service Areas */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={`block text-sm font-medium mb-2 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                   <MapPin size={14} className="inline mr-1" />
                   Service Areas <span className="text-red-500">*</span>
-                  <span className="font-normal text-gray-500 ml-1">
+                  <span className={`font-normal ml-1 ${mode === 'dark' ? "text-gray-500" : "text-gray-500"}`}>
                     (cities, regions, or marinas you serve)
                   </span>
                 </label>
                 <div className="relative">
                   <div className="flex gap-2 mb-2">
                     <div className="relative flex-1">
-                      <input
+                      <GlassInput
                         ref={serviceAreaInputRef}
-                        type="text"
                         value={formData.serviceAreaInput}
                         onChange={(e) => {
                           updateFormData("serviceAreaInput", e.target.value);
@@ -569,7 +559,6 @@ export function MechanicOnboarding({
                         }}
                         onFocus={() => setShowSuggestions(true)}
                         onKeyDown={handleServiceAreaKeyDown}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                         placeholder="Type city names or separate with commas..."
                         autoComplete="off"
                       />
@@ -577,7 +566,9 @@ export function MechanicOnboarding({
                       {showSuggestions && filteredSuggestions.length > 0 && (
                         <div
                           ref={suggestionsRef}
-                          className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+                          className={`absolute z-10 w-full mt-1 border rounded-lg shadow-lg max-h-48 overflow-y-auto ${
+                            mode === 'dark' ? "bg-gray-800 border-white/10" : "bg-white border-gray-200"
+                          }`}
                         >
                           {filteredSuggestions.map((suggestion, index) => (
                             <button
@@ -586,26 +577,26 @@ export function MechanicOnboarding({
                               onClick={() => selectSuggestion(suggestion)}
                               className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 transition-colors ${
                                 index === highlightedIndex
-                                  ? "bg-captain-50 text-captain-700"
-                                  : "text-gray-700 hover:bg-gray-50"
+                                  ? mode === 'dark' ? "bg-white/10 text-white" : "bg-captain-50 text-captain-700"
+                                  : mode === 'dark' ? "text-gray-300 hover:bg-white/5" : "text-gray-700 hover:bg-gray-50"
                               }`}
                             >
-                              <MapPin size={14} className="text-gray-400 flex-shrink-0" />
+                              <MapPin size={14} className={mode === 'dark' ? "text-gray-500" : "text-gray-400"} />
                               <span>{suggestion}</span>
                             </button>
                           ))}
                         </div>
                       )}
                     </div>
-                    <button
+                    <GlassButton
                       type="button"
+                      variant="primary"
                       onClick={() => addServiceArea()}
-                      className="px-4 py-2.5 bg-captain-600 text-white rounded-lg hover:bg-captain-700 transition-colors"
                     >
                       Add
-                    </button>
+                    </GlassButton>
                   </div>
-                  <p className="text-xs text-gray-400 mb-2">
+                  <p className={`text-xs mb-2 ${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`}>
                     Tip: You can add multiple areas at once by separating them with commas
                   </p>
                 </div>
@@ -614,14 +605,16 @@ export function MechanicOnboarding({
                     {formData.serviceAreas.map((area) => (
                       <span
                         key={area}
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-captain-100 text-captain-700 rounded-full text-sm"
+                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${
+                          mode === 'dark' ? "bg-blue-500/20 text-blue-200" : "bg-captain-100 text-captain-700"
+                        }`}
                       >
-                        <MapPin size={12} className="text-captain-500" />
+                        <MapPin size={12} className={mode === 'dark' ? "text-blue-400" : "text-captain-500"} />
                         {area}
                         <button
                           type="button"
                           onClick={() => removeServiceArea(area)}
-                          className="hover:text-captain-900 ml-1"
+                          className={mode === 'dark' ? "hover:text-white ml-1" : "hover:text-captain-900 ml-1"}
                         >
                           <X size={14} />
                         </button>
@@ -633,21 +626,21 @@ export function MechanicOnboarding({
 
               {/* Service Types */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={`block text-sm font-medium mb-2 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                   <Wrench size={14} className="inline mr-1" />
                   Services Offered <span className="text-red-500">*</span>
-                  <span className="font-normal text-gray-500 ml-1">
+                  <span className={`font-normal ml-1 ${mode === 'dark' ? "text-gray-500" : "text-gray-500"}`}>
                     (select all that apply)
                   </span>
                 </label>
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1">
+                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 custom-scrollbar">
                   {SERVICE_TYPE_OPTIONS.map((type) => (
                     <label
                       key={type}
                       className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${
                         formData.serviceTypes.includes(type)
-                          ? "bg-captain-50 border-captain-300"
-                          : "bg-white border-gray-200 hover:border-gray-300"
+                          ? mode === 'dark' ? "bg-blue-500/20 border-blue-500/50" : "bg-captain-50 border-captain-300"
+                          : mode === 'dark' ? "bg-white/5 border-white/10 hover:border-white/20" : "bg-white border-gray-200 hover:border-gray-300"
                       }`}
                     >
                       <input
@@ -659,15 +652,15 @@ export function MechanicOnboarding({
                       <div
                         className={`w-4 h-4 rounded border flex items-center justify-center ${
                           formData.serviceTypes.includes(type)
-                            ? "bg-captain-600 border-captain-600"
-                            : "border-gray-300"
+                            ? mode === 'dark' ? "bg-blue-500 border-blue-500" : "bg-captain-600 border-captain-600"
+                            : mode === 'dark' ? "border-white/20" : "border-gray-300"
                         }`}
                       >
                         {formData.serviceTypes.includes(type) && (
                           <Check size={12} className="text-white" />
                         )}
                       </div>
-                      <span className="text-sm text-gray-700">{type}</span>
+                      <span className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>{type}</span>
                     </label>
                   ))}
                 </div>
@@ -679,10 +672,10 @@ export function MechanicOnboarding({
           {currentStep === 3 && (
             <div className="space-y-4 animate-fadeIn">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                <h3 className={`text-lg font-semibold mb-1 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                   Hours of Operation
                 </h3>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className={`text-sm mb-4 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                   When are you available for service?
                 </p>
               </div>
@@ -694,10 +687,10 @@ export function MechanicOnboarding({
                     return (
                       <div
                         key={day}
-                        className="flex items-center gap-4 py-2 border-b border-gray-100 last:border-0"
+                        className={`flex items-center gap-4 py-2 border-b last:border-0 ${mode === 'dark' ? "border-white/10" : "border-gray-100"}`}
                       >
                         <div className="w-24">
-                          <span className="text-sm font-medium text-gray-700 capitalize">
+                          <span className={`text-sm font-medium capitalize ${mode === 'dark' ? "text-white" : "text-gray-700"}`}>
                             {day}
                           </span>
                         </div>
@@ -710,7 +703,9 @@ export function MechanicOnboarding({
                           />
                           <div
                             className={`w-10 h-6 rounded-full transition-colors ${
-                              !hours.closed ? "bg-captain-600" : "bg-gray-300"
+                              !hours.closed 
+                                ? mode === 'dark' ? "bg-blue-500" : "bg-captain-600"
+                                : mode === 'dark' ? "bg-white/10" : "bg-gray-300"
                             }`}
                           >
                             <div
@@ -719,7 +714,7 @@ export function MechanicOnboarding({
                               }`}
                             />
                           </div>
-                          <span className="text-sm text-gray-500">
+                          <span className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                             {hours.closed ? "Closed" : "Open"}
                           </span>
                         </label>
@@ -729,14 +724,22 @@ export function MechanicOnboarding({
                               type="time"
                               value={hours.open}
                               onChange={(e) => updateHours(day, "open", e.target.value)}
-                              className="px-2 py-1 border border-gray-300 rounded text-sm text-black"
+                              className={`px-2 py-1 border rounded text-sm ${
+                                mode === 'dark' 
+                                  ? "bg-black/20 border-white/10 text-white" 
+                                  : "border-gray-300 text-black"
+                              }`}
                             />
-                            <span className="text-gray-400">to</span>
+                            <span className={mode === 'dark' ? "text-gray-500" : "text-gray-400"}>to</span>
                             <input
                               type="time"
                               value={hours.close}
                               onChange={(e) => updateHours(day, "close", e.target.value)}
-                              className="px-2 py-1 border border-gray-300 rounded text-sm text-black"
+                              className={`px-2 py-1 border rounded text-sm ${
+                                mode === 'dark' 
+                                  ? "bg-black/20 border-white/10 text-white" 
+                                  : "border-gray-300 text-black"
+                              }`}
                             />
                           </div>
                         )}
@@ -752,28 +755,28 @@ export function MechanicOnboarding({
           {currentStep === 4 && (
             <div className="space-y-4 animate-fadeIn">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                <h3 className={`text-lg font-semibold mb-1 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                   Additional Information
                 </h3>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className={`text-sm mb-4 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                   These are optional but help build trust with boat owners.
                 </p>
               </div>
 
               {/* Certifications */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={`block text-sm font-medium mb-2 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                   <Award size={14} className="inline mr-1" />
                   Certifications
                 </label>
-                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-1">
+                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto p-1 custom-scrollbar">
                   {CERTIFICATION_OPTIONS.map((cert) => (
                     <label
                       key={cert}
                       className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${
                         formData.certifications.includes(cert)
-                          ? "bg-green-50 border-green-300"
-                          : "bg-white border-gray-200 hover:border-gray-300"
+                          ? mode === 'dark' ? "bg-green-500/20 border-green-500/50" : "bg-green-50 border-green-300"
+                          : mode === 'dark' ? "bg-white/5 border-white/10 hover:border-white/20" : "bg-white border-gray-200 hover:border-gray-300"
                       }`}
                     >
                       <input
@@ -785,15 +788,15 @@ export function MechanicOnboarding({
                       <div
                         className={`w-4 h-4 rounded border flex items-center justify-center ${
                           formData.certifications.includes(cert)
-                            ? "bg-green-600 border-green-600"
-                            : "border-gray-300"
+                            ? mode === 'dark' ? "bg-green-500 border-green-500" : "bg-green-600 border-green-600"
+                            : mode === 'dark' ? "border-white/20" : "border-gray-300"
                         }`}
                       >
                         {formData.certifications.includes(cert) && (
                           <Check size={12} className="text-white" />
                         )}
                       </div>
-                      <span className="text-sm text-gray-700">{cert}</span>
+                      <span className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>{cert}</span>
                     </label>
                   ))}
                 </div>
@@ -804,8 +807,8 @@ export function MechanicOnboarding({
                 <label
                   className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
                     formData.isInsured
-                      ? "bg-green-50 border-green-300"
-                      : "bg-white border-gray-200 hover:border-gray-300"
+                      ? mode === 'dark' ? "bg-green-500/20 border-green-500/50" : "bg-green-50 border-green-300"
+                      : mode === 'dark' ? "bg-white/5 border-white/10 hover:border-white/20" : "bg-white border-gray-200 hover:border-gray-300"
                   }`}
                 >
                   <input
@@ -816,18 +819,18 @@ export function MechanicOnboarding({
                   />
                   <Shield
                     size={24}
-                    className={formData.isInsured ? "text-green-600" : "text-gray-400"}
+                    className={formData.isInsured ? (mode === 'dark' ? "text-green-400" : "text-green-600") : "text-gray-400"}
                   />
                   <div>
-                    <div className="font-medium text-gray-900">Insured</div>
-                    <div className="text-xs text-gray-500">Liability insurance</div>
+                    <div className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Insured</div>
+                    <div className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>Liability insurance</div>
                   </div>
                 </label>
                 <label
                   className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
                     formData.isBonded
-                      ? "bg-green-50 border-green-300"
-                      : "bg-white border-gray-200 hover:border-gray-300"
+                      ? mode === 'dark' ? "bg-green-500/20 border-green-500/50" : "bg-green-50 border-green-300"
+                      : mode === 'dark' ? "bg-white/5 border-white/10 hover:border-white/20" : "bg-white border-gray-200 hover:border-gray-300"
                   }`}
                 >
                   <input
@@ -838,11 +841,11 @@ export function MechanicOnboarding({
                   />
                   <Shield
                     size={24}
-                    className={formData.isBonded ? "text-green-600" : "text-gray-400"}
+                    className={formData.isBonded ? (mode === 'dark' ? "text-green-400" : "text-green-600") : "text-gray-400"}
                   />
                   <div>
-                    <div className="font-medium text-gray-900">Bonded</div>
-                    <div className="text-xs text-gray-500">Surety bonded</div>
+                    <div className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Bonded</div>
+                    <div className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>Surety bonded</div>
                   </div>
                 </label>
               </div>
@@ -851,8 +854,8 @@ export function MechanicOnboarding({
               <label
                 className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
                   formData.hasMobileCapabilities
-                    ? "bg-captain-50 border-captain-300"
-                    : "bg-white border-gray-200 hover:border-gray-300"
+                    ? mode === 'dark' ? "bg-blue-500/20 border-blue-500/50" : "bg-captain-50 border-captain-300"
+                    : mode === 'dark' ? "bg-white/5 border-white/10 hover:border-white/20" : "bg-white border-gray-200 hover:border-gray-300"
                 }`}
               >
                 <input
@@ -863,11 +866,11 @@ export function MechanicOnboarding({
                 />
                 <Truck
                   size={24}
-                  className={formData.hasMobileCapabilities ? "text-captain-600" : "text-gray-400"}
+                  className={formData.hasMobileCapabilities ? (mode === 'dark' ? "text-blue-400" : "text-captain-600") : "text-gray-400"}
                 />
                 <div>
-                  <div className="font-medium text-gray-900">Mobile Service</div>
-                  <div className="text-xs text-gray-500">
+                  <div className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Mobile Service</div>
+                  <div className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                     I can travel to the boat's location
                   </div>
                 </div>
@@ -876,27 +879,25 @@ export function MechanicOnboarding({
               {/* Web Links */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    <Globe size={14} className="inline mr-1" />
-                    Website
-                  </label>
-                  <input
+                  <GlassInput
+                    label={
+                      <>
+                        <Globe size={14} className="inline mr-1" />
+                        Website
+                      </>
+                    }
                     type="url"
                     value={formData.websiteUrl}
                     onChange={(e) => updateFormData("websiteUrl", e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     placeholder="https://example.com"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Google Business
-                  </label>
-                  <input
+                  <GlassInput
+                    label="Google Business"
                     type="url"
                     value={formData.googleMyBusinessUrl}
                     onChange={(e) => updateFormData("googleMyBusinessUrl", e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     placeholder="Google My Business URL"
                   />
                 </div>
@@ -904,38 +905,39 @@ export function MechanicOnboarding({
 
               {/* Languages */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={`block text-sm font-medium mb-2 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                   <Languages size={14} className="inline mr-1" />
                   Languages Spoken
                 </label>
                 <div className="flex gap-2 mb-2">
-                  <input
-                    type="text"
+                  <GlassInput
                     value={formData.languageInput}
                     onChange={(e) => updateFormData("languageInput", e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addLanguage())}
-                    className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     placeholder="Add a language"
+                    className="flex-1"
                   />
-                  <button
+                  <GlassButton
                     type="button"
+                    variant="secondary"
                     onClick={addLanguage}
-                    className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                   >
                     Add
-                  </button>
+                  </GlassButton>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {formData.languagesSpoken.map((lang) => (
                     <span
                       key={lang}
-                      className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
+                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${
+                        mode === 'dark' ? "bg-white/10 text-white" : "bg-gray-100 text-gray-700"
+                      }`}
                     >
                       {lang}
                       <button
                         type="button"
                         onClick={() => removeLanguage(lang)}
-                        className="hover:text-gray-900"
+                        className={mode === 'dark' ? "hover:text-white" : "hover:text-gray-900"}
                       >
                         <X size={14} />
                       </button>
@@ -946,14 +948,18 @@ export function MechanicOnboarding({
 
               {/* Bio */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                   About Your Business
                 </label>
                 <textarea
                   value={formData.bio}
                   onChange={(e) => updateFormData("bio", e.target.value)}
                   rows={3}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 resize-none"
+                  className={`w-full rounded-xl px-4 py-3 border transition-all resize-none focus:outline-none focus:ring-1 ${
+                    mode === 'dark'
+                      ? "bg-black/20 border-white/10 text-white placeholder-gray-400 focus:border-blue-500/50 focus:ring-blue-500/50"
+                      : "bg-white/50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 focus:bg-white"
+                  }`}
                   placeholder="Tell boat owners a bit about your experience and expertise..."
                 />
               </div>
@@ -968,34 +974,37 @@ export function MechanicOnboarding({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 px-6 py-4 flex justify-between">
+        <div className={`px-6 py-4 flex justify-between flex-shrink-0 border-t ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-200"}`}>
           {currentStep > 1 ? (
-            <button
+            <GlassButton
+              variant="secondary"
               onClick={() => setCurrentStep((prev) => (prev - 1) as Step)}
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-4 py-2.5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex items-center gap-2"
             >
               <ChevronLeft size={18} />
               Back
-            </button>
+            </GlassButton>
           ) : (
             <div />
           )}
 
           {currentStep < 4 ? (
-            <button
+            <GlassButton
+              variant="primary"
               onClick={() => setCurrentStep((prev) => (prev + 1) as Step)}
               disabled={!canProceed() || isSubmitting}
-              className="flex items-center gap-2 px-6 py-2.5 bg-captain-600 text-white rounded-lg hover:bg-captain-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2"
             >
               Continue
               <ChevronRight size={18} />
-            </button>
+            </GlassButton>
           ) : (
-            <button
+            <GlassButton
+              variant="primary"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-6 py-2.5 bg-captain-600 text-white rounded-lg hover:bg-captain-700 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2"
             >
               {isSubmitting ? (
                 <>
@@ -1008,11 +1017,10 @@ export function MechanicOnboarding({
                   <Check size={18} />
                 </>
               )}
-            </button>
+            </GlassButton>
           )}
         </div>
-      </div>
-    </div>
+    </GlassModal>
   );
 }
 

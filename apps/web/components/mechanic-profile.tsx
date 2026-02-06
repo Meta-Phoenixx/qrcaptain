@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { ImageCropper } from "./image-cropper";
+import { GlassCard, GlassButton, GlassBadge, GlassInput, GlassSelect, GlassModal } from "./ui/glass";
+import { useTheme } from "./providers/theme-provider";
 import {
   Building2,
   MapPin,
@@ -142,6 +144,7 @@ interface MechanicProfileProps {
 }
 
 export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
+  const { mode } = useTheme();
   const user = useQuery(api.users.currentUser);
   const onboardingStatus = useQuery(api.users.getMechanicOnboardingStatus);
   const profilePhotoUrl = useQuery(api.storage.getMechanicProfilePhotoUrl, {});
@@ -171,7 +174,8 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
 
   // Form state for editing
   const [formData, setFormData] = useState({
-    fullName: "",
+    firstName: "",
+    lastName: "",
     companyName: "",
     phone: "",
     businessYearsInOperation: "",
@@ -208,7 +212,8 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
   useEffect(() => {
     if (user) {
       setFormData({
-        fullName: user.fullName || "",
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
         companyName: user.companyName || "",
         phone: user.phone || "",
         businessYearsInOperation: user.businessYearsInOperation?.toString() || "",
@@ -466,7 +471,8 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
 
       switch (section) {
         case "basic":
-          updates.fullName = formData.fullName;
+          updates.firstName = formData.firstName;
+          updates.lastName = formData.lastName;
           updates.companyName = formData.companyName;
           updates.phone = formData.phone;
           break;
@@ -519,7 +525,8 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
     // Reset form to current user data
     if (user) {
       setFormData({
-        fullName: user.fullName || "",
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
         companyName: user.companyName || "",
         phone: user.phone || "",
         businessYearsInOperation: user.businessYearsInOperation?.toString() || "",
@@ -659,7 +666,7 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
           </div>
 
           <div className="flex-1">
-            <h2 className="text-2xl font-bold">{user.fullName || user.name}</h2>
+            <h2 className="text-2xl font-bold">{user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.name}</h2>
             <p className="text-captain-100">{user.companyName}</p>
             <div className="flex items-center gap-4 mt-3">
               {user.email && (
@@ -776,11 +783,20 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                     <input
                       type="text"
-                      value={formData.fullName}
-                      onChange={(e) => updateFormData("fullName", e.target.value)}
+                      value={formData.firstName}
+                      onChange={(e) => updateFormData("firstName", e.target.value)}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                    <input
+                      type="text"
+                      value={formData.lastName}
+                      onChange={(e) => updateFormData("lastName", e.target.value)}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     />
                   </div>
@@ -820,8 +836,9 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-4">
-                <InfoField label="Full Name" value={user.fullName} icon={User} />
+              <div className="grid grid-cols-4 gap-4">
+                <InfoField label="First Name" value={user.firstName} icon={User} />
+                <InfoField label="Last Name" value={user.lastName} icon={User} />
                 <InfoField label="Business Name" value={user.companyName} icon={Building2} />
                 <InfoField label="Phone" value={user.phone} icon={Phone} />
               </div>
@@ -1391,23 +1408,21 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
   // If onClose is provided, wrap in a modal
   if (onClose) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-gray-50 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <GlassModal onClose={onClose} className="max-w-4xl max-h-[90vh]">
           {/* Header with close button */}
-          <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
-            <h2 className="text-xl font-semibold text-gray-900">My Profile</h2>
+          <div className={`sticky top-0 border-b px-6 py-4 flex items-center justify-between z-10 ${mode === 'dark' ? "bg-[#1A1A23] border-white/10" : "bg-white border-gray-200"}`}>
+            <h2 className={`text-xl font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>My Profile</h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className={`p-2 rounded-lg transition-colors ${mode === 'dark' ? "hover:bg-white/10 text-gray-400" : "hover:bg-gray-100 text-gray-500"}`}
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-5 h-5" />
             </button>
           </div>
           <div className="p-6">
             {profileContent}
           </div>
-        </div>
-      </div>
+      </GlassModal>
     );
   }
 

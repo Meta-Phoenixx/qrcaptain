@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 
@@ -16,7 +17,7 @@ export default function Index() {
     <View style={styles.container}>
       <Unauthenticated>
         <View style={styles.content}>
-          <Text style={styles.emoji}>⚓</Text>
+          <Image source={require("../assets/qr-captain-logo.png")} style={styles.logo} />
           <Text style={styles.title}>QR Captain</Text>
           <Text style={styles.subtitle}>
             Complete vessel maintenance tracking
@@ -58,9 +59,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 20,
   },
-  emoji: {
-    fontSize: 80,
+  logo: {
+    width: 80,
+    height: 80,
     marginBottom: 20,
+    tintColor: "#0c4a6e",
   },
   title: {
     fontSize: 36,

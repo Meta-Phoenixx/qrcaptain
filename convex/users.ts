@@ -36,7 +36,8 @@ export const seedAdmin = internalMutation({
     const userId = await ctx.db.insert("users", {
       email: "admin@qrcaptain.com",
       name: "Admin",
-      fullName: "System Administrator",
+      firstName: "System",
+      lastName: "Administrator",
       role: "admin",
       isActive: true,
     });
@@ -71,7 +72,8 @@ export const createProfile = internalMutation({
   args: {
     userId: v.id("users"),
     email: v.string(),
-    fullName: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
     role: v.union(
       v.literal("admin"),
       v.literal("owner"),
@@ -86,7 +88,8 @@ export const createProfile = internalMutation({
     // Create the user profile
     await ctx.db.patch(args.userId, {
       email: args.email,
-      fullName: args.fullName,
+      firstName: args.firstName,
+      lastName: args.lastName,
       role: args.role,
       isActive: true,
     });
@@ -98,7 +101,8 @@ export const createProfile = internalMutation({
 // Update user profile
 export const updateProfile = mutation({
   args: {
-    fullName: v.optional(v.string()),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
     phone: v.optional(v.string()),
     companyName: v.optional(v.string()),
     licenseNumber: v.optional(v.string()),
@@ -108,7 +112,8 @@ export const updateProfile = mutation({
     if (!userId) throw new Error("Not authenticated");
 
     const updates: Record<string, string | undefined> = {};
-    if (args.fullName !== undefined) updates.fullName = args.fullName;
+    if (args.firstName !== undefined) updates.firstName = args.firstName;
+    if (args.lastName !== undefined) updates.lastName = args.lastName;
     if (args.phone !== undefined) updates.phone = args.phone;
     if (args.companyName !== undefined) updates.companyName = args.companyName;
     if (args.licenseNumber !== undefined)
@@ -306,7 +311,8 @@ export const skipMechanicOnboarding = mutation({
 // Update mechanic profile (for editing after onboarding)
 export const updateMechanicProfile = mutation({
   args: {
-    fullName: v.optional(v.string()),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
     companyName: v.optional(v.string()),
     phone: v.optional(v.string()),
     businessYearsInOperation: v.optional(v.number()),
@@ -397,7 +403,8 @@ export const getOwnerOnboardingStatus = query({
 
     // Check what required fields are filled
     const requiredFields = {
-      fullName: !!user.fullName,
+      firstName: !!user.firstName,
+      lastName: !!user.lastName,
       phone: !!user.phone,
       address: !!user.address,
     };
@@ -433,7 +440,8 @@ export const getOwnerOnboardingStatus = query({
 // Complete owner profile onboarding
 export const completeOwnerOnboarding = mutation({
   args: {
-    fullName: v.string(),
+    firstName: v.string(),
+    lastName: v.string(),
     phone: v.string(),
     address: v.object({
       street: v.string(),
@@ -454,7 +462,8 @@ export const completeOwnerOnboarding = mutation({
 
     // Update user with onboarding data
     await ctx.db.patch(userId, {
-      fullName: args.fullName,
+      firstName: args.firstName,
+      lastName: args.lastName,
       phone: args.phone,
       address: args.address,
       onboardingCompleted: true,
@@ -488,7 +497,8 @@ export const skipOwnerOnboarding = mutation({
 // Update owner profile
 export const updateOwnerProfile = mutation({
   args: {
-    fullName: v.optional(v.string()),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
     phone: v.optional(v.string()),
     address: v.optional(v.object({
       street: v.string(),
@@ -521,7 +531,8 @@ export const updateOwnerProfile = mutation({
     const updatedUser = await ctx.db.get(userId);
     if (updatedUser && !updatedUser.onboardingCompleted) {
       const hasAllRequired = 
-        updatedUser.fullName &&
+        updatedUser.firstName &&
+        updatedUser.lastName &&
         updatedUser.phone &&
         updatedUser.address;
       

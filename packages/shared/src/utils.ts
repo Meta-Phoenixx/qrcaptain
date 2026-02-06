@@ -52,15 +52,66 @@ export function calculateTotalCost(
 }
 
 /**
- * Get initials from a full name
+ * Get display name from firstName and lastName
+ * Falls back to name or "Unknown" if no name fields provided
  */
-export function getInitials(fullName: string): string {
-  return fullName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+export function getDisplayName(user: {
+  firstName?: string | null;
+  lastName?: string | null;
+  name?: string | null;
+}): string {
+  if (user.firstName && user.lastName) {
+    return `${user.firstName} ${user.lastName}`;
+  }
+  if (user.firstName) {
+    return user.firstName;
+  }
+  if (user.lastName) {
+    return user.lastName;
+  }
+  if (user.name) {
+    return user.name;
+  }
+  return "Unknown";
+}
+
+/**
+ * Get initials from firstName and lastName (or fall back to name)
+ */
+export function getInitials(user: {
+  firstName?: string | null;
+  lastName?: string | null;
+  name?: string | null;
+} | string): string {
+  // Handle legacy string input for backward compatibility
+  if (typeof user === 'string') {
+    return user
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }
+  
+  // Use firstName and lastName
+  if (user.firstName && user.lastName) {
+    return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+  }
+  if (user.firstName) {
+    return user.firstName.slice(0, 2).toUpperCase();
+  }
+  if (user.lastName) {
+    return user.lastName.slice(0, 2).toUpperCase();
+  }
+  if (user.name) {
+    return user.name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }
+  return "??";
 }
 
 /**

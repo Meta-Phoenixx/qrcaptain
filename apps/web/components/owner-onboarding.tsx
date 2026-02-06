@@ -4,6 +4,8 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { ImageCropper } from "./image-cropper";
+import { GlassCard, GlassButton, GlassBadge, GlassInput, GlassSelect, GlassModal } from "./ui/glass";
+import { useTheme } from "./providers/theme-provider";
 import {
   User,
   Phone,
@@ -28,6 +30,7 @@ export function OwnerOnboarding({
   onComplete,
   onSkip,
 }: OwnerOnboardingProps) {
+  const { mode } = useTheme();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,7 +47,8 @@ export function OwnerOnboarding({
 
   // Form state
   const [formData, setFormData] = useState({
-    fullName: userName || "",
+    firstName: "",
+    lastName: "",
     phone: "",
     street: "",
     city: "",
@@ -102,7 +106,8 @@ export function OwnerOnboarding({
 
   const canSubmit = () => {
     return (
-      formData.fullName.trim() &&
+      formData.firstName.trim() &&
+      formData.lastName.trim() &&
       formData.phone.trim() &&
       formData.street.trim() &&
       formData.city.trim() &&
@@ -119,7 +124,8 @@ export function OwnerOnboarding({
 
     try {
       await completeOnboarding({
-        fullName: formData.fullName,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         phone: formData.phone,
         address: {
           street: formData.street,
@@ -149,8 +155,7 @@ export function OwnerOnboarding({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-y-auto py-8">
-      <div className="w-full max-w-lg mx-4 rounded-2xl bg-white shadow-2xl overflow-hidden">
+    <GlassModal onClose={onSkip} className="max-w-lg overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-captain-600 to-captain-700 px-6 py-6 text-white">
           <div className="flex items-center justify-between mb-2">
@@ -232,18 +237,33 @@ export function OwnerOnboarding({
 
           {/* Form Fields */}
           <div className="space-y-4">
-            {/* Full Name */}
+            {/* First Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <User size={14} className="inline mr-1" />
-                Full Name <span className="text-red-500">*</span>
+                First Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
-                value={formData.fullName}
-                onChange={(e) => updateFormData("fullName", e.target.value)}
+                value={formData.firstName}
+                onChange={(e) => updateFormData("firstName", e.target.value)}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
-                placeholder="John Smith"
+                placeholder="John"
+              />
+            </div>
+
+            {/* Last Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <User size={14} className="inline mr-1" />
+                Last Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.lastName}
+                onChange={(e) => updateFormData("lastName", e.target.value)}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                placeholder="Smith"
               />
             </div>
 
@@ -345,8 +365,6 @@ export function OwnerOnboarding({
             )}
           </button>
         </div>
-      </div>
-
       {/* Image Cropper Modal */}
       {imageToCrop && (
         <ImageCropper
@@ -356,7 +374,7 @@ export function OwnerOnboarding({
           aspectRatio={1}
         />
       )}
-    </div>
+    </GlassModal>
   );
 }
 

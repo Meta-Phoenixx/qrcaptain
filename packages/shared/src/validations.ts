@@ -6,13 +6,15 @@ export type UserRole = z.infer<typeof userRoleSchema>;
 
 export const createUserSchema = z.object({
   email: z.string().email("Invalid email address"),
-  fullName: z.string().min(2, "Name must be at least 2 characters"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   role: userRoleSchema,
 });
 
 export const updateUserSchema = z.object({
-  fullName: z.string().min(2).optional(),
+  firstName: z.string().min(1).optional(),
+  lastName: z.string().min(1).optional(),
   phone: z.string().optional(),
   companyName: z.string().optional(),
   licenseNumber: z.string().optional(),

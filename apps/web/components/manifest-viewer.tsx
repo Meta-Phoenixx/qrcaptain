@@ -4,6 +4,8 @@ import React, { useState, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id, Doc } from "../../../convex/_generated/dataModel";
+import { GlassModal, GlassButton, GlassInput } from "./ui/glass";
+import { useTheme } from "./providers/theme-provider";
 import {
   Settings,
   Zap,
@@ -93,6 +95,7 @@ interface ManifestViewerProps {
 type ViewMode = "categories" | "list";
 
 export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewerProps) {
+  const { mode } = useTheme();
   const [viewMode, setViewMode] = useState<ViewMode>("categories");
   const [selectedCategory, setSelectedCategory] = useState<CategoryDefinition | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -193,27 +196,29 @@ export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewer
 
   // Get categories that have equipment (for list view)
   const categoriesWithEquipment = useMemo(() => {
-    return EQUIPMENT_CATEGORIES.filter(cat => groupedEquipment[cat.id]?.length > 0);
+    return EQUIPMENT_CATEGORIES.filter((cat) => groupedEquipment[cat.id]?.length > 0);
   }, [groupedEquipment]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-4xl mx-4 rounded-2xl bg-white shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+    <GlassModal 
+      onClose={onClose} 
+      className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden"
+    >
         {/* Header */}
-        <div className="bg-gradient-to-r from-captain-600 to-captain-700 px-6 py-5 text-white flex-shrink-0">
+        <div className={`px-6 py-5 flex-shrink-0 ${mode === 'dark' ? "bg-gradient-to-r from-blue-900/40 to-cyan-900/40 border-b border-white/10" : "bg-gradient-to-r from-captain-600 to-captain-700 text-white"}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                <Package className="w-6 h-6" />
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${mode === 'dark' ? "bg-white/10" : "bg-white/20"}`}>
+                <Package className={`w-6 h-6 ${mode === 'dark' ? "text-white" : ""}`} />
               </div>
               <div>
-                <h2 className="text-xl font-bold">Equipment Manifest</h2>
-                <p className="text-captain-100">{vesselName}</p>
+                <h2 className={`text-xl font-bold ${mode === 'dark' ? "text-white" : ""}`}>Equipment Manifest</h2>
+                <p className={`${mode === 'dark' ? "text-gray-300" : "text-captain-100"}`}>{vesselName}</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              className={`p-2 rounded-lg transition-colors ${mode === 'dark' ? "hover:bg-white/10 text-gray-300 hover:text-white" : "hover:bg-white/10"}`}
             >
               <X className="w-5 h-5" />
             </button>
@@ -221,43 +226,43 @@ export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewer
         </div>
 
         {/* Stats Bar with View Toggle */}
-        <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+        <div className={`px-6 py-3 border-b flex items-center justify-between flex-shrink-0 ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-200"}`}>
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2 text-sm">
-              <div className="w-8 h-8 bg-captain-100 rounded-lg flex items-center justify-center">
-                <Package size={16} className="text-captain-600" />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${mode === 'dark' ? "bg-blue-900/20" : "bg-captain-100"}`}>
+                <Package size={16} className={`${mode === 'dark' ? "text-blue-400" : "text-captain-600"}`} />
               </div>
               <div>
-                <span className="font-semibold text-gray-900">{equipment.length}</span>
-                <span className="text-gray-500 ml-1">Total Items</span>
+                <span className={`font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{equipment.length}</span>
+                <span className={`ml-1 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>Total Items</span>
               </div>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${mode === 'dark' ? "bg-blue-900/20" : "bg-blue-100"}`}>
                 <Settings size={16} className="text-blue-600" />
               </div>
               <div>
-                <span className="font-semibold text-gray-900">
+                <span className={`font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                   {categoriesWithCounts.filter(c => c.itemCount > 0).length}
                 </span>
-                <span className="text-gray-500 ml-1">Categories</span>
+                <span className={`ml-1 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>Categories</span>
               </div>
             </div>
             {attentionCount > 0 && (
               <div className="flex items-center gap-2 text-sm">
-                <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${mode === 'dark' ? "bg-red-900/20" : "bg-red-100"}`}>
                   <AlertTriangle size={16} className="text-red-600" />
                 </div>
                 <div>
                   <span className="font-semibold text-red-600">{attentionCount}</span>
-                  <span className="text-gray-500 ml-1">Need Attention</span>
+                  <span className={`ml-1 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>Need Attention</span>
                 </div>
               </div>
             )}
           </div>
           
           {/* View Mode Toggle */}
-          <div className="flex items-center bg-white rounded-lg border border-gray-200 p-0.5">
+          <div className={`flex items-center rounded-lg border p-0.5 ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"}`}>
             <button
               onClick={() => {
                 setViewMode("categories");
@@ -265,8 +270,8 @@ export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewer
               }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                 viewMode === "categories"
-                  ? "bg-captain-600 text-white"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  ? mode === 'dark' ? "bg-blue-600 text-white" : "bg-captain-600 text-white"
+                  : mode === 'dark' ? "text-gray-400 hover:text-white hover:bg-white/10" : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               }`}
             >
               <LayoutGrid size={14} />
@@ -280,8 +285,8 @@ export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewer
               }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                 viewMode === "list"
-                  ? "bg-captain-600 text-white"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  ? mode === 'dark' ? "bg-blue-600 text-white" : "bg-captain-600 text-white"
+                  : mode === 'dark' ? "text-gray-400 hover:text-white hover:bg-white/10" : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               }`}
             >
               <List size={14} />
@@ -299,11 +304,15 @@ export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewer
               placeholder="Search equipment..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 transition-all"
+              className={`w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-captain-500/20 transition-all ${
+                mode === 'dark'
+                  ? "bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-blue-500"
+                  : "bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-captain-500"
+              }`}
             />
             <Search
               size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+              className={`absolute left-3.5 top-1/2 -translate-y-1/2 ${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`}
             />
           </div>
 
@@ -326,14 +335,18 @@ export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewer
                           onMouseEnter={() => setHoveredCard(category.id)}
                           onMouseLeave={() => setHoveredCard(null)}
                           disabled={!hasItems}
-                          className={`relative bg-white border rounded-xl p-4 text-center transition-all duration-200 overflow-hidden ${
+                          className={`relative border rounded-xl p-4 text-center transition-all duration-200 overflow-hidden ${
                             hasItems ? "cursor-pointer" : "cursor-default opacity-60"
+                          } ${
+                            mode === 'dark'
+                              ? "bg-white/5 border-white/10"
+                              : "bg-white border-gray-200"
                           }`}
                           style={{
-                            borderColor: isHovered && hasItems ? COLORS.blueHighlight : COLORS.border,
+                            borderColor: isHovered && hasItems ? (mode === 'dark' ? '#3B82F6' : COLORS.blueHighlight) : (mode === 'dark' ? 'rgba(255,255,255,0.1)' : COLORS.border),
                             transform: isHovered && hasItems ? "translateY(-2px)" : "translateY(0)",
                             boxShadow: isHovered && hasItems
-                              ? `0 4px 12px ${COLORS.blueHighlightDim}`
+                              ? `0 4px 12px ${mode === 'dark' ? 'rgba(59, 130, 246, 0.2)' : COLORS.blueHighlightDim}`
                               : "0 1px 2px rgba(0, 0, 0, 0.05)",
                           }}
                         >
@@ -341,7 +354,7 @@ export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewer
                           <div
                             className="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
                             style={{
-                              backgroundColor: isHovered && hasItems ? COLORS.blueHighlight : COLORS.border,
+                              backgroundColor: isHovered && hasItems ? (mode === 'dark' ? '#3B82F6' : COLORS.blueHighlight) : (mode === 'dark' ? 'rgba(255,255,255,0.1)' : COLORS.border),
                             }}
                           />
 
@@ -350,15 +363,15 @@ export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewer
                               size={24}
                               strokeWidth={1.5}
                               style={{
-                                color: isHovered && hasItems ? COLORS.blueHighlight : COLORS.iconDefault,
+                                color: isHovered && hasItems ? (mode === 'dark' ? '#60A5FA' : COLORS.blueHighlight) : (mode === 'dark' ? '#9CA3AF' : COLORS.iconDefault),
                                 transition: "color 0.2s",
                               }}
                             />
                           </div>
-                          <div className="text-sm font-semibold text-gray-900 mb-0.5">
+                          <div className={`text-sm font-semibold mb-0.5 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                             {category.name}
                           </div>
-                          <div className="text-xs text-gray-400">
+                          <div className={`text-xs ${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`}>
                             {category.itemCount} {category.itemCount === 1 ? "item" : "items"}
                           </div>
                         </button>
@@ -381,7 +394,11 @@ export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewer
                   {/* Back button */}
                   <button
                     onClick={() => setSelectedCategory(null)}
-                    className="flex items-center gap-2 px-3 py-1.5 mb-4 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:border-captain-300 hover:text-captain-600 transition-all"
+                    className={`flex items-center gap-2 px-3 py-1.5 mb-4 text-sm font-medium border rounded-lg transition-all ${
+                      mode === 'dark'
+                        ? "text-gray-300 bg-white/5 border-white/10 hover:border-blue-500/50 hover:text-white"
+                        : "text-gray-600 bg-white border-gray-200 hover:border-captain-300 hover:text-captain-600"
+                    }`}
                   >
                     <ArrowLeft size={16} />
                     Back to Categories
@@ -391,19 +408,19 @@ export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewer
                   <div
                     className="rounded-xl p-5 mb-4 relative overflow-hidden"
                     style={{
-                      backgroundColor: COLORS.blueHighlightDim,
-                      border: `1px solid ${COLORS.blueHighlight}30`,
+                      backgroundColor: mode === 'dark' ? 'rgba(59, 130, 246, 0.1)' : COLORS.blueHighlightDim,
+                      border: `1px solid ${mode === 'dark' ? 'rgba(59, 130, 246, 0.2)' : `${COLORS.blueHighlight}30`}`,
                     }}
                   >
                     <div className="relative z-10">
                       <selectedCategory.icon
                         size={36}
                         strokeWidth={1.5}
-                        style={{ color: COLORS.blueHighlight }}
+                        style={{ color: mode === 'dark' ? '#60A5FA' : COLORS.blueHighlight }}
                         className="mb-2"
                       />
-                      <h4 className="text-xl font-bold text-gray-900">{selectedCategory.name}</h4>
-                      <p className="text-sm text-gray-500">
+                      <h4 className={`text-xl font-bold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{selectedCategory.name}</h4>
+                      <p className={`text-sm ${mode === 'dark' ? "text-blue-200" : "text-gray-500"}`}>
                         {categoryEquipment.length} equipment{" "}
                         {categoryEquipment.length === 1 ? "item" : "items"} tracked
                       </p>
@@ -413,43 +430,51 @@ export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewer
                       size={100}
                       strokeWidth={1}
                       className="absolute -top-4 -right-4 opacity-5"
-                      style={{ color: COLORS.blueHighlight }}
+                      style={{ color: mode === 'dark' ? '#60A5FA' : COLORS.blueHighlight }}
                     />
                   </div>
 
                   {/* Items list */}
                   <div className="space-y-2">
                     {categoryEquipment.length === 0 ? (
-                      <div className="text-center py-8 bg-gray-50 rounded-xl">
-                        <p className="text-gray-500">No equipment in this category</p>
+                      <div className={`text-center py-8 rounded-xl ${mode === 'dark' ? "bg-white/5" : "bg-gray-50"}`}>
+                        <p className={`${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>No equipment in this category</p>
                       </div>
                     ) : (
                       categoryEquipment.map((item) => (
                         <div
                           key={item._id}
                           onClick={() => setSelectedEquipment(item)}
-                          className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between hover:border-captain-300 hover:bg-gray-50 transition-all cursor-pointer group"
+                          className={`border rounded-xl p-4 flex items-center justify-between transition-all cursor-pointer group ${
+                            mode === 'dark'
+                              ? "bg-white/5 border-white/10 hover:border-blue-500/50 hover:bg-white/10"
+                              : "bg-white border-gray-200 hover:border-captain-300 hover:bg-gray-50"
+                          }`}
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <div className="font-medium text-gray-900">{item.name}</div>
+                              <div className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{item.name}</div>
                               {item.conditionStatus && (
                                 <ConditionBadge status={item.conditionStatus} />
                               )}
                             </div>
                             {(item.manufacturer || item.model) && (
-                              <div className="text-sm text-gray-500">
+                              <div className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                                 {[item.manufacturer, item.model].filter(Boolean).join(" ")}
                               </div>
                             )}
                             {item.serialNumber && (
-                              <div className="text-xs text-gray-400 mt-0.5">
+                              <div className={`text-xs mt-0.5 ${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`}>
                                 S/N: {item.serialNumber}
                               </div>
                             )}
                           </div>
-                          <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center group-hover:bg-captain-50 transition-colors flex-shrink-0 ml-2">
-                            <ChevronRight size={18} className="text-gray-400 group-hover:text-captain-500" />
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ml-2 ${
+                            mode === 'dark'
+                              ? "bg-white/10 group-hover:bg-white/20"
+                              : "bg-gray-100 group-hover:bg-captain-50"
+                          }`}>
+                            <ChevronRight size={18} className={`${mode === 'dark' ? "text-gray-400 group-hover:text-white" : "text-gray-400 group-hover:text-captain-500"}`} />
                           </div>
                         </div>
                       ))
@@ -473,21 +498,21 @@ export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewer
                 <>
                   {/* Expand/Collapse controls */}
                   <div className="flex items-center justify-between mb-4">
-                    <div className="text-sm text-gray-500">
+                    <div className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                       {filteredEquipment.length} equipment items
                       {searchQuery && ` matching "${searchQuery}"`}
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={expandAllCategories}
-                        className="text-xs text-captain-600 hover:text-captain-700 font-medium"
+                        className={`text-xs font-medium ${mode === 'dark' ? "text-blue-400 hover:text-blue-300" : "text-captain-600 hover:text-captain-700"}`}
                       >
                         Expand All
                       </button>
-                      <span className="text-gray-300">|</span>
+                      <span className={`${mode === 'dark' ? "text-gray-600" : "text-gray-300"}`}>|</span>
                       <button
                         onClick={collapseAllCategories}
-                        className="text-xs text-captain-600 hover:text-captain-700 font-medium"
+                        className={`text-xs font-medium ${mode === 'dark' ? "text-blue-400 hover:text-blue-300" : "text-captain-600 hover:text-captain-700"}`}
                       >
                         Collapse All
                       </button>
@@ -496,9 +521,9 @@ export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewer
 
                   {/* Equipment grouped by category */}
                   {filteredEquipment.length === 0 ? (
-                    <div className="text-center py-12 bg-gray-50 rounded-xl">
-                      <Package size={48} className="mx-auto text-gray-300 mb-3" />
-                      <p className="text-gray-500">
+                    <div className={`text-center py-12 rounded-xl ${mode === 'dark' ? "bg-white/5" : "bg-gray-50"}`}>
+                      <Package size={48} className={`mx-auto mb-3 ${mode === 'dark' ? "text-gray-600" : "text-gray-300"}`} />
+                      <p className={`${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                         {searchQuery ? "No equipment matches your search" : "No equipment in manifest"}
                       </p>
                     </div>
@@ -512,27 +537,27 @@ export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewer
                         return (
                           <div
                             key={category.id}
-                            className="bg-white border border-gray-200 rounded-xl overflow-hidden"
+                            className={`border rounded-xl overflow-hidden ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"}`}
                           >
                             {/* Category Header - Clickable to expand/collapse */}
                             <button
                               onClick={() => toggleCategoryExpansion(category.id)}
-                              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                              className={`w-full px-4 py-3 flex items-center justify-between transition-colors ${mode === 'dark' ? "hover:bg-white/5" : "hover:bg-gray-50"}`}
                             >
                               <div className="flex items-center gap-3">
                                 <div
                                   className="w-10 h-10 rounded-lg flex items-center justify-center"
-                                  style={{ backgroundColor: COLORS.blueHighlightDim }}
+                                  style={{ backgroundColor: mode === 'dark' ? 'rgba(59, 130, 246, 0.1)' : COLORS.blueHighlightDim }}
                                 >
                                   <IconComponent
                                     size={20}
                                     strokeWidth={1.5}
-                                    style={{ color: COLORS.blueHighlight }}
+                                    style={{ color: mode === 'dark' ? '#60A5FA' : COLORS.blueHighlight }}
                                   />
                                 </div>
                                 <div className="text-left">
-                                  <div className="font-semibold text-gray-900">{category.name}</div>
-                                  <div className="text-xs text-gray-500">
+                                  <div className={`font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{category.name}</div>
+                                  <div className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                                     {items.length} {items.length === 1 ? "item" : "items"}
                                   </div>
                                 </div>
@@ -540,44 +565,46 @@ export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewer
                               <div className="flex items-center gap-2">
                                 {/* Show condition summary */}
                                 {items.some(i => i.conditionStatus === "needs_attention") && (
-                                  <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full font-medium">
+                                  <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${mode === 'dark' ? "bg-red-900/30 text-red-400" : "bg-red-100 text-red-700"}`}>
                                     {items.filter(i => i.conditionStatus === "needs_attention").length} need attention
                                   </span>
                                 )}
                                 {isExpanded ? (
-                                  <ChevronUp size={20} className="text-gray-400" />
+                                  <ChevronUp size={20} className={`${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`} />
                                 ) : (
-                                  <ChevronDown size={20} className="text-gray-400" />
+                                  <ChevronDown size={20} className={`${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`} />
                                 )}
                               </div>
                             </button>
 
                             {/* Category Items - Collapsible */}
                             {isExpanded && (
-                              <div className="border-t border-gray-100">
+                              <div className={`border-t ${mode === 'dark' ? "border-white/10" : "border-gray-100"}`}>
                                 {items.map((item, index) => (
                                   <div
                                     key={item._id}
                                     onClick={() => setListViewEquipment(item)}
-                                    className={`px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer group ${
-                                      index !== items.length - 1 ? "border-b border-gray-100" : ""
+                                    className={`px-4 py-3 flex items-center justify-between transition-colors cursor-pointer group ${
+                                      mode === 'dark' ? "hover:bg-white/5" : "hover:bg-gray-50"
+                                    } ${
+                                      index !== items.length - 1 ? (mode === 'dark' ? "border-b border-white/5" : "border-b border-gray-100") : ""
                                     }`}
                                   >
                                     <div className="flex-1 min-w-0 pl-12">
                                       <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="font-medium text-gray-900">{item.name}</span>
+                                        <span className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{item.name}</span>
                                         {item.conditionStatus && (
                                           <ConditionBadge status={item.conditionStatus} />
                                         )}
                                       </div>
                                       <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                                         {(item.manufacturer || item.model) && (
-                                          <span className="text-sm text-gray-500">
+                                          <span className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                                             {[item.manufacturer, item.model].filter(Boolean).join(" ")}
                                           </span>
                                         )}
                                         {item.serialNumber && (
-                                          <span className="text-xs text-gray-400">
+                                          <span className={`text-xs ${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`}>
                                             S/N: {item.serialNumber}
                                           </span>
                                         )}
@@ -585,7 +612,7 @@ export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewer
                                     </div>
                                     <ChevronRight
                                       size={18}
-                                      className="text-gray-300 group-hover:text-captain-500 flex-shrink-0 ml-2"
+                                      className={`flex-shrink-0 ml-2 ${mode === 'dark' ? "text-gray-500 group-hover:text-white" : "text-gray-300 group-hover:text-captain-500"}`}
                                     />
                                   </div>
                                 ))}
@@ -609,17 +636,30 @@ export function ManifestViewer({ vesselId, vesselName, onClose }: ManifestViewer
             onClose={() => setSelectedEquipment(null)}
           />
         )}
-      </div>
-    </div>
+    </GlassModal>
   );
 }
 
 // Condition Badge Component
 function ConditionBadge({ status }: { status: "good" | "fair" | "needs_attention" }) {
+  const { mode } = useTheme();
+  
   const config = {
-    good: { label: "Good", className: "bg-green-100 text-green-700", icon: CheckCircle },
-    fair: { label: "Fair", className: "bg-yellow-100 text-yellow-700", icon: AlertCircle },
-    needs_attention: { label: "Needs Attention", className: "bg-red-100 text-red-700", icon: AlertTriangle },
+    good: { 
+      label: "Good", 
+      className: mode === 'dark' ? "bg-green-900/30 text-green-400" : "bg-green-100 text-green-700", 
+      icon: CheckCircle 
+    },
+    fair: { 
+      label: "Fair", 
+      className: mode === 'dark' ? "bg-yellow-900/30 text-yellow-400" : "bg-yellow-100 text-yellow-700", 
+      icon: AlertCircle 
+    },
+    needs_attention: { 
+      label: "Needs Attention", 
+      className: mode === 'dark' ? "bg-red-900/30 text-red-400" : "bg-red-100 text-red-700", 
+      icon: AlertTriangle 
+    },
   };
 
   const { label, className, icon: Icon } = config[status];
@@ -639,6 +679,7 @@ interface ListViewEquipmentDetailProps {
 }
 
 function ListViewEquipmentDetail({ equipment, onBack }: ListViewEquipmentDetailProps) {
+  const { mode } = useTheme();
   // Format date for display
   const formatDate = (timestamp: number | undefined) => {
     if (!timestamp) return "—";
@@ -691,7 +732,11 @@ function ListViewEquipmentDetail({ equipment, onBack }: ListViewEquipmentDetailP
       {/* Back button */}
       <button
         onClick={onBack}
-        className="flex items-center gap-2 px-3 py-1.5 mb-4 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:border-captain-300 hover:text-captain-600 transition-all"
+        className={`flex items-center gap-2 px-3 py-1.5 mb-4 text-sm font-medium border rounded-lg transition-all ${
+          mode === 'dark'
+            ? "text-gray-300 bg-white/5 border-white/10 hover:border-blue-500/50 hover:text-white"
+            : "text-gray-600 bg-white border-gray-200 hover:border-captain-300 hover:text-captain-600"
+        }`}
       >
         <ArrowLeft size={16} />
         Back to List
@@ -701,35 +746,35 @@ function ListViewEquipmentDetail({ equipment, onBack }: ListViewEquipmentDetailP
       <div
         className="rounded-xl p-5 mb-4 relative overflow-hidden"
         style={{
-          backgroundColor: COLORS.blueHighlightDim,
-          border: `1px solid ${COLORS.blueHighlight}30`,
+          backgroundColor: mode === 'dark' ? 'rgba(59, 130, 246, 0.1)' : COLORS.blueHighlightDim,
+          border: `1px solid ${mode === 'dark' ? 'rgba(59, 130, 246, 0.2)' : `${COLORS.blueHighlight}30`}`,
         }}
       >
         <div className="relative z-10 flex items-start gap-4">
           <div
             className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: `${COLORS.blueHighlight}20` }}
+            style={{ backgroundColor: mode === 'dark' ? 'rgba(59, 130, 246, 0.2)' : `${COLORS.blueHighlight}20` }}
           >
             <CategoryIcon
               size={28}
               strokeWidth={1.5}
-              style={{ color: COLORS.blueHighlight }}
+              style={{ color: mode === 'dark' ? '#60A5FA' : COLORS.blueHighlight }}
             />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
-              <h4 className="text-xl font-bold text-gray-900">{equipment.name}</h4>
+              <h4 className={`text-xl font-bold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{equipment.name}</h4>
               {equipment.conditionStatus && (
                 <ConditionBadge status={equipment.conditionStatus} />
               )}
             </div>
             {(equipment.manufacturer || equipment.model) && (
-              <p className="text-sm text-gray-600">
+              <p className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-600"}`}>
                 {[equipment.manufacturer, equipment.model].filter(Boolean).join(" ")}
               </p>
             )}
             {category && (
-              <p className="text-xs text-gray-500 mt-1">{category.name}</p>
+              <p className={`text-xs mt-1 ${mode === 'dark' ? "text-blue-200" : "text-gray-500"}`}>{category.name}</p>
             )}
           </div>
         </div>
@@ -738,7 +783,7 @@ function ListViewEquipmentDetail({ equipment, onBack }: ListViewEquipmentDetailP
           size={100}
           strokeWidth={1}
           className="absolute -top-4 -right-4 opacity-5"
-          style={{ color: COLORS.blueHighlight }}
+          style={{ color: mode === 'dark' ? '#60A5FA' : COLORS.blueHighlight }}
         />
       </div>
 
@@ -749,27 +794,27 @@ function ListViewEquipmentDetail({ equipment, onBack }: ListViewEquipmentDetailP
           <div
             className={`p-4 rounded-xl flex items-center gap-3 ${
               equipment.conditionStatus === "good"
-                ? "bg-green-50 border border-green-200"
+                ? (mode === 'dark' ? "bg-green-900/10 border border-green-500/20" : "bg-green-50 border border-green-200")
                 : equipment.conditionStatus === "fair"
-                ? "bg-yellow-50 border border-yellow-200"
-                : "bg-red-50 border border-red-200"
+                ? (mode === 'dark' ? "bg-yellow-900/10 border border-yellow-500/20" : "bg-yellow-50 border border-yellow-200")
+                : (mode === 'dark' ? "bg-red-900/10 border border-red-500/20" : "bg-red-50 border border-red-200")
             }`}
           >
             {equipment.conditionStatus === "good" ? (
-              <CheckCircle className="text-green-600 flex-shrink-0" size={24} />
+              <CheckCircle className={`${mode === 'dark' ? "text-green-400" : "text-green-600"} flex-shrink-0`} size={24} />
             ) : equipment.conditionStatus === "fair" ? (
-              <AlertCircle className="text-yellow-600 flex-shrink-0" size={24} />
+              <AlertCircle className={`${mode === 'dark' ? "text-yellow-400" : "text-yellow-600"} flex-shrink-0`} size={24} />
             ) : (
-              <AlertTriangle className="text-red-600 flex-shrink-0" size={24} />
+              <AlertTriangle className={`${mode === 'dark' ? "text-red-400" : "text-red-600"} flex-shrink-0`} size={24} />
             )}
             <div>
               <div
                 className={`font-medium ${
                   equipment.conditionStatus === "good"
-                    ? "text-green-800"
+                    ? (mode === 'dark' ? "text-green-400" : "text-green-800")
                     : equipment.conditionStatus === "fair"
-                    ? "text-yellow-800"
-                    : "text-red-800"
+                    ? (mode === 'dark' ? "text-yellow-400" : "text-yellow-800")
+                    : (mode === 'dark' ? "text-red-400" : "text-red-800")
                 }`}
               >
                 Condition:{" "}
@@ -787,19 +832,19 @@ function ListViewEquipmentDetail({ equipment, onBack }: ListViewEquipmentDetailP
           <div
             className={`p-4 rounded-xl flex items-center gap-3 ${
               nextService.isOverdue
-                ? "bg-red-50 border border-red-200"
+                ? (mode === 'dark' ? "bg-red-900/10 border border-red-500/20" : "bg-red-50 border border-red-200")
                 : nextService.value <= 30
-                ? "bg-yellow-50 border border-yellow-200"
-                : "bg-blue-50 border border-blue-200"
+                ? (mode === 'dark' ? "bg-yellow-900/10 border border-yellow-500/20" : "bg-yellow-50 border border-yellow-200")
+                : (mode === 'dark' ? "bg-blue-900/10 border border-blue-500/20" : "bg-blue-50 border border-blue-200")
             }`}
           >
             <Wrench
               className={`flex-shrink-0 ${
                 nextService.isOverdue
-                  ? "text-red-600"
+                  ? (mode === 'dark' ? "text-red-400" : "text-red-600")
                   : nextService.value <= 30
-                  ? "text-yellow-600"
-                  : "text-blue-600"
+                  ? (mode === 'dark' ? "text-yellow-400" : "text-yellow-600")
+                  : (mode === 'dark' ? "text-blue-400" : "text-blue-600")
               }`}
               size={24}
             />
@@ -807,10 +852,10 @@ function ListViewEquipmentDetail({ equipment, onBack }: ListViewEquipmentDetailP
               <div
                 className={`font-medium ${
                   nextService.isOverdue
-                    ? "text-red-800"
+                    ? (mode === 'dark' ? "text-red-400" : "text-red-800")
                     : nextService.value <= 30
-                    ? "text-yellow-800"
-                    : "text-blue-800"
+                    ? (mode === 'dark' ? "text-yellow-400" : "text-yellow-800")
+                    : (mode === 'dark' ? "text-blue-400" : "text-blue-800")
                 }`}
               >
                 {nextService.isOverdue ? "Service Overdue" : "Next Service Due"}
@@ -818,10 +863,10 @@ function ListViewEquipmentDetail({ equipment, onBack }: ListViewEquipmentDetailP
               <div
                 className={`text-sm ${
                   nextService.isOverdue
-                    ? "text-red-600"
+                    ? (mode === 'dark' ? "text-red-400" : "text-red-600")
                     : nextService.value <= 30
-                    ? "text-yellow-600"
-                    : "text-blue-600"
+                    ? (mode === 'dark' ? "text-yellow-400" : "text-yellow-600")
+                    : (mode === 'dark' ? "text-blue-400" : "text-blue-600")
                 }`}
               >
                 {nextService.label}
@@ -832,8 +877,8 @@ function ListViewEquipmentDetail({ equipment, onBack }: ListViewEquipmentDetailP
         )}
 
         {/* Basic Info */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        <div className={`border rounded-xl p-4 ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"}`}>
+          <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
             <Info size={16} />
             Basic Information
           </h3>
@@ -847,8 +892,8 @@ function ListViewEquipmentDetail({ equipment, onBack }: ListViewEquipmentDetailP
 
         {/* Service Info */}
         {(equipment.lastServiceDate || equipment.nextServiceDate || equipment.currentHours) && (
-          <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <div className={`border rounded-xl p-4 ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"}`}>
+            <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
               <Wrench size={16} />
               Service Information
             </h3>
@@ -876,8 +921,8 @@ function ListViewEquipmentDetail({ equipment, onBack }: ListViewEquipmentDetailP
 
         {/* Warranty Info */}
         {(equipment.warrantyExpiry || equipment.warrantyTerms) && (
-          <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <div className={`border rounded-xl p-4 ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"}`}>
+            <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
               <ShieldAlert size={16} />
               Warranty
             </h3>
@@ -904,8 +949,8 @@ function ListViewEquipmentDetail({ equipment, onBack }: ListViewEquipmentDetailP
 
         {/* Consumable Parts - future feature */}
         {(equipment as any).consumableParts && (equipment as any).consumableParts.length > 0 && (
-          <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <div className={`border rounded-xl p-4 ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"}`}>
+            <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
               <Package size={16} />
               Consumable Parts
             </h3>
@@ -913,11 +958,11 @@ function ListViewEquipmentDetail({ equipment, onBack }: ListViewEquipmentDetailP
               {(equipment as any).consumableParts.map((part: any, index: number) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg"
+                  className={`flex items-center justify-between py-2 px-3 rounded-lg ${mode === 'dark' ? "bg-white/5" : "bg-gray-50"}`}
                 >
-                  <span className="text-sm text-gray-900">{part.name}</span>
+                  <span className={`text-sm ${mode === 'dark' ? "text-gray-200" : "text-gray-900"}`}>{part.name}</span>
                   {part.partNumber && (
-                    <span className="text-xs text-gray-500">#{part.partNumber}</span>
+                    <span className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>#{part.partNumber}</span>
                   )}
                 </div>
               ))}
@@ -927,12 +972,12 @@ function ListViewEquipmentDetail({ equipment, onBack }: ListViewEquipmentDetailP
 
         {/* Notes */}
         {equipment.notes && (
-          <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <div className={`border rounded-xl p-4 ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"}`}>
+            <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
               <Info size={16} />
               Notes
             </h3>
-            <p className="text-sm text-gray-600 whitespace-pre-wrap">{equipment.notes}</p>
+            <p className={`text-sm whitespace-pre-wrap ${mode === 'dark' ? "text-gray-300" : "text-gray-600"}`}>{equipment.notes}</p>
           </div>
         )}
       </div>
@@ -950,26 +995,27 @@ function ListInfoField({
   value: string | undefined;
   highlight?: "active" | "expired";
 }) {
+  const { mode } = useTheme();
   return (
     <div>
-      <div className="text-xs text-gray-500 mb-0.5">{label}</div>
+      <div className={`text-xs mb-0.5 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>{label}</div>
       <div
         className={`text-sm font-medium ${
           highlight === "active"
-            ? "text-green-600"
+            ? (mode === 'dark' ? "text-green-400" : "text-green-600")
             : highlight === "expired"
-            ? "text-red-600"
+            ? (mode === 'dark' ? "text-red-400" : "text-red-600")
             : value && value !== "—"
-            ? "text-gray-900"
-            : "text-gray-400"
+            ? (mode === 'dark' ? "text-white" : "text-gray-900")
+            : (mode === 'dark' ? "text-gray-500" : "text-gray-400")
         }`}
       >
         {value || "—"}
         {highlight === "active" && (
-          <span className="ml-2 text-xs font-normal text-green-600">(Active)</span>
+          <span className={`ml-2 text-xs font-normal ${mode === 'dark' ? "text-green-400" : "text-green-600"}`}>(Active)</span>
         )}
         {highlight === "expired" && (
-          <span className="ml-2 text-xs font-normal text-red-600">(Expired)</span>
+          <span className={`ml-2 text-xs font-normal ${mode === 'dark' ? "text-red-400" : "text-red-600"}`}>(Expired)</span>
         )}
       </div>
     </div>
@@ -983,6 +1029,7 @@ interface EquipmentDetailViewProps {
 }
 
 function EquipmentDetailView({ equipment, onClose }: EquipmentDetailViewProps) {
+  const { mode } = useTheme();
   // Format date for display
   const formatDate = (timestamp: number | undefined) => {
     if (!timestamp) return "—";
@@ -1046,25 +1093,25 @@ function EquipmentDetailView({ equipment, onClose }: EquipmentDetailViewProps) {
   const CategoryIcon = category?.icon || Settings;
 
   return (
-    <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-2xl z-10">
-      <div className="w-full max-w-lg mx-4 rounded-2xl bg-white shadow-xl max-h-[80vh] overflow-hidden flex flex-col">
+    <div className={`absolute inset-0 flex items-center justify-center rounded-2xl z-10 ${mode === 'dark' ? "bg-black/70 backdrop-blur-sm" : "bg-black/50"}`}>
+      <div className={`w-full max-w-lg mx-4 rounded-2xl shadow-xl max-h-[80vh] overflow-hidden flex flex-col ${mode === 'dark' ? "bg-[#1A1A23] border border-white/10" : "bg-white"}`}>
         {/* Header */}
-        <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between flex-shrink-0">
+        <div className={`px-6 py-4 flex items-center justify-between flex-shrink-0 ${mode === 'dark' ? "border-b border-white/10" : "border-b border-gray-200"}`}>
           <div className="flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: COLORS.blueHighlightDim }}
+              style={{ backgroundColor: mode === 'dark' ? 'rgba(59, 130, 246, 0.1)' : COLORS.blueHighlightDim }}
             >
-              <CategoryIcon size={20} style={{ color: COLORS.blueHighlight }} />
+              <CategoryIcon size={20} style={{ color: mode === 'dark' ? '#60A5FA' : COLORS.blueHighlight }} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">{equipment.name}</h2>
-              <p className="text-sm text-gray-500">{category?.name || equipment.category}</p>
+              <h2 className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{equipment.name}</h2>
+              <p className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>{category?.name || equipment.category}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className={`p-2 rounded-lg transition-colors ${mode === 'dark' ? "text-gray-400 hover:text-white hover:bg-white/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"}`}
           >
             <X size={20} />
           </button>
@@ -1077,27 +1124,27 @@ function EquipmentDetailView({ equipment, onClose }: EquipmentDetailViewProps) {
             <div
               className={`p-4 rounded-xl flex items-center gap-3 ${
                 equipment.conditionStatus === "good"
-                  ? "bg-green-50 border border-green-200"
+                  ? (mode === 'dark' ? "bg-green-900/10 border border-green-500/20" : "bg-green-50 border border-green-200")
                   : equipment.conditionStatus === "fair"
-                  ? "bg-yellow-50 border border-yellow-200"
-                  : "bg-red-50 border border-red-200"
+                  ? (mode === 'dark' ? "bg-yellow-900/10 border border-yellow-500/20" : "bg-yellow-50 border border-yellow-200")
+                  : (mode === 'dark' ? "bg-red-900/10 border border-red-500/20" : "bg-red-50 border border-red-200")
               }`}
             >
               {equipment.conditionStatus === "good" ? (
-                <CheckCircle className="text-green-600" size={24} />
+                <CheckCircle className={`${mode === 'dark' ? "text-green-400" : "text-green-600"}`} size={24} />
               ) : equipment.conditionStatus === "fair" ? (
-                <AlertCircle className="text-yellow-600" size={24} />
+                <AlertCircle className={`${mode === 'dark' ? "text-yellow-400" : "text-yellow-600"}`} size={24} />
               ) : (
-                <AlertTriangle className="text-red-600" size={24} />
+                <AlertTriangle className={`${mode === 'dark' ? "text-red-400" : "text-red-600"}`} size={24} />
               )}
               <div>
                 <div
                   className={`font-medium ${
                     equipment.conditionStatus === "good"
-                      ? "text-green-800"
+                      ? (mode === 'dark' ? "text-green-400" : "text-green-800")
                       : equipment.conditionStatus === "fair"
-                      ? "text-yellow-800"
-                      : "text-red-800"
+                      ? (mode === 'dark' ? "text-yellow-400" : "text-yellow-800")
+                      : (mode === 'dark' ? "text-red-400" : "text-red-800")
                   }`}
                 >
                   Condition:{" "}
@@ -1115,19 +1162,19 @@ function EquipmentDetailView({ equipment, onClose }: EquipmentDetailViewProps) {
             <div
               className={`p-4 rounded-xl flex items-center gap-3 ${
                 nextService.isOverdue
-                  ? "bg-red-50 border border-red-200"
+                  ? (mode === 'dark' ? "bg-red-900/10 border border-red-500/20" : "bg-red-50 border border-red-200")
                   : nextService.value <= 30
-                  ? "bg-yellow-50 border border-yellow-200"
-                  : "bg-blue-50 border border-blue-200"
+                  ? (mode === 'dark' ? "bg-yellow-900/10 border border-yellow-500/20" : "bg-yellow-50 border border-yellow-200")
+                  : (mode === 'dark' ? "bg-blue-900/10 border border-blue-500/20" : "bg-blue-50 border border-blue-200")
               }`}
             >
               <Wrench
                 className={
                   nextService.isOverdue
-                    ? "text-red-600"
+                    ? (mode === 'dark' ? "text-red-400" : "text-red-600")
                     : nextService.value <= 30
-                    ? "text-yellow-600"
-                    : "text-blue-600"
+                    ? (mode === 'dark' ? "text-yellow-400" : "text-yellow-600")
+                    : (mode === 'dark' ? "text-blue-400" : "text-blue-600")
                 }
                 size={24}
               />
@@ -1135,10 +1182,10 @@ function EquipmentDetailView({ equipment, onClose }: EquipmentDetailViewProps) {
                 <div
                   className={`font-medium ${
                     nextService.isOverdue
-                      ? "text-red-800"
+                      ? (mode === 'dark' ? "text-red-400" : "text-red-800")
                       : nextService.value <= 30
-                      ? "text-yellow-800"
-                      : "text-blue-800"
+                      ? (mode === 'dark' ? "text-yellow-400" : "text-yellow-800")
+                      : (mode === 'dark' ? "text-blue-400" : "text-blue-800")
                   }`}
                 >
                   {nextService.isOverdue ? "Service Overdue" : "Next Service Due"}
@@ -1146,10 +1193,10 @@ function EquipmentDetailView({ equipment, onClose }: EquipmentDetailViewProps) {
                 <div
                   className={`text-sm ${
                     nextService.isOverdue
-                      ? "text-red-600"
+                      ? (mode === 'dark' ? "text-red-400" : "text-red-600")
                       : nextService.value <= 30
-                      ? "text-yellow-600"
-                      : "text-blue-600"
+                      ? (mode === 'dark' ? "text-yellow-400" : "text-yellow-600")
+                      : (mode === 'dark' ? "text-blue-400" : "text-blue-600")
                   }`}
                 >
                   {nextService.label}
@@ -1173,7 +1220,7 @@ function EquipmentDetailView({ equipment, onClose }: EquipmentDetailViewProps) {
           {/* Service Info */}
           {(equipment.lastServiceDate || equipment.nextServiceDate || equipment.currentHours) && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                 <Wrench size={16} />
                 Service Information
               </h3>
@@ -1211,7 +1258,7 @@ function EquipmentDetailView({ equipment, onClose }: EquipmentDetailViewProps) {
           {/* Warranty Info */}
           {(equipment.warrantyExpiry || equipment.warrantyTerms) && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                 <ShieldAlert size={16} />
                 Warranty
               </h3>
@@ -1235,7 +1282,7 @@ function EquipmentDetailView({ equipment, onClose }: EquipmentDetailViewProps) {
           {/* Consumable Parts */}
           {equipment.consumablePartNumbers && equipment.consumablePartNumbers.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+              <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                 <Package size={16} />
                 Consumable Part Numbers
               </h3>
@@ -1243,11 +1290,11 @@ function EquipmentDetailView({ equipment, onClose }: EquipmentDetailViewProps) {
                 {equipment.consumablePartNumbers.map((part, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    className={`flex items-center justify-between p-3 rounded-lg ${mode === 'dark' ? "bg-white/5" : "bg-gray-50"}`}
                   >
                     <div>
-                      <div className="font-medium text-gray-900">{part.name}</div>
-                      <div className="text-sm text-gray-500">
+                      <div className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{part.name}</div>
+                      <div className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                         {part.manufacturer && `${part.manufacturer} • `}P/N: {part.partNumber}
                       </div>
                     </div>
@@ -1260,11 +1307,11 @@ function EquipmentDetailView({ equipment, onClose }: EquipmentDetailViewProps) {
           {/* Notes */}
           {equipment.notes && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <h3 className={`text-sm font-semibold mb-2 flex items-center gap-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                 <Info size={16} />
                 Notes
               </h3>
-              <p className="text-gray-600 text-sm whitespace-pre-wrap bg-gray-50 rounded-lg p-3">
+              <p className={`text-sm whitespace-pre-wrap rounded-lg p-3 ${mode === 'dark' ? "bg-white/5 text-gray-300" : "bg-gray-50 text-gray-600"}`}>
                 {equipment.notes}
               </p>
             </div>
@@ -1272,10 +1319,10 @@ function EquipmentDetailView({ equipment, onClose }: EquipmentDetailViewProps) {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 px-6 py-4 flex-shrink-0">
+        <div className={`border-t px-6 py-4 flex-shrink-0 ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}>
           <button
             onClick={onClose}
-            className="w-full py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+            className={`w-full py-2.5 rounded-xl font-medium transition-colors ${mode === 'dark' ? "bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
           >
             Close
           </button>
@@ -1295,16 +1342,17 @@ function InfoField({
   value: string | undefined;
   highlight?: "active" | "expired";
 }) {
+  const { mode } = useTheme();
   return (
     <div>
-      <div className="text-xs text-gray-500 mb-0.5">{label}</div>
+      <div className={`text-xs mb-0.5 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>{label}</div>
       <div
         className={`text-sm font-medium ${
           highlight === "active"
-            ? "text-green-600"
+            ? (mode === 'dark' ? "text-green-400" : "text-green-600")
             : highlight === "expired"
-            ? "text-red-600"
-            : "text-gray-900"
+            ? (mode === 'dark' ? "text-red-400" : "text-red-600")
+            : (mode === 'dark' ? "text-white" : "text-gray-900")
         }`}
       >
         {value || "—"}

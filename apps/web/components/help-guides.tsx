@@ -2,6 +2,8 @@
 
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { GlassCard, GlassButton, GlassBadge, GlassInput, GlassSelect, GlassModal } from "./ui/glass";
+import { useTheme } from "./providers/theme-provider";
 import { Id } from "../../../convex/_generated/dataModel";
 import { useState } from "react";
 
@@ -90,6 +92,7 @@ interface HelpGuidesProps {
 }
 
 export function HelpGuides({ maxItems = 4, showCategories = true }: HelpGuidesProps) {
+  const { mode } = useTheme();
   const guides = useQuery(api.helpGuides.getGuidesByRole, {});
   const [selectedGuide, setSelectedGuide] = useState<Id<"helpGuides"> | null>(null);
   const guideDetail = useQuery(
@@ -129,9 +132,17 @@ export function HelpGuides({ maxItems = 4, showCategories = true }: HelpGuidesPr
             <button
               key={guide._id}
               onClick={() => setSelectedGuide(guide._id)}
-              className="w-full flex items-start gap-3 p-3 rounded-lg bg-white border border-gray-200 hover:border-captain-300 hover:shadow-sm transition-all text-left"
+              className={`w-full flex items-start gap-3 p-3 rounded-lg border transition-all text-left ${
+                mode === 'dark'
+                  ? "bg-white/5 border-white/10 hover:border-white/20 hover:bg-white/10"
+                  : "bg-white border-gray-200 hover:border-captain-300 hover:shadow-sm"
+              }`}
             >
-              <div className={`flex-shrink-0 p-2 rounded-lg ${config?.bgColor || "bg-gray-100"} ${config?.color || "text-gray-600"}`}>
+              <div className={`flex-shrink-0 p-2 rounded-lg ${
+                mode === 'dark' 
+                  ? "bg-white/10 text-white" 
+                  : (config?.bgColor || "bg-gray-100") + " " + (config?.color || "text-gray-600")
+              }`}>
                 {config?.icon || (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -139,10 +150,10 @@ export function HelpGuides({ maxItems = 4, showCategories = true }: HelpGuidesPr
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-gray-900 text-sm">{guide.title}</h4>
-                <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{guide.summary}</p>
+                <h4 className={`font-medium text-sm ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{guide.title}</h4>
+                <p className={`text-xs mt-0.5 line-clamp-1 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>{guide.summary}</p>
               </div>
-              <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-5 h-5 flex-shrink-0 ${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
@@ -150,7 +161,7 @@ export function HelpGuides({ maxItems = 4, showCategories = true }: HelpGuidesPr
         })}
 
         {guides.length > maxItems && (
-          <button className="w-full py-2 text-sm text-captain-600 hover:text-captain-700 font-medium">
+          <button className={`w-full py-2 text-sm font-medium ${mode === 'dark' ? "text-blue-400 hover:text-blue-300" : "text-captain-600 hover:text-captain-700"}`}>
             View all {guides.length} guides
           </button>
         )}
@@ -158,29 +169,32 @@ export function HelpGuides({ maxItems = 4, showCategories = true }: HelpGuidesPr
 
       {/* Guide Detail Modal */}
       {selectedGuide && guideDetail && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+        <GlassModal onClose={() => setSelectedGuide(null)} className="max-w-2xl max-h-[80vh] flex flex-col p-0 overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+            <div className={`flex items-center justify-between p-4 border-b ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}>
               <div className="flex items-center gap-3">
                 {(() => {
                   const config = CATEGORY_CONFIG[guideDetail.category as keyof typeof CATEGORY_CONFIG];
                   return (
-                    <div className={`p-2 rounded-lg ${config?.bgColor || "bg-gray-100"} ${config?.color || "text-gray-600"}`}>
+                    <div className={`p-2 rounded-lg ${
+                      mode === 'dark' 
+                        ? "bg-white/10 text-white" 
+                        : (config?.bgColor || "bg-gray-100") + " " + (config?.color || "text-gray-600")
+                    }`}>
                       {config?.icon}
                     </div>
                   );
                 })()}
                 <div>
-                  <h3 className="font-semibold text-gray-900">{guideDetail.title}</h3>
-                  <p className="text-xs text-gray-500">
+                  <h3 className={`font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{guideDetail.title}</h3>
+                  <p className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                     {CATEGORY_LABELS[guideDetail.category as keyof typeof CATEGORY_LABELS]}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedGuide(null)}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                className={`p-2 rounded-full ${mode === 'dark' ? "text-gray-400 hover:text-white hover:bg-white/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"}`}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -189,18 +203,18 @@ export function HelpGuides({ maxItems = 4, showCategories = true }: HelpGuidesPr
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className={`flex-1 overflow-y-auto p-6 ${mode === 'dark' ? "text-gray-300" : "text-gray-800"}`}>
               <div className="prose prose-sm max-w-none">
                 {/* Simple markdown rendering - in production use a proper markdown renderer */}
                 {guideDetail.content.split('\n').map((line, i) => {
                   if (line.startsWith('# ')) {
-                    return <h1 key={i} className="text-2xl font-bold mt-4 mb-2">{line.slice(2)}</h1>;
+                    return <h1 key={i} className={`text-2xl font-bold mt-4 mb-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{line.slice(2)}</h1>;
                   }
                   if (line.startsWith('## ')) {
-                    return <h2 key={i} className="text-xl font-semibold mt-4 mb-2">{line.slice(3)}</h2>;
+                    return <h2 key={i} className={`text-xl font-semibold mt-4 mb-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{line.slice(3)}</h2>;
                   }
                   if (line.startsWith('### ')) {
-                    return <h3 key={i} className="text-lg font-medium mt-3 mb-1">{line.slice(4)}</h3>;
+                    return <h3 key={i} className={`text-lg font-medium mt-3 mb-1 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{line.slice(4)}</h3>;
                   }
                   if (line.startsWith('- ')) {
                     return <li key={i} className="ml-4">{line.slice(2)}</li>;
@@ -220,16 +234,16 @@ export function HelpGuides({ maxItems = 4, showCategories = true }: HelpGuidesPr
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-gray-200 bg-gray-50">
-              <button
+            <div className={`p-4 border-t flex-shrink-0 ${mode === 'dark' ? "border-white/10 bg-white/5" : "border-gray-200 bg-gray-50"}`}>
+              <GlassButton
+                variant="primary"
                 onClick={() => setSelectedGuide(null)}
-                className="w-full py-2 bg-captain-600 text-white rounded-lg hover:bg-captain-700 transition-colors font-medium"
+                className="w-full justify-center"
               >
                 Got it
-              </button>
+              </GlassButton>
             </div>
-          </div>
-        </div>
+        </GlassModal>
       )}
     </>
   );
@@ -237,13 +251,18 @@ export function HelpGuides({ maxItems = 4, showCategories = true }: HelpGuidesPr
 
 // Compact help button for quick access
 export function HelpButton() {
+  const { mode } = useTheme();
   const [showGuides, setShowGuides] = useState(false);
 
   return (
     <>
       <button
         onClick={() => setShowGuides(true)}
-        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-captain-600 hover:bg-captain-50 rounded-lg transition-colors"
+        className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
+          mode === 'dark' 
+            ? "text-gray-300 hover:text-white hover:bg-white/10" 
+            : "text-gray-600 hover:text-captain-600 hover:bg-captain-50"
+        }`}
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -252,24 +271,22 @@ export function HelpButton() {
       </button>
 
       {showGuides && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h3 className="font-semibold text-gray-900">Help & Guides</h3>
+        <GlassModal onClose={() => setShowGuides(false)} className="max-w-lg max-h-[80vh] flex flex-col p-0 overflow-hidden">
+            <div className={`flex items-center justify-between p-4 border-b flex-shrink-0 ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}>
+              <h3 className={`font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Help & Guides</h3>
               <button
                 onClick={() => setShowGuides(false)}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                className={`p-2 rounded-full transition-colors ${mode === 'dark' ? "text-gray-400 hover:text-white hover:bg-white/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"}`}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
               <HelpGuides maxItems={20} />
             </div>
-          </div>
-        </div>
+        </GlassModal>
       )}
     </>
   );

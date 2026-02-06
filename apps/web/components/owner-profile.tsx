@@ -4,12 +4,16 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { ImageCropper } from "./image-cropper";
+import { GlassCard, GlassButton, GlassBadge, GlassInput, GlassSelect, GlassModal } from "./ui/glass";
+import { useTheme } from "./providers/theme-provider";
+import { User } from "lucide-react";
 
 interface OwnerProfileProps {
   onClose: () => void;
 }
 
 export function OwnerProfile({ onClose }: OwnerProfileProps) {
+  const { mode } = useTheme();
   const user = useQuery(api.users.currentUser);
   const profilePhotoUrl = useQuery(api.storage.getUserProfilePhotoUrl, {});
   const updateProfile = useMutation(api.users.updateOwnerProfile);
@@ -28,7 +32,8 @@ export function OwnerProfile({ onClose }: OwnerProfileProps) {
 
   // Form data
   const [formData, setFormData] = useState({
-    fullName: "",
+    firstName: "",
+    lastName: "",
     phone: "",
     email: "",
     street: "",
@@ -41,7 +46,8 @@ export function OwnerProfile({ onClose }: OwnerProfileProps) {
   useEffect(() => {
     if (user) {
       setFormData({
-        fullName: user.fullName || user.name || "",
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
         phone: user.phone || "",
         email: user.email || "",
         street: user.address?.street || "",
@@ -91,7 +97,8 @@ export function OwnerProfile({ onClose }: OwnerProfileProps) {
 
     try {
       await updateProfile({
-        fullName: formData.fullName || undefined,
+        firstName: formData.firstName || undefined,
+        lastName: formData.lastName || undefined,
         phone: formData.phone || undefined,
         address: formData.street ? {
           street: formData.street,
@@ -115,7 +122,8 @@ export function OwnerProfile({ onClose }: OwnerProfileProps) {
     // Reset form to original values
     if (user) {
       setFormData({
-        fullName: user.fullName || user.name || "",
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
         phone: user.phone || "",
         email: user.email || "",
         street: user.address?.street || "",
@@ -130,25 +138,24 @@ export function OwnerProfile({ onClose }: OwnerProfileProps) {
 
   if (!user) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-2xl p-8">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-captain-200 border-t-captain-600 mx-auto"></div>
+      <GlassModal onClose={onClose} className="max-w-2xl h-[90vh]">
+        <div className="p-8 flex items-center justify-center">
+          <div className={`h-8 w-8 animate-spin rounded-full border-4 ${mode === 'dark' ? "border-white/10 border-t-blue-500" : "border-captain-200 border-t-captain-600"}`}></div>
         </div>
-      </div>
+      </GlassModal>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <GlassModal onClose={onClose} className="max-w-2xl max-h-[90vh]">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-          <h2 className="text-xl font-semibold text-gray-900">My Profile</h2>
+        <div className={`sticky top-0 border-b px-6 py-4 flex items-center justify-between z-10 ${mode === 'dark' ? "bg-[#1A1A23] border-white/10" : "bg-white border-gray-200"}`}>
+          <h2 className={`text-xl font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>My Profile</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className={`p-2 rounded-lg transition-colors ${mode === 'dark' ? "hover:bg-white/10 text-gray-400" : "hover:bg-gray-100 text-gray-500"}`}
           >
-            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -178,7 +185,7 @@ export function OwnerProfile({ onClose }: OwnerProfileProps) {
                 />
               ) : (
                 <div className="w-24 h-24 rounded-full bg-captain-100 flex items-center justify-center border-4 border-captain-200">
-                  <span className="text-4xl">👤</span>
+                  <User className="w-10 h-10 text-captain-600" />
                 </div>
               )}
               <button
@@ -199,7 +206,7 @@ export function OwnerProfile({ onClose }: OwnerProfileProps) {
               />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">{formData.fullName || "Boat Owner"}</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{formData.firstName && formData.lastName ? `${formData.firstName} ${formData.lastName}` : "Boat Owner"}</h3>
               <p className="text-sm text-gray-500">{formData.email}</p>
               <p className="text-xs text-captain-600 mt-1">Click the camera icon to update your photo</p>
             </div>
@@ -229,13 +236,23 @@ export function OwnerProfile({ onClose }: OwnerProfileProps) {
               {isEditing ? (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                     <input
                       type="text"
-                      value={formData.fullName}
-                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-transparent text-black"
-                      placeholder="Your full name"
+                      placeholder="Your first name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                    <input
+                      type="text"
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-transparent text-black"
+                      placeholder="Your last name"
                     />
                   </div>
                   <div>
@@ -263,7 +280,7 @@ export function OwnerProfile({ onClose }: OwnerProfileProps) {
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-500">Name</span>
-                    <span className="text-sm text-gray-900">{formData.fullName || "Not set"}</span>
+                    <span className="text-sm text-gray-900">{formData.firstName && formData.lastName ? `${formData.firstName} ${formData.lastName}` : "Not set"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-500">Phone</span>
@@ -366,7 +383,6 @@ export function OwnerProfile({ onClose }: OwnerProfileProps) {
                 </button>
               </div>
             )}
-          </div>
         </div>
       </div>
 
@@ -382,6 +398,6 @@ export function OwnerProfile({ onClose }: OwnerProfileProps) {
           }}
         />
       )}
-    </div>
+    </GlassModal>
   );
 }

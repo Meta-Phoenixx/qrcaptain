@@ -34,14 +34,12 @@ export default function Profile() {
       <View style={styles.header}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
-            {user.fullName
-              .split(" ")
-              .map((n) => n[0])
-              .join("")
-              .toUpperCase()}
+            {user.firstName && user.lastName 
+              ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
+              : (user.name || "U").split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
           </Text>
         </View>
-        <Text style={styles.name}>{user.fullName}</Text>
+        <Text style={styles.name}>{user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.name || "User"}</Text>
         <Text style={styles.email}>{user.email}</Text>
         <View style={styles.roleBadge}>
           <Text style={styles.roleText}>

@@ -24,7 +24,9 @@ export const getMechanicRatings = query({
 
         return {
           ...rating,
-          ownerName: owner?.fullName,
+          ownerName: owner?.firstName && owner?.lastName 
+            ? `${owner.firstName} ${owner.lastName}` 
+            : owner?.name,
           vesselName: vessel?.name,
           workDescription: workOrder?.description,
           completedAt: workOrder?.completedAt,
@@ -61,7 +63,9 @@ export const getMyRatings = query({
 
         return {
           ...rating,
-          mechanicName: mechanic?.fullName,
+          mechanicName: mechanic?.firstName && mechanic?.lastName 
+            ? `${mechanic.firstName} ${mechanic.lastName}` 
+            : mechanic?.name,
           mechanicCompany: mechanic?.companyName,
           vesselName: vessel?.name,
           workDescription: workOrder?.description,
@@ -317,7 +321,7 @@ export const createMechanicRating = mutation({
       userId: workOrder.mechanicId,
       type: "new_rating_received",
       title: "New Rating Received",
-      message: `${user.fullName || "An owner"} has rated you ${overallRating.toFixed(1)} wrenches for work on ${vessel.name}`,
+      message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "An owner"} has rated you ${overallRating.toFixed(1)} wrenches for work on ${vessel.name}`,
       relatedId: ratingId,
       relatedType: "mechanicRating",
       isRead: false,
@@ -488,7 +492,7 @@ export const createOwnerRating = mutation({
       userId: ownerId,
       type: "new_rating_received",
       title: "New Rating Received",
-      message: `${user.companyName || user.fullName || "A mechanic"} has rated you ${overallRating.toFixed(1)} stars`,
+      message: `${user.companyName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "A mechanic")} has rated you ${overallRating.toFixed(1)} stars`,
       relatedId: ratingId,
       relatedType: "ownerRating",
       isRead: false,
@@ -634,7 +638,7 @@ export const getPendingRatings = query({
             workOrderId: wo._id,
             description: wo.description,
             completedAt: wo.completedAt,
-            mechanicName: mechanic?.companyName || mechanic?.fullName,
+            mechanicName: mechanic?.companyName || (mechanic?.firstName && mechanic?.lastName ? `${mechanic.firstName} ${mechanic.lastName}` : mechanic?.name),
             vesselName: vessel?.name,
           });
         }
@@ -671,7 +675,7 @@ export const getPendingRatings = query({
             workOrderId: wo._id,
             description: wo.description,
             completedAt: wo.completedAt,
-            ownerName: owner?.fullName || owner?.name,
+            ownerName: owner?.firstName && owner?.lastName ? `${owner.firstName} ${owner.lastName}` : owner?.name,
             vesselName: vessel?.name,
           });
         }

@@ -103,7 +103,9 @@ export const listAllAnnouncements = query({
         const creator = await ctx.db.get(a.createdBy);
         return {
           ...a,
-          creatorName: creator?.fullName || creator?.email || "Unknown",
+          creatorName: creator?.firstName && creator?.lastName 
+            ? `${creator.firstName} ${creator.lastName}` 
+            : creator?.email || "Unknown",
         };
       })
     );

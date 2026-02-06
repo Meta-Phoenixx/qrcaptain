@@ -17,7 +17,9 @@ export default defineSchema({
     isAnonymous: v.optional(v.boolean()),
 
     // App specific fields - Made optional to debug auth errors
-    fullName: v.optional(v.string()),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    fullName: v.optional(v.string()), // Deprecated: kept for backward compatibility with existing data
     role: v.optional(
       v.union(
         v.literal("admin"),

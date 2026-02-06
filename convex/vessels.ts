@@ -67,7 +67,9 @@ export const listMyVessels = query({
             _id: latestActive._id,
             description: latestActive.description,
             startedAt: latestActive.startedAt,
-            mechanicName: mechanic?.fullName || mechanic?.name || "Unknown",
+            mechanicName: mechanic?.firstName && mechanic?.lastName 
+              ? `${mechanic.firstName} ${mechanic.lastName}` 
+              : mechanic?.name || "Unknown",
             mechanicCompany: mechanic?.companyName,
           };
         }
@@ -124,7 +126,9 @@ export const getVessel = query({
 
     return {
       ...vessel,
-      ownerName: owner?.fullName,
+      ownerName: owner?.firstName && owner?.lastName 
+        ? `${owner.firstName} ${owner.lastName}` 
+        : owner?.name,
       ownerEmail: owner?.email,
     };
   },
@@ -165,6 +169,12 @@ export const getAuthorizedVessels = query({
         const activeWorkOrders = workOrders.filter(wo => wo.status === "in_progress");
         const completedWorkOrders = workOrders.filter(wo => wo.status === "completed");
 
+        // Get owner profile photo URL if available
+        let ownerProfilePhotoUrl: string | null = null;
+        if (owner?.profilePhotoStorageId) {
+          ownerProfilePhotoUrl = await ctx.storage.getUrl(owner.profilePhotoStorageId);
+        }
+
         return {
           _id: vessel._id,
           name: vessel.name,
@@ -178,9 +188,12 @@ export const getAuthorizedVessels = query({
             : null,
           owner: owner ? {
             _id: owner._id,
-            name: owner.fullName || owner.name || "Unknown",
+            name: owner.firstName && owner.lastName 
+              ? `${owner.firstName} ${owner.lastName}` 
+              : owner.name || "Unknown",
             email: owner.email,
             phone: owner.phone,
+            profilePhotoUrl: ownerProfilePhotoUrl,
           } : null,
           authorization: {
             authorizedAt: auth.authorizedAt,
@@ -223,7 +236,9 @@ export const getVesselByQRCode = query({
 
     return {
       ...vessel,
-      ownerName: owner?.fullName,
+      ownerName: owner?.firstName && owner?.lastName 
+        ? `${owner.firstName} ${owner.lastName}` 
+        : owner?.name,
       ownerEmail: owner?.email,
       workOrderCount: workOrders.length,
     };

@@ -3,6 +3,8 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import { GlassCard, GlassButton, GlassBadge, GlassInput, GlassSelect, GlassModal } from "./ui/glass";
+import { useTheme } from "./providers/theme-provider";
 import { useState } from "react";
 
 type AnnouncementType = "info" | "feature" | "maintenance" | "tip" | "urgent";
@@ -42,6 +44,7 @@ const defaultFormData: AnnouncementFormData = {
 };
 
 export function AnnouncementManager() {
+  const { mode } = useTheme();
   const announcements = useQuery(api.announcements.listAllAnnouncements, { includeInactive: true });
   const createAnnouncement = useMutation(api.announcements.createAnnouncement);
   const updateAnnouncement = useMutation(api.announcements.updateAnnouncement);
@@ -288,9 +291,8 @@ export function AnnouncementManager() {
 
       {/* Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        <GlassModal onClose={() => setShowForm(false)} className="max-w-lg max-h-[90vh] flex flex-col">
+            <div className={`flex items-center justify-between p-4 border-b ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}>
               <h3 className="font-semibold text-gray-900">
                 {editingId ? "Edit Announcement" : "New Announcement"}
               </h3>
@@ -402,7 +404,7 @@ export function AnnouncementManager() {
               </label>
             </form>
 
-            <div className="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+            <div className={`p-4 border-t flex justify-end gap-3 ${mode === 'dark' ? "border-white/10 bg-white/5" : "border-gray-200 bg-gray-50"}`}>
               <button
                 type="button"
                 onClick={() => {
@@ -422,8 +424,7 @@ export function AnnouncementManager() {
                 {isSubmitting ? "Saving..." : editingId ? "Update" : "Create"}
               </button>
             </div>
-          </div>
-        </div>
+        </GlassModal>
       )}
     </div>
   );

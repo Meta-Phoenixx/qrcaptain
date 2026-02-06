@@ -17,14 +17,15 @@ import { Picker } from "@react-native-picker/picker";
 export default function SignUp() {
   const { signIn } = useAuthActions();
   const router = useRouter();
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"owner" | "mechanic">("owner");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignUp = async () => {
-    if (!name || !email || !password) {
+    if (!firstName || !lastName || !email || !password) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
@@ -37,7 +38,9 @@ export default function SignUp() {
     setIsLoading(true);
     try {
       const formData = new FormData();
-      formData.append("name", name);
+      formData.append("firstName", firstName);
+      formData.append("lastName", lastName);
+      formData.append("name", `${firstName} ${lastName}`); // For Convex Auth compatibility
       formData.append("email", email);
       formData.append("password", password);
       formData.append("role", role);
@@ -62,12 +65,22 @@ export default function SignUp() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.form}>
-          <Text style={styles.label}>Full Name</Text>
+          <Text style={styles.label}>First Name</Text>
           <TextInput
             style={styles.input}
-            value={name}
-            onChangeText={setName}
-            placeholder="John Smith"
+            value={firstName}
+            onChangeText={setFirstName}
+            placeholder="John"
+            placeholderTextColor="#6b7280"
+            autoCapitalize="words"
+          />
+
+          <Text style={styles.label}>Last Name</Text>
+          <TextInput
+            style={styles.input}
+            value={lastName}
+            onChangeText={setLastName}
+            placeholder="Smith"
             placeholderTextColor="#6b7280"
             autoCapitalize="words"
           />

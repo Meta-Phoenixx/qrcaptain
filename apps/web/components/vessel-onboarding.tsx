@@ -4,6 +4,8 @@ import { useState, useRef } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { ImageCropper } from "./image-cropper";
+import { GlassModal, GlassButton, GlassInput, GlassSelect } from "./ui/glass";
+import { useTheme } from "./providers/theme-provider";
 import {
   Anchor,
   ChevronRight,
@@ -27,15 +29,15 @@ interface VesselOnboardingProps {
 
 // Common vessel types
 const VESSEL_TYPES = [
-  { value: "powerboat", label: "Powerboat", icon: "🚤" },
-  { value: "sailboat", label: "Sailboat", icon: "⛵" },
-  { value: "yacht", label: "Yacht", icon: "🛥️" },
-  { value: "fishing", label: "Fishing Boat", icon: "🎣" },
-  { value: "pontoon", label: "Pontoon", icon: "🚢" },
-  { value: "jet_ski", label: "Jet Ski / PWC", icon: "🏄" },
-  { value: "center_console", label: "Center Console", icon: "🚤" },
-  { value: "cabin_cruiser", label: "Cabin Cruiser", icon: "🛳️" },
-  { value: "other", label: "Other", icon: "⚓" },
+  { value: "powerboat", label: "Powerboat" },
+  { value: "sailboat", label: "Sailboat" },
+  { value: "yacht", label: "Yacht" },
+  { value: "fishing", label: "Fishing Boat" },
+  { value: "pontoon", label: "Pontoon" },
+  { value: "jet_ski", label: "Jet Ski / PWC" },
+  { value: "center_console", label: "Center Console" },
+  { value: "cabin_cruiser", label: "Cabin Cruiser" },
+  { value: "other", label: "Other" },
 ];
 
 // Common engine types
@@ -74,6 +76,7 @@ const ELECTRONICS_OPTIONS = [
 type Step = 1 | 2;
 
 export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) {
+  const { mode } = useTheme();
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -324,24 +327,24 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm overflow-y-auto py-8">
-      <div className="w-full max-w-2xl mx-4 rounded-2xl bg-white shadow-2xl overflow-hidden">
+    <>
+      <GlassModal onClose={onSkip} className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-captain-600 to-captain-700 px-6 py-5 text-white">
+        <div className={`px-6 py-5 flex-shrink-0 ${mode === 'dark' ? "bg-gradient-to-r from-blue-900/40 to-cyan-900/40 border-b border-white/10" : "bg-gradient-to-r from-captain-600 to-captain-700 text-white"}`}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                <Anchor className="w-6 h-6" />
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${mode === 'dark' ? "bg-white/10" : "bg-white/20"}`}>
+                <Anchor className={`w-6 h-6 ${mode === 'dark' ? "text-white" : ""}`} />
               </div>
               <div>
-                <h2 className="text-xl font-bold">Add Your Vessel</h2>
-                <p className="text-captain-100 text-sm">Let's set up your boat</p>
+                <h2 className={`text-xl font-bold ${mode === 'dark' ? "text-white" : ""}`}>Add Your Vessel</h2>
+                <p className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-captain-100"}`}>Let's set up your boat</p>
               </div>
             </div>
             <button
               onClick={onSkip}
               disabled={isSubmitting}
-              className="text-sm text-captain-200 hover:text-white transition-colors"
+              className={`text-sm transition-colors ${mode === 'dark' ? "text-gray-400 hover:text-white" : "text-captain-200 hover:text-white"}`}
             >
               Skip for now
             </button>
@@ -353,26 +356,26 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                   currentStep >= 1
-                    ? "bg-white/20 text-white ring-2 ring-white"
-                    : "bg-white/10 text-white/60"
+                    ? mode === 'dark' ? "bg-white/20 text-white ring-2 ring-blue-500" : "bg-white/20 text-white ring-2 ring-white"
+                    : mode === 'dark' ? "bg-white/10 text-gray-500" : "bg-white/10 text-white/60"
                 }`}
               >
                 <Ship size={20} />
               </div>
-              <span className="text-sm ml-2">Vessel Info</span>
+              <span className={`text-sm ml-2 ${mode === 'dark' ? "text-white" : ""}`}>Vessel Info</span>
             </div>
-            <div className={`flex-1 h-0.5 mx-4 ${currentStep > 1 ? "bg-white" : "bg-white/20"}`} />
+            <div className={`flex-1 h-0.5 mx-4 ${currentStep > 1 ? (mode === 'dark' ? "bg-blue-500" : "bg-white") : (mode === 'dark' ? "bg-white/10" : "bg-white/20")}`} />
             <div className="flex items-center">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                   currentStep >= 2
-                    ? "bg-white/20 text-white ring-2 ring-white"
-                    : "bg-white/10 text-white/60"
+                    ? mode === 'dark' ? "bg-white/20 text-white ring-2 ring-blue-500" : "bg-white/20 text-white ring-2 ring-white"
+                    : mode === 'dark' ? "bg-white/10 text-gray-500" : "bg-white/10 text-white/60"
                 }`}
               >
                 <Zap size={20} />
               </div>
-              <span className={`text-sm ml-2 ${currentStep < 2 ? "text-captain-200" : ""}`}>
+              <span className={`text-sm ml-2 ${currentStep < 2 ? (mode === 'dark' ? "text-gray-500" : "text-captain-200") : (mode === 'dark' ? "text-white" : "")}`}>
                 Equipment
               </span>
             </div>
@@ -380,7 +383,7 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
         </div>
 
         {/* Content */}
-        <div className="p-6 max-h-[60vh] overflow-y-auto">
+        <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
           {/* Step 1: Vessel Information */}
           {currentStep === 1 && (
             <div className="space-y-4 animate-fadeIn">
@@ -391,15 +394,19 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
                     <img
                       src={vesselPhotoPreview}
                       alt="Vessel"
-                      className="w-32 h-24 rounded-xl object-cover border-2 border-captain-200"
+                      className={`w-32 h-24 rounded-xl object-cover border-2 ${mode === 'dark' ? "border-blue-500/50" : "border-captain-200"}`}
                     />
                   ) : (
                     <div
                       onClick={() => vesselPhotoInputRef.current?.click()}
-                      className="w-32 h-24 rounded-xl bg-captain-50 border-2 border-dashed border-captain-200 flex flex-col items-center justify-center cursor-pointer hover:bg-captain-100 transition-colors"
+                      className={`w-32 h-24 rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-colors ${
+                        mode === 'dark' 
+                          ? "bg-white/5 border-white/20 hover:bg-white/10" 
+                          : "bg-captain-50 border-captain-200 hover:bg-captain-100"
+                      }`}
                     >
-                      <Camera className="w-6 h-6 text-captain-400 mb-1" />
-                      <span className="text-xs text-captain-500">Add Photo</span>
+                      <Camera className={`w-6 h-6 mb-1 ${mode === 'dark' ? "text-gray-400" : "text-captain-400"}`} />
+                      <span className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-captain-500"}`}>Add Photo</span>
                     </div>
                   )}
                   {vesselPhotoPreview && (
@@ -408,7 +415,7 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
                         setVesselPhotoBlob(null);
                         setVesselPhotoPreview(null);
                       }}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center"
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
                     >
                       <X size={14} />
                     </button>
@@ -425,14 +432,11 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
 
               {/* Vessel Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Vessel Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
+                <GlassInput
+                  label="Vessel Name"
+                  required
                   value={vesselData.name}
                   onChange={(e) => updateVesselData("name", e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                   placeholder="e.g., Sea Breeze"
                 />
               </div>
@@ -440,26 +444,20 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
               {/* Make & Model */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Make <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
+                  <GlassInput
+                    label="Make"
+                    required
                     value={vesselData.make}
                     onChange={(e) => updateVesselData("make", e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     placeholder="e.g., Boston Whaler"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Model <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
+                  <GlassInput
+                    label="Model"
+                    required
                     value={vesselData.model}
                     onChange={(e) => updateVesselData("model", e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     placeholder="e.g., Outrage 330"
                   />
                 </div>
@@ -468,60 +466,56 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
               {/* Year & Type */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Year <span className="text-red-500">*</span>
-                  </label>
-                  <input
+                  <GlassInput
+                    label="Year"
+                    required
                     type="number"
                     min="1900"
                     max={new Date().getFullYear() + 1}
                     value={vesselData.year}
                     onChange={(e) => updateVesselData("year", e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Vessel Type <span className="text-red-500">*</span>
-                  </label>
-                  <select
+                  <GlassSelect
+                    label="Vessel Type"
+                    required
                     value={vesselData.vesselType}
                     onChange={(e) => updateVesselData("vesselType", e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
-                  >
-                    <option value="">Select type...</option>
-                    {VESSEL_TYPES.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.icon} {type.label}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "", label: "Select type..." },
+                      ...VESSEL_TYPES.map((type) => ({
+                        value: type.value,
+                        label: type.label,
+                      })),
+                    ]}
+                  />
                 </div>
               </div>
 
               {/* Optional: Registration & Hull ID */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Registration # <span className="text-gray-400">(optional)</span>
-                  </label>
-                  <input
-                    type="text"
+                  <GlassInput
+                    label={
+                      <span>
+                        Registration # <span className={mode === 'dark' ? "text-gray-500" : "text-gray-400"}>(optional)</span>
+                      </span>
+                    }
                     value={vesselData.registrationNumber}
                     onChange={(e) => updateVesselData("registrationNumber", e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     placeholder="FL 1234 AB"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Hull ID (HIN) <span className="text-gray-400">(optional)</span>
-                  </label>
-                  <input
-                    type="text"
+                  <GlassInput
+                    label={
+                      <span>
+                        Hull ID (HIN) <span className={mode === 'dark' ? "text-gray-500" : "text-gray-400"}>(optional)</span>
+                      </span>
+                    }
                     value={vesselData.hullId}
                     onChange={(e) => updateVesselData("hullId", e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     placeholder="ABC12345D678"
                   />
                 </div>
@@ -532,16 +526,16 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
           {/* Step 2: Equipment */}
           {currentStep === 2 && (
             <div className="space-y-6 animate-fadeIn">
-              <p className="text-sm text-gray-500">
+              <p className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                 Add key equipment details now or skip and add later. This helps mechanics understand your boat.
               </p>
 
               {/* Engine Section */}
-              <div className="border border-gray-200 rounded-xl p-4">
+              <div className={`border rounded-xl p-4 transition-colors ${mode === 'dark' ? "border-white/10 bg-white/5" : "border-gray-200 bg-white"}`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-captain-600" />
-                    <h3 className="font-medium text-gray-900">Engine / Propulsion</h3>
+                    <Zap className={`w-5 h-5 ${mode === 'dark' ? "text-blue-400" : "text-captain-600"}`} />
+                    <h3 className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Engine / Propulsion</h3>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -552,7 +546,9 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
                     />
                     <div
                       className={`w-10 h-6 rounded-full transition-colors ${
-                        equipmentData.hasEngine ? "bg-captain-600" : "bg-gray-300"
+                        equipmentData.hasEngine 
+                          ? mode === 'dark' ? "bg-blue-500" : "bg-captain-600" 
+                          : mode === 'dark' ? "bg-white/10" : "bg-gray-300"
                       }`}
                     >
                       <div
@@ -566,37 +562,32 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
 
                 {equipmentData.hasEngine && (
                   <div className="space-y-3">
-                    <select
+                    <GlassSelect
                       value={equipmentData.engineType}
                       onChange={(e) => updateEquipmentData("engineType", e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
-                    >
-                      <option value="">Select engine type...</option>
-                      {ENGINE_TYPES.map((type) => (
-                        <option key={type} value={type}>{type}</option>
-                      ))}
-                    </select>
+                      options={[
+                        { value: "", label: "Select engine type..." },
+                        ...ENGINE_TYPES.map((type) => ({ value: type, label: type })),
+                      ]}
+                    />
                     <div className="grid grid-cols-3 gap-2">
-                      <input
-                        type="text"
+                      <GlassInput
                         value={equipmentData.engineMake}
                         onChange={(e) => updateEquipmentData("engineMake", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black text-sm focus:border-captain-500 focus:outline-none"
                         placeholder="Make (e.g., Yamaha)"
+                        className="text-sm"
                       />
-                      <input
-                        type="text"
+                      <GlassInput
                         value={equipmentData.engineModel}
                         onChange={(e) => updateEquipmentData("engineModel", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black text-sm focus:border-captain-500 focus:outline-none"
                         placeholder="Model"
+                        className="text-sm"
                       />
-                      <input
-                        type="text"
+                      <GlassInput
                         value={equipmentData.engineHorsepower}
                         onChange={(e) => updateEquipmentData("engineHorsepower", e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black text-sm focus:border-captain-500 focus:outline-none"
                         placeholder="HP"
+                        className="text-sm"
                       />
                     </div>
                   </div>
@@ -604,11 +595,11 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
               </div>
 
               {/* Batteries Section */}
-              <div className="border border-gray-200 rounded-xl p-4">
+              <div className={`border rounded-xl p-4 transition-colors ${mode === 'dark' ? "border-white/10 bg-white/5" : "border-gray-200 bg-white"}`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Battery className="w-5 h-5 text-captain-600" />
-                    <h3 className="font-medium text-gray-900">Batteries</h3>
+                    <Battery className={`w-5 h-5 ${mode === 'dark' ? "text-blue-400" : "text-captain-600"}`} />
+                    <h3 className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Batteries</h3>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -619,7 +610,9 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
                     />
                     <div
                       className={`w-10 h-6 rounded-full transition-colors ${
-                        equipmentData.hasBatteries ? "bg-captain-600" : "bg-gray-300"
+                        equipmentData.hasBatteries 
+                          ? mode === 'dark' ? "bg-blue-500" : "bg-captain-600"
+                          : mode === 'dark' ? "bg-white/10" : "bg-gray-300"
                       }`}
                     >
                       <div
@@ -634,43 +627,39 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
                 {equipmentData.hasBatteries && (
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-2">
-                      <select
+                      <GlassSelect
                         value={equipmentData.batteryType}
                         onChange={(e) => updateEquipmentData("batteryType", e.target.value)}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
-                      >
-                        <option value="">Select battery type...</option>
-                        {BATTERY_TYPES.map((type) => (
-                          <option key={type} value={type}>{type}</option>
-                        ))}
-                      </select>
-                      <input
+                        options={[
+                          { value: "", label: "Select battery type..." },
+                          ...BATTERY_TYPES.map((type) => ({ value: type, label: type })),
+                        ]}
+                      />
+                      <GlassInput
                         type="number"
                         min="1"
                         max="10"
                         value={equipmentData.batteryCount}
                         onChange={(e) => updateEquipmentData("batteryCount", e.target.value)}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                         placeholder="# of batteries"
                       />
                     </div>
-                    <input
-                      type="text"
+                    <GlassInput
                       value={equipmentData.batteryMake}
                       onChange={(e) => updateEquipmentData("batteryMake", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black text-sm focus:border-captain-500 focus:outline-none"
                       placeholder="Brand (e.g., Optima, Interstate)"
+                      className="text-sm"
                     />
                   </div>
                 )}
               </div>
 
               {/* Electronics Section */}
-              <div className="border border-gray-200 rounded-xl p-4">
+              <div className={`border rounded-xl p-4 transition-colors ${mode === 'dark' ? "border-white/10 bg-white/5" : "border-gray-200 bg-white"}`}>
                 <div className="flex items-center gap-2 mb-3">
-                  <Navigation className="w-5 h-5 text-captain-600" />
-                  <h3 className="font-medium text-gray-900">Electronics</h3>
-                  <span className="text-xs text-gray-400">(select what you have)</span>
+                  <Navigation className={`w-5 h-5 ${mode === 'dark' ? "text-blue-400" : "text-captain-600"}`} />
+                  <h3 className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Electronics</h3>
+                  <span className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-400"}`}>(select what you have)</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 mb-4">
@@ -682,8 +671,8 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
                         key={option.id}
                         className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
                           isSelected
-                            ? "bg-captain-50 border-captain-300"
-                            : "bg-white border-gray-200 hover:border-gray-300"
+                            ? mode === 'dark' ? "bg-blue-500/20 border-blue-500/50" : "bg-captain-50 border-captain-300"
+                            : mode === 'dark' ? "bg-white/5 border-white/10 hover:border-white/20" : "bg-white border-gray-200 hover:border-gray-300"
                         }`}
                       >
                         <input
@@ -694,13 +683,15 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
                         />
                         <div
                           className={`w-4 h-4 rounded border flex items-center justify-center ${
-                            isSelected ? "bg-captain-600 border-captain-600" : "border-gray-300"
+                            isSelected 
+                              ? mode === 'dark' ? "bg-blue-500 border-blue-500" : "bg-captain-600 border-captain-600"
+                              : mode === 'dark' ? "border-white/20" : "border-gray-300"
                           }`}
                         >
                           {isSelected && <Check size={12} className="text-white" />}
                         </div>
-                        <Icon size={16} className={isSelected ? "text-captain-600" : "text-gray-400"} />
-                        <span className="text-sm text-gray-700">{option.label}</span>
+                        <Icon size={16} className={isSelected ? (mode === 'dark' ? "text-blue-400" : "text-captain-600") : (mode === 'dark' ? "text-gray-400" : "text-gray-400")} />
+                        <span className={`text-sm ${mode === 'dark' ? "text-gray-200" : "text-gray-700"}`}>{option.label}</span>
                       </label>
                     );
                   })}
@@ -709,43 +700,43 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
                 {/* GPS Details */}
                 {equipmentData.selectedElectronics.includes("gps") && (
                   <div className="grid grid-cols-2 gap-2 mb-2">
-                    <input
-                      type="text"
+                    <GlassInput
                       value={equipmentData.gpsMake}
                       onChange={(e) => updateEquipmentData("gpsMake", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black text-sm focus:border-captain-500 focus:outline-none"
                       placeholder="GPS Make (e.g., Garmin)"
+                      className="text-sm"
                     />
-                    <input
-                      type="text"
+                    <GlassInput
                       value={equipmentData.gpsModel}
                       onChange={(e) => updateEquipmentData("gpsModel", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black text-sm focus:border-captain-500 focus:outline-none"
                       placeholder="GPS Model"
+                      className="text-sm"
                     />
                   </div>
                 )}
 
                 {/* VHF Details */}
                 {equipmentData.selectedElectronics.includes("vhf") && (
-                  <input
-                    type="text"
-                    value={equipmentData.vhfMake}
-                    onChange={(e) => updateEquipmentData("vhfMake", e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black text-sm focus:border-captain-500 focus:outline-none mb-2"
-                    placeholder="VHF Radio Make/Model"
-                  />
+                  <div className="mb-2">
+                    <GlassInput
+                      value={equipmentData.vhfMake}
+                      onChange={(e) => updateEquipmentData("vhfMake", e.target.value)}
+                      placeholder="VHF Radio Make/Model"
+                      className="text-sm"
+                    />
+                  </div>
                 )}
 
                 {/* Fish Finder Details */}
                 {equipmentData.selectedElectronics.includes("fishfinder") && (
-                  <input
-                    type="text"
-                    value={equipmentData.fishfinderMake}
-                    onChange={(e) => updateEquipmentData("fishfinderMake", e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-black text-sm focus:border-captain-500 focus:outline-none mb-2"
-                    placeholder="Fish Finder Make/Model"
-                  />
+                  <div className="mb-2">
+                    <GlassInput
+                      value={equipmentData.fishfinderMake}
+                      onChange={(e) => updateEquipmentData("fishfinderMake", e.target.value)}
+                      placeholder="Fish Finder Make/Model"
+                      className="text-sm"
+                    />
+                  </div>
                 )}
               </div>
             </div>
@@ -759,34 +750,37 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 px-6 py-4 flex justify-between bg-gray-50">
+        <div className={`px-6 py-4 flex justify-between flex-shrink-0 border-t ${mode === 'dark' ? "bg-gray-900/50 border-white/10" : "bg-gray-50 border-gray-200"}`}>
           {currentStep > 1 ? (
-            <button
+            <GlassButton
+              variant="secondary"
               onClick={() => setCurrentStep((prev) => (prev - 1) as Step)}
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-4 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2"
             >
               <ChevronLeft size={18} />
               Back
-            </button>
+            </GlassButton>
           ) : (
             <div />
           )}
 
           {currentStep < 2 ? (
-            <button
+            <GlassButton
+              variant="primary"
               onClick={() => setCurrentStep(2)}
               disabled={!canProceedStep1()}
-              className="flex items-center gap-2 px-6 py-2.5 bg-captain-600 text-white rounded-lg hover:bg-captain-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2"
             >
               Continue
               <ChevronRight size={18} />
-            </button>
+            </GlassButton>
           ) : (
-            <button
+            <GlassButton
+              variant="primary"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="flex items-center gap-2 px-6 py-2.5 bg-captain-600 text-white rounded-lg hover:bg-captain-700 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2"
             >
               {isSubmitting ? (
                 <>
@@ -799,10 +793,10 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
                   <Check size={18} />
                 </>
               )}
-            </button>
+            </GlassButton>
           )}
         </div>
-      </div>
+      </GlassModal>
 
       {/* Image Cropper Modal */}
       {imageToCrop && (
@@ -813,7 +807,7 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
           aspectRatio={16 / 9}
         />
       )}
-    </div>
+    </>
   );
 }
 

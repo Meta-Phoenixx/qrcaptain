@@ -8,11 +8,16 @@ export const { auth, signIn, signOut, store } = convexAuth({
         const role = (params.role as string) || "owner";
         const isMechanic = role === "mechanic";
         
+        // Parse firstName and lastName from params or name
+        const firstName = params.firstName as string || "";
+        const lastName = params.lastName as string || "";
+        
         // Base profile - email is required by Convex Auth
         const baseProfile = {
           email: params.email as string,
           name: params.name as string,
-          fullName: params.name as string,
+          firstName,
+          lastName,
           role,
           isActive: true,
         };

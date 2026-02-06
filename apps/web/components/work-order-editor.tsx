@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import { GlassCard, GlassButton, GlassBadge, GlassInput, GlassSelect, GlassModal } from "./ui/glass";
+import { useTheme } from "./providers/theme-provider";
 import { PartsEntry } from "./parts-entry";
 import { MessageCircle, Send } from "lucide-react";
 
@@ -40,6 +42,7 @@ const getStatusBadge = (status: string) => {
 const AUTOSAVE_DELAY_MS = 2000;
 
 export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab = "details" }: WorkOrderEditorProps) {
+  const { mode } = useTheme();
   const [activeTab, setActiveTab] = useState<"details" | "parts" | "photos" | "chat" | "rating">(initialTab);
   const [diagnosis, setDiagnosis] = useState("");
   const [workPerformed, setWorkPerformed] = useState("");
@@ -219,14 +222,14 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
 
   if (!workOrder) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-xl p-8">
+      <GlassModal onClose={onClose} className="max-w-2xl h-[90vh]">
+        <div className="p-8 flex items-center justify-center">
           <div className="flex items-center justify-center gap-3">
-            <div className="w-6 h-6 border-2 border-captain-600 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-gray-600">Loading work order...</span>
+            <div className={`w-6 h-6 border-2 rounded-full animate-spin ${mode === 'dark' ? "border-white/10 border-t-blue-500" : "border-captain-600 border-t-transparent"}`}></div>
+            <span className={mode === 'dark' ? "text-gray-300" : "text-gray-600"}>Loading work order...</span>
           </div>
         </div>
-      </div>
+      </GlassModal>
     );
   }
 
@@ -324,14 +327,13 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
   }, {} as Record<string, typeof workOrder.photos>);
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+    <GlassModal onClose={onClose} className="max-w-4xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex-shrink-0 border-b border-gray-200 px-6 py-4">
+        <div className={`flex-shrink-0 border-b px-6 py-4 ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}>
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-3">
-                <h2 className="text-xl font-semibold text-gray-900">Work Order</h2>
+                <h2 className={`text-xl font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Work Order</h2>
                 {(() => {
                   const badge = getStatusBadge(workOrder.status);
                   return (
@@ -342,10 +344,10 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                 })()}
                 {/* Autosave indicator in header */}
                 {workOrder.status === "in_progress" && (
-                  <span className="flex items-center gap-1.5 text-xs text-gray-400">
+                  <span className={`flex items-center gap-1.5 text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-400"}`}>
                     {saveStatus === "saving" && (
                       <>
-                        <div className="w-2.5 h-2.5 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                        <div className={`w-2.5 h-2.5 border border-t-transparent rounded-full animate-spin ${mode === 'dark' ? "border-gray-400" : "border-gray-400"}`}></div>
                         <span>Saving...</span>
                       </>
                     )}
@@ -368,13 +370,13 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-500 mt-0.5">
+              <p className={`text-sm mt-0.5 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                 {workOrder.vessel.name} • {workOrder.vessel.make} {workOrder.vessel.model}
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+              className={`p-2 transition-colors ${mode === 'dark' ? "text-gray-400 hover:text-white hover:bg-white/10 rounded-lg" : "text-gray-400 hover:text-gray-600"}`}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -394,8 +396,8 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`pb-2 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === tab.id
-                    ? "border-captain-600 text-captain-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
+                    ? mode === 'dark' ? "border-blue-400 text-blue-400" : "border-captain-600 text-captain-600"
+                    : mode === 'dark' ? "border-transparent text-gray-400 hover:text-gray-200" : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
               >
                 {tab.label}
@@ -406,8 +408,8 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
               onClick={() => setActiveTab("chat")}
               className={`pb-2 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
                 activeTab === "chat"
-                  ? "border-captain-600 text-captain-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  ? mode === 'dark' ? "border-blue-400 text-blue-400" : "border-captain-600 text-captain-600"
+                  : mode === 'dark' ? "border-transparent text-gray-400 hover:text-gray-200" : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
               <MessageCircle size={16} />
@@ -416,7 +418,7 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                 <span className={`min-w-[20px] h-5 px-1.5 text-xs font-medium rounded-full flex items-center justify-center ${
                   unreadCount > 0 
                     ? "bg-red-500 text-white" 
-                    : "bg-gray-200 text-gray-500"
+                    : mode === 'dark' ? "bg-white/10 text-gray-400" : "bg-gray-200 text-gray-500"
                 }`}>
                   {unreadCount}
                 </span>
@@ -429,8 +431,8 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                 onClick={() => setActiveTab("rating")}
                 className={`pb-2 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
                   activeTab === "rating"
-                    ? "border-captain-600 text-captain-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
+                    ? mode === 'dark' ? "border-blue-400 text-blue-400" : "border-captain-600 text-captain-600"
+                    : mode === 'dark' ? "border-transparent text-gray-400 hover:text-gray-200" : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
               >
                 {canRateResult.ratingType === "mechanic" ? (
@@ -455,23 +457,23 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
             <div className="space-y-6">
               {/* Description (read-only) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                   Work Description
                 </label>
-                <div className="p-3 bg-gray-50 rounded-lg text-gray-900">
+                <div className={`p-3 rounded-lg ${mode === 'dark' ? "bg-white/5 text-gray-200" : "bg-gray-50 text-gray-900"}`}>
                   {workOrder.description}
                 </div>
               </div>
 
               {/* Estimated Completion Date - Editable for mechanics on in_progress, read-only otherwise */}
               {currentUser?.role === "mechanic" && workOrder.status === "in_progress" ? (
-                <div className="p-4 bg-captain-50 rounded-lg border border-captain-200">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className={`p-4 rounded-lg border ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-captain-50 border-captain-200"}`}>
+                  <label className={`block text-sm font-medium mb-2 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                     Estimated Completion Date
                   </label>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-captain-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-captain-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${mode === 'dark' ? "bg-captain-500/20" : "bg-captain-100"}`}>
+                      <svg className={`w-5 h-5 ${mode === 'dark' ? "text-captain-400" : "text-captain-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
@@ -480,22 +482,22 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                       value={estimatedCompletionDate}
                       onChange={(e) => setEstimatedCompletionDate(e.target.value)}
                       min={new Date().toISOString().split('T')[0]}
-                      className="flex-1 px-3 py-2 border border-captain-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black bg-white"
+                      className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${mode === 'dark' ? "bg-black/20 border-white/10 text-white" : "border-captain-300 text-black bg-white"}`}
                     />
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">Update when you expect to complete the work</p>
+                  <p className={`text-xs mt-2 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>Update when you expect to complete the work</p>
                 </div>
               ) : workOrder.estimatedCompletionDate ? (
-                <div className="p-4 bg-captain-50 rounded-lg border border-captain-200">
+                <div className={`p-4 rounded-lg border ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-captain-50 border-captain-200"}`}>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-captain-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-captain-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${mode === 'dark' ? "bg-captain-500/20" : "bg-captain-100"}`}>
+                      <svg className={`w-5 h-5 ${mode === 'dark' ? "text-captain-400" : "text-captain-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Estimated Completion Date</p>
-                      <p className="font-semibold text-gray-900">
+                      <p className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-600"}`}>Estimated Completion Date</p>
+                      <p className={`font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                         {new Date(workOrder.estimatedCompletionDate).toLocaleDateString(undefined, {
                           weekday: 'long',
                           year: 'numeric',
@@ -510,7 +512,7 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
 
               {/* Diagnosis */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                   Diagnosis
                 </label>
                 <textarea
@@ -518,29 +520,29 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                   onChange={(e) => setDiagnosis(e.target.value)}
                   placeholder="Describe what you found during inspection..."
                   rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black placeholder-gray-400 resize-none"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 resize-none ${mode === 'dark' ? "bg-black/20 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-black placeholder-gray-400"}`}
                 />
               </div>
 
               {/* Work Performed */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                   Work Performed <span className="text-red-500">*</span>
-                  <span className="text-gray-400 font-normal ml-1">(required to complete)</span>
+                  <span className={`font-normal ml-1 ${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`}>(required to complete)</span>
                 </label>
                 <textarea
                   value={workPerformed}
                   onChange={(e) => setWorkPerformed(e.target.value)}
                   placeholder="Describe the work you performed..."
                   rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black placeholder-gray-400 resize-none"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 resize-none ${mode === 'dark' ? "bg-black/20 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-black placeholder-gray-400"}`}
                 />
               </div>
 
               {/* Labor */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className={`block text-sm font-medium mb-1.5 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                     Labor Hours
                   </label>
                   <input
@@ -550,11 +552,11 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                     value={laborHours}
                     onChange={(e) => setLaborHours(e.target.value)}
                     placeholder="0"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black placeholder-gray-400"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${mode === 'dark' ? "bg-black/20 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-black placeholder-gray-400"}`}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className={`block text-sm font-medium mb-1.5 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                     Hourly Rate ($)
                   </label>
                   <input
@@ -564,26 +566,26 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                     value={laborRate}
                     onChange={(e) => setLaborRate(e.target.value)}
                     placeholder="0.00"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black placeholder-gray-400"
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${mode === 'dark' ? "bg-black/20 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-black placeholder-gray-400"}`}
                   />
                 </div>
               </div>
 
               {/* Cost Summary */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-3">Cost Summary</h4>
+              <div className={`rounded-lg p-4 ${mode === 'dark' ? "bg-white/5" : "bg-gray-50"}`}>
+                <h4 className={`font-medium mb-3 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Cost Summary</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Parts Total</span>
-                    <span className="font-medium text-gray-900">${partsTotal.toFixed(2)}</span>
+                    <span className={mode === 'dark' ? "text-gray-400" : "text-gray-600"}>Parts Total</span>
+                    <span className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>${partsTotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Labor ({laborHours || 0} hrs × ${laborRate || 0}/hr)</span>
-                    <span className="font-medium text-gray-900">${laborTotal.toFixed(2)}</span>
+                    <span className={mode === 'dark' ? "text-gray-400" : "text-gray-600"}>Labor ({laborHours || 0} hrs × ${laborRate || 0}/hr)</span>
+                    <span className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>${laborTotal.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between pt-2 border-t border-gray-200">
-                    <span className="font-semibold text-gray-900">Grand Total</span>
-                    <span className="font-bold text-lg text-captain-600">${grandTotal.toFixed(2)}</span>
+                  <div className={`flex justify-between pt-2 border-t ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}>
+                    <span className={`font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Grand Total</span>
+                    <span className={`font-bold text-lg ${mode === 'dark' ? "text-captain-400" : "text-captain-600"}`}>${grandTotal.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -592,8 +594,8 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
               <div className="flex items-center justify-center gap-2 py-2 text-sm">
                 {saveStatus === "saving" && (
                   <>
-                    <div className="w-3.5 h-3.5 border-2 border-captain-500 border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-gray-500">Saving changes...</span>
+                    <div className={`w-3.5 h-3.5 border-2 border-t-transparent rounded-full animate-spin ${mode === 'dark' ? "border-captain-400" : "border-captain-500"}`}></div>
+                    <span className={mode === 'dark' ? "text-gray-400" : "text-gray-500"}>Saving changes...</span>
                   </>
                 )}
                 {saveStatus === "saved" && (
@@ -613,7 +615,7 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                   </>
                 )}
                 {saveStatus === "idle" && hasUnsavedChanges && (
-                  <span className="text-gray-400 text-xs">Changes will be saved automatically</span>
+                  <span className={`text-xs ${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`}>Changes will be saved automatically</span>
                 )}
               </div>
             </div>
@@ -631,8 +633,8 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
           {activeTab === "photos" && (
             <div className="space-y-6">
               {/* Upload Section */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-3">Add Photo</h4>
+              <div className={`rounded-lg p-4 ${mode === 'dark' ? "bg-white/5" : "bg-gray-50"}`}>
+                <h4 className={`font-medium mb-3 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Add Photo</h4>
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   {(["before", "during", "after"] as PhotoType[]).map((type) => (
                     <button
@@ -641,7 +643,9 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                       className={`py-2 px-4 rounded-lg border font-medium text-sm transition-colors ${
                         photoType === type
                           ? "border-captain-600 bg-captain-50 text-captain-700"
-                          : "border-gray-300 text-gray-600 hover:bg-gray-100"
+                          : mode === 'dark'
+                            ? "border-gray-700 text-gray-400 hover:bg-white/10 hover:text-white"
+                            : "border-gray-300 text-gray-600 hover:bg-gray-100"
                       }`}
                     >
                       {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -653,7 +657,11 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                   value={photoCaption}
                   onChange={(e) => setPhotoCaption(e.target.value)}
                   placeholder="Add a caption (optional)..."
-                  className="w-full px-4 py-2 mb-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black placeholder-gray-400"
+                  className={`w-full px-4 py-2 mb-3 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${
+                    mode === 'dark'
+                      ? "bg-black/20 border-white/10 text-white placeholder-gray-500"
+                      : "border-gray-300 text-black placeholder-gray-400"
+                  }`}
                 />
                 <div className="flex gap-3">
                   <button
@@ -690,7 +698,7 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
               {(["before", "during", "after"] as PhotoType[]).map((type) => (
                 photosByType[type] && photosByType[type].length > 0 && (
                   <div key={type}>
-                    <h4 className="font-medium text-gray-900 mb-3 capitalize">{type} Photos</h4>
+                    <h4 className={`font-medium mb-3 capitalize ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{type} Photos</h4>
                     <div className="grid grid-cols-3 gap-3">
                       {photosByType[type].map((photo) => (
                         <div key={photo._id} className="relative group">
@@ -720,12 +728,12 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
               ))}
 
               {workOrder.photos.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className={`text-center py-8 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
+                  <svg className={`w-12 h-12 mx-auto mb-3 ${mode === 'dark' ? "text-gray-600" : "text-gray-300"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   <p>No photos added yet</p>
-                  <p className="text-sm mt-1">Upload before, during, and after photos to document your work</p>
+                  <p className={`text-sm mt-1 ${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`}>Upload before, during, and after photos to document your work</p>
                 </div>
               )}
             </div>
@@ -747,18 +755,22 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                           className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
                             msg.isCurrentUser
                               ? "bg-captain-600 text-white rounded-br-md"
-                              : "bg-gray-100 text-gray-900 rounded-bl-md"
+                              : mode === 'dark'
+                                ? "bg-white/10 text-white rounded-bl-md"
+                                : "bg-gray-100 text-gray-900 rounded-bl-md"
                           }`}
                         >
                           {!msg.isCurrentUser && (
-                            <div className="text-xs font-medium text-captain-600 mb-1">
+                            <div className={`text-xs font-medium mb-1 ${mode === 'dark' ? "text-blue-400" : "text-captain-600"}`}>
                               {msg.senderName}
                             </div>
                           )}
                           <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                           <div
                             className={`text-[10px] mt-1 ${
-                              msg.isCurrentUser ? "text-captain-200" : "text-gray-400"
+                              msg.isCurrentUser 
+                                ? "text-captain-200" 
+                                : mode === 'dark' ? "text-gray-400" : "text-gray-400"
                             }`}
                           >
                             {formatTime(msg.createdAt)}
@@ -770,9 +782,9 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                   </>
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-center">
-                    <MessageCircle size={40} className="text-gray-300 mb-3" />
-                    <p className="text-gray-500 font-medium">No messages yet</p>
-                    <p className="text-sm text-gray-400 mt-1">
+                    <MessageCircle size={40} className={`mb-3 ${mode === 'dark' ? "text-gray-600" : "text-gray-300"}`} />
+                    <p className={`font-medium ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>No messages yet</p>
+                    <p className={`text-sm mt-1 ${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`}>
                       Start a conversation with {workOrder.vessel.ownerName?.split(' ')[0] || "the owner"} about this work order.
                     </p>
                   </div>
@@ -780,7 +792,7 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
               </div>
 
               {/* Message Input */}
-              <div className="border-t border-gray-200 pt-4 flex-shrink-0">
+              <div className={`border-t pt-4 flex-shrink-0 ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}>
                 <div className="flex items-end gap-2">
                   <textarea
                     value={messageInput}
@@ -788,7 +800,11 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                     onKeyPress={handleKeyPress}
                     placeholder="Type a message..."
                     rows={1}
-                    className="flex-1 resize-none rounded-xl border border-gray-300 px-4 py-2.5 text-sm text-gray-900 focus:border-captain-500 focus:ring-2 focus:ring-captain-100 outline-none"
+                    className={`flex-1 resize-none rounded-xl border px-4 py-2.5 text-sm focus:border-captain-500 focus:ring-2 focus:ring-captain-100 outline-none ${
+                      mode === 'dark'
+                        ? "bg-black/20 border-white/10 text-white placeholder-gray-500"
+                        : "border-gray-300 text-gray-900"
+                    }`}
                     style={{ minHeight: "42px", maxHeight: "120px" }}
                   />
                   <button
@@ -806,13 +822,13 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
           {/* Rating Tab */}
           {activeTab === "rating" && canRateResult?.canRate && (
             <div className="space-y-6">
-              <div className="text-center pb-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">
+              <div className={`text-center pb-4 border-b ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}>
+                <h3 className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                   {canRateResult.ratingType === "mechanic" 
                     ? "Rate the Mechanic" 
                     : "Rate the Owner"}
                 </h3>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className={`text-sm mt-1 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                   {canRateResult.ratingType === "mechanic"
                     ? "Your feedback helps other boat owners make informed decisions"
                     : "Your rating helps build trust in the QR Captain community"}
@@ -830,11 +846,11 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                       { key: "professionalism", label: "Professionalism", description: "Were they courteous and respectful?" },
                       { key: "value", label: "Value for Money", description: "Was the pricing fair for the work done?" },
                     ].map((criteria) => (
-                      <div key={criteria.key} className="p-4 bg-gray-50 rounded-lg">
+                      <div key={criteria.key} className={`p-4 rounded-lg ${mode === 'dark' ? "bg-white/5" : "bg-gray-50"}`}>
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <p className="font-medium text-gray-900">{criteria.label}</p>
-                            <p className="text-xs text-gray-500">{criteria.description}</p>
+                            <p className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{criteria.label}</p>
+                            <p className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>{criteria.description}</p>
                           </div>
                           <div className="flex gap-1">
                             {[1, 2, 3, 4, 5].map((value) => (
@@ -866,11 +882,11 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                       { key: "payment", label: "Payment", description: "Was payment prompt and hassle-free?" },
                       { key: "respect", label: "Respectfulness", description: "Were they courteous and professional?" },
                     ].map((criteria) => (
-                      <div key={criteria.key} className="p-4 bg-gray-50 rounded-lg">
+                      <div key={criteria.key} className={`p-4 rounded-lg ${mode === 'dark' ? "bg-white/5" : "bg-gray-50"}`}>
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <p className="font-medium text-gray-900">{criteria.label}</p>
-                            <p className="text-xs text-gray-500">{criteria.description}</p>
+                            <p className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{criteria.label}</p>
+                            <p className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>{criteria.description}</p>
                           </div>
                           <div className="flex gap-1">
                             {[1, 2, 3, 4, 5].map((value) => (
@@ -898,7 +914,7 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
 
               {/* Written Review */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={`block text-sm font-medium mb-1.5 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                   Written Review (optional)
                 </label>
                 <textarea
@@ -908,7 +924,7 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                     ? "Share details about your experience with this mechanic..."
                     : "Share details about your experience working with this owner..."}
                   rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black placeholder-gray-400 resize-none"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 resize-none ${mode === 'dark' ? "bg-black/20 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-black placeholder-gray-400"}`}
                 />
               </div>
 
@@ -967,18 +983,26 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
 
         {/* Footer Actions - Only show for in_progress orders and for mechanics */}
         {workOrder.status === "in_progress" && currentUser?.role === "mechanic" && (
-          <div className="flex-shrink-0 border-t border-gray-200 px-6 py-4">
+          <div className={`flex-shrink-0 border-t px-6 py-4 ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowCancelConfirm(true)}
-                className="px-4 py-2.5 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-colors font-medium"
+                className={`px-4 py-2.5 border rounded-lg transition-colors font-medium ${
+                  mode === 'dark'
+                    ? "border-red-500/30 text-red-400 hover:bg-red-500/10"
+                    : "border-red-300 text-red-600 hover:bg-red-50"
+                }`}
               >
                 Cancel Order
               </button>
               <div className="flex-1"></div>
               <button
                 onClick={onClose}
-                className="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                className={`px-4 py-2.5 border rounded-lg transition-colors font-medium ${
+                  mode === 'dark'
+                    ? "border-white/10 text-gray-300 hover:bg-white/5"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
               >
                 Close
               </button>
@@ -997,11 +1021,15 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
 
         {/* Footer for completed/other status - just a close button */}
         {(workOrder.status !== "in_progress" || currentUser?.role !== "mechanic") && (
-          <div className="flex-shrink-0 border-t border-gray-200 px-6 py-4">
+          <div className={`flex-shrink-0 border-t px-6 py-4 ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}>
             <div className="flex justify-end">
               <button
                 onClick={onClose}
-                className="px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                className={`px-4 py-2.5 border rounded-lg transition-colors font-medium ${
+                  mode === 'dark'
+                    ? "border-white/10 text-gray-300 hover:bg-white/5"
+                    : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
               >
                 Close
               </button>
@@ -1011,21 +1039,25 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
 
         {/* Complete Confirmation Modal */}
         {showCompleteConfirm && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-xl">
-            <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Complete Work Order?</h3>
-              <p className="text-gray-600 mb-4">
+          <div className={`absolute inset-0 flex items-center justify-center rounded-xl z-50 ${mode === 'dark' ? "bg-black/70 backdrop-blur-sm" : "bg-black/50 backdrop-blur-sm"}`}>
+            <div className={`rounded-lg p-6 max-w-md mx-4 border shadow-xl ${mode === 'dark' ? "bg-[#1A1A23] border-white/10 text-white" : "bg-white border-gray-200 text-gray-900"}`}>
+              <h3 className={`text-lg font-semibold mb-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Complete Work Order?</h3>
+              <p className={`mb-4 ${mode === 'dark' ? "text-gray-300" : "text-gray-600"}`}>
                 This will mark the work order as completed and notify the vessel owner. 
                 Make sure you've documented all work performed and added any parts used.
               </p>
-              <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                <div className="text-sm text-gray-600">Total Cost</div>
-                <div className="text-2xl font-bold text-captain-600">${grandTotal.toFixed(2)}</div>
+              <div className={`rounded-lg p-3 mb-4 ${mode === 'dark' ? "bg-white/5" : "bg-gray-50"}`}>
+                <div className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-600"}`}>Total Cost</div>
+                <div className={`text-2xl font-bold ${mode === 'dark' ? "text-captain-400" : "text-captain-600"}`}>${grandTotal.toFixed(2)}</div>
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowCompleteConfirm(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  className={`flex-1 px-4 py-2 border rounded-lg transition-colors font-medium ${
+                    mode === 'dark'
+                      ? "border-white/10 text-gray-300 hover:bg-white/5"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }`}
                 >
                   Cancel
                 </button>
@@ -1050,16 +1082,20 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
 
         {/* Cancel Confirmation Modal */}
         {showCancelConfirm && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-xl">
-            <div className="bg-white rounded-lg p-6 max-w-md mx-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Cancel Work Order?</h3>
-              <p className="text-gray-600 mb-4">
+          <div className={`absolute inset-0 flex items-center justify-center rounded-xl z-50 ${mode === 'dark' ? "bg-black/70 backdrop-blur-sm" : "bg-black/50 backdrop-blur-sm"}`}>
+            <div className={`rounded-lg p-6 max-w-md mx-4 border shadow-xl ${mode === 'dark' ? "bg-[#1A1A23] border-white/10 text-white" : "bg-white border-gray-200 text-gray-900"}`}>
+              <h3 className={`text-lg font-semibold mb-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Cancel Work Order?</h3>
+              <p className={`mb-4 ${mode === 'dark' ? "text-gray-300" : "text-gray-600"}`}>
                 This will cancel the work order. This action cannot be undone.
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowCancelConfirm(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  className={`flex-1 px-4 py-2 border rounded-lg transition-colors font-medium ${
+                    mode === 'dark'
+                      ? "border-white/10 text-gray-300 hover:bg-white/5"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }`}
                 >
                   Keep Working
                 </button>
@@ -1081,7 +1117,6 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
             </div>
           </div>
         )}
-      </div>
-    </div>
+      </GlassModal>
   );
 }

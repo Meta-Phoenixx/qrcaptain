@@ -3,6 +3,7 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import { useTheme } from "./providers/theme-provider";
 
 // Category icons
 const CATEGORY_ICONS: Record<string, JSX.Element> = {
@@ -66,13 +67,14 @@ export function ServiceReminders({
   daysAhead = 30,
   onRequestService 
 }: ServiceRemindersProps) {
+  const { mode } = useTheme();
   const upcomingItems = useQuery(api.vesselEquipment.getUpcomingServiceItems, { daysAhead });
 
   if (!upcomingItems) {
     return (
       <div className="animate-pulse space-y-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-16 bg-gray-100 rounded-lg" />
+          <div key={i} className={`h-16 rounded-lg ${mode === 'dark' ? "bg-white/5" : "bg-gray-100"}`} />
         ))}
       </div>
     );
@@ -81,13 +83,13 @@ export function ServiceReminders({
   if (upcomingItems.length === 0) {
     return (
       <div className="text-center py-8">
-        <div className="w-16 h-16 mx-auto mb-3 bg-green-100 rounded-full flex items-center justify-center">
-          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className={`w-16 h-16 mx-auto mb-3 rounded-full flex items-center justify-center ${mode === 'dark' ? "bg-green-500/20" : "bg-green-100"}`}>
+          <svg className={`w-8 h-8 ${mode === 'dark' ? "text-green-400" : "text-green-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <p className="text-sm font-medium text-gray-900">All caught up!</p>
-        <p className="text-xs text-gray-500 mt-1">No maintenance due in the next {daysAhead} days</p>
+        <p className={`text-sm font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>All caught up!</p>
+        <p className={`text-xs mt-1 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>No maintenance due in the next {daysAhead} days</p>
       </div>
     );
   }

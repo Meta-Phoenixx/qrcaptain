@@ -23,7 +23,7 @@ export default function Dashboard() {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.greeting}>Welcome back,</Text>
-        <Text style={styles.name}>{user.fullName}</Text>
+        <Text style={styles.name}>{user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.name || "User"}</Text>
         <View style={styles.roleBadge}>
           <Text style={styles.roleText}>
             {user.role === "owner" ? "🚤 Boat Owner" : "🔧 Mechanic"}

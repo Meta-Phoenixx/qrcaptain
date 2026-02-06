@@ -11,16 +11,27 @@ import { Dashboard } from "@/components/dashboard";
 function AuthenticatedContent() {
   const router = useRouter();
   const user = useQuery(api.users.currentUser);
-  const [fromHome, setFromHome] = useState(false);
 
-  // Check if user came from /home (indicated by URL param or referrer)
-  useEffect(() => {
+  // Read URL params synchronously in the state initializer to avoid race conditions.
+  // If we used useEffect to set this, the redirect effect could fire first
+  // (seeing fromHome=false) and push back to /home before the state update.
+  const [fromHome] = useState(() => {
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
-      const fromHomeParam = urlParams.get("dashboard");
-      setFromHome(fromHomeParam === "true" || document.referrer.includes("/home"));
+      return urlParams.get("dashboard") === "true" || document.referrer.includes("/home");
     }
-  }, []);
+    return false;
+  });
+
+  // If user hasn't explicitly chosen to view dashboard, redirect to home
+  useEffect(() => {
+    if (user && !fromHome) {
+      const preferDashboard = localStorage.getItem("qr-captain-prefer-dashboard");
+      if (!preferDashboard) {
+        router.push("/home");
+      }
+    }
+  }, [user, fromHome, router]);
 
   // User data still loading
   if (user === undefined) {
@@ -31,28 +42,15 @@ function AuthenticatedContent() {
     );
   }
 
-  // If user hasn't explicitly chosen to view dashboard, redirect to home
-  // Check if they're coming from the home page (they clicked "View Dashboard")
-  // or if they have the dashboard param
-  useEffect(() => {
-    if (user && !fromHome) {
-      // Check localStorage to see if user prefers to go directly to dashboard
-      const preferDashboard = localStorage.getItem("qr-captain-prefer-dashboard");
-      if (!preferDashboard) {
-        router.push("/home");
-      }
-    }
-  }, [user, fromHome, router]);
-
   return <Dashboard />;
 }
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-captain-50 to-captain-100">
+    <main className="min-h-screen">
       <AuthLoading>
         <div className="flex min-h-screen items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-captain-200 border-t-captain-600"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
         </div>
       </AuthLoading>
       
@@ -60,10 +58,11 @@ export default function Home() {
         <div className="flex min-h-screen items-center justify-center p-4">
           <div className="w-full max-w-md">
             <div className="mb-8 text-center">
-              <h1 className="text-4xl font-bold text-captain-900">
-                ⚓ QR Captain
+              <h1 className="text-4xl font-bold font-heading mb-2 flex items-center justify-center gap-2">
+                <img src="/qr-captain-logo.png" alt="QR Captain" className="h-10 w-10 brightness-0" />
+                QR Captain
               </h1>
-              <p className="mt-2 text-captain-600">
+              <p className="text-lg opacity-80">
                 Complete vessel maintenance tracking
               </p>
             </div>

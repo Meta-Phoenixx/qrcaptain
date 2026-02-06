@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import { GlassCard, GlassButton, GlassBadge, GlassInput, GlassSelect, GlassModal } from "./ui/glass";
+import { useTheme } from "./providers/theme-provider";
+import { Anchor } from "lucide-react";
 
 interface MechanicQuoteFormProps {
   workOrderId: Id<"workOrders">;
@@ -12,6 +15,7 @@ interface MechanicQuoteFormProps {
 }
 
 export function MechanicQuoteForm({ workOrderId, onClose, onSuccess }: MechanicQuoteFormProps) {
+  const { mode } = useTheme();
   const [laborHours, setLaborHours] = useState("");
   const [laborRate, setLaborRate] = useState("");
   const [partsEstimate, setPartsEstimate] = useState("");
@@ -110,43 +114,43 @@ export function MechanicQuoteForm({ workOrderId, onClose, onSuccess }: MechanicQ
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+      <GlassModal onClose={onClose} className="max-w-md">
+        <div className="p-6">
           <div className="animate-pulse space-y-4">
-            <div className="h-6 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            <div className="h-32 bg-gray-200 rounded"></div>
+            <div className={`h-6 rounded w-3/4 ${mode === 'dark' ? "bg-white/10" : "bg-gray-200"}`}></div>
+            <div className={`h-4 rounded w-1/2 ${mode === 'dark' ? "bg-white/10" : "bg-gray-200"}`}></div>
+            <div className={`h-32 rounded ${mode === 'dark' ? "bg-white/10" : "bg-gray-200"}`}></div>
           </div>
         </div>
-      </div>
+      </GlassModal>
     );
   }
 
   if (!workOrder) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 text-center">
-          <p className="text-gray-600">Work order not found</p>
-          <button
+      <GlassModal onClose={onClose} className="max-w-md">
+        <div className="p-6 text-center">
+          <p className={mode === 'dark' ? "text-gray-300" : "text-gray-600"}>Work order not found</p>
+          <GlassButton
             onClick={onClose}
-            className="mt-4 px-4 py-2 bg-captain-600 text-white rounded-lg"
+            variant="primary"
+            className="mt-4 w-full justify-center"
           >
             Close
-          </button>
+          </GlassButton>
         </div>
-      </div>
+      </GlassModal>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+    <GlassModal onClose={onClose} className="max-w-lg max-h-[90vh]">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-xl">
+        <div className={`sticky top-0 border-b px-6 py-4 rounded-t-xl z-10 ${mode === 'dark' ? "bg-[#1A1A23] border-white/10" : "bg-white border-gray-200"}`}>
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Respond to Request</h2>
-              <p className="text-sm text-gray-500 mt-0.5">{workOrder.vessel?.name}</p>
+              <h2 className={`text-xl font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Respond to Request</h2>
+              <p className={`text-sm mt-0.5 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>{workOrder.vessel?.name}</p>
             </div>
             <button
               onClick={onClose}
@@ -189,7 +193,7 @@ export function MechanicQuoteForm({ workOrderId, onClose, onSuccess }: MechanicQ
 
           {/* Vessel Info */}
           <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
-            <span className="text-2xl">⚓</span>
+            <Anchor className="w-6 h-6 text-captain-600" />
             <div>
               <p className="font-medium text-gray-900">{workOrder.vessel?.name}</p>
               <p className="text-sm text-gray-500">
@@ -377,7 +381,6 @@ export function MechanicQuoteForm({ workOrderId, onClose, onSuccess }: MechanicQ
             </form>
           )}
         </div>
-      </div>
-    </div>
+    </GlassModal>
   );
 }

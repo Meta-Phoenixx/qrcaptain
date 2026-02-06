@@ -1,9 +1,20 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Ubuntu, Inter } from "next/font/google";
 import "./globals.css";
 import { ConvexClientProvider } from "./providers";
+import { ThemeWrapper } from "../components/ui/theme-wrapper";
 
-const inter = Inter({ subsets: ["latin"] });
+const ubuntu = Ubuntu({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-ubuntu",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   title: "QR Captain - Vessel Maintenance Tracking",
@@ -18,8 +29,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <ConvexClientProvider>{children}</ConvexClientProvider>
+      <body className={`${ubuntu.variable} ${inter.variable} antialiased`}>
+        <ConvexClientProvider>
+          <ThemeWrapper>
+            {children}
+          </ThemeWrapper>
+        </ConvexClientProvider>
       </body>
     </html>
   );

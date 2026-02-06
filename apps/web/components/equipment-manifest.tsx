@@ -4,6 +4,8 @@ import React, { useState, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id, Doc } from "../../../convex/_generated/dataModel";
+import { GlassModal, GlassButton, GlassInput, GlassSelect } from "./ui/glass";
+import { useTheme } from "./providers/theme-provider";
 import {
   Settings,
   Zap,
@@ -162,6 +164,7 @@ interface EquipmentManifestProps {
 }
 
 export function EquipmentManifest({ vesselId }: EquipmentManifestProps) {
+  const { mode } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState<CategoryDefinition | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
@@ -209,10 +212,14 @@ export function EquipmentManifest({ vesselId }: EquipmentManifestProps) {
     <div className="mt-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-gray-900">Equipment Manifest</h3>
+        <h3 className={`font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Equipment Manifest</h3>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-captain-600 bg-captain-50 rounded-lg hover:bg-captain-100 transition-colors"
+          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+            mode === 'dark' 
+              ? "text-blue-400 bg-blue-500/10 hover:bg-blue-500/20" 
+              : "text-captain-600 bg-captain-50 hover:bg-captain-100"
+          }`}
         >
           <Plus size={16} />
           Add Item
@@ -221,16 +228,16 @@ export function EquipmentManifest({ vesselId }: EquipmentManifestProps) {
 
       {/* Search bar */}
       <div className="relative mb-4">
-        <input
+        <GlassInput
           type="text"
           placeholder="Search equipment..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 transition-all"
+          className="pl-10"
         />
         <Search
           size={16}
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+          className={`absolute left-3.5 top-1/2 -translate-y-1/2 ${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`}
         />
       </div>
 
@@ -248,12 +255,18 @@ export function EquipmentManifest({ vesselId }: EquipmentManifestProps) {
                 onClick={() => setSelectedCategory(category)}
                 onMouseEnter={() => setHoveredCard(category.id)}
                 onMouseLeave={() => setHoveredCard(null)}
-                className="relative bg-white border rounded-xl p-4 text-center transition-all duration-200 overflow-hidden group"
+                className={`relative border rounded-xl p-4 text-center transition-all duration-200 overflow-hidden group ${
+                  mode === 'dark'
+                    ? "bg-white/5 border-white/10"
+                    : "bg-white border-gray-200"
+                }`}
                 style={{
-                  borderColor: isHovered ? COLORS.blueHighlight : COLORS.border,
+                  borderColor: isHovered 
+                    ? (mode === 'dark' ? COLORS.blueHighlight : COLORS.blueHighlight) 
+                    : (mode === 'dark' ? "rgba(255,255,255,0.1)" : COLORS.border),
                   transform: isHovered ? "translateY(-2px)" : "translateY(0)",
                   boxShadow: isHovered
-                    ? `0 4px 12px ${COLORS.blueHighlightDim}`
+                    ? `0 4px 12px ${mode === 'dark' ? "rgba(74, 158, 255, 0.2)" : COLORS.blueHighlightDim}`
                     : "0 1px 2px rgba(0, 0, 0, 0.05)",
                 }}
               >
@@ -261,7 +274,7 @@ export function EquipmentManifest({ vesselId }: EquipmentManifestProps) {
                 <div
                   className="absolute top-0 left-0 right-0 h-0.5 transition-colors duration-200"
                   style={{
-                    backgroundColor: isHovered ? COLORS.blueHighlight : COLORS.border,
+                    backgroundColor: isHovered ? COLORS.blueHighlight : (mode === 'dark' ? "transparent" : COLORS.border),
                   }}
                 />
 
@@ -270,15 +283,17 @@ export function EquipmentManifest({ vesselId }: EquipmentManifestProps) {
                     size={28}
                     strokeWidth={1.5}
                     style={{
-                      color: isHovered ? COLORS.blueHighlight : COLORS.iconDefault,
+                      color: isHovered 
+                        ? COLORS.blueHighlight 
+                        : (mode === 'dark' ? "#9CA3AF" : COLORS.iconDefault),
                       transition: "color 0.2s",
                     }}
                   />
                 </div>
-                <div className="text-sm font-semibold text-gray-900 mb-1">
+                <div className={`text-sm font-semibold mb-1 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                   {category.name}
                 </div>
-                <div className="text-xs text-gray-400">
+                <div className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-400"}`}>
                   {category.itemCount} {category.itemCount === 1 ? "item" : "items"}
                 </div>
               </button>
@@ -291,7 +306,11 @@ export function EquipmentManifest({ vesselId }: EquipmentManifestProps) {
           {/* Back button */}
           <button
             onClick={() => setSelectedCategory(null)}
-            className="flex items-center gap-2 px-3 py-1.5 mb-4 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:border-captain-300 hover:text-captain-600 transition-all"
+            className={`flex items-center gap-2 px-3 py-1.5 mb-4 text-sm font-medium border rounded-lg transition-all ${
+              mode === 'dark'
+                ? "text-gray-300 bg-white/5 border-white/10 hover:border-blue-500/50 hover:text-blue-400"
+                : "text-gray-600 bg-white border-gray-200 hover:border-captain-300 hover:text-captain-600"
+            }`}
           >
             <ArrowLeft size={16} />
             Back
@@ -301,8 +320,8 @@ export function EquipmentManifest({ vesselId }: EquipmentManifestProps) {
           <div
             className="rounded-xl p-5 mb-4 relative overflow-hidden"
             style={{
-              backgroundColor: COLORS.blueHighlightDim,
-              border: `1px solid ${COLORS.blueHighlight}30`,
+              backgroundColor: mode === 'dark' ? "rgba(74, 158, 255, 0.1)" : COLORS.blueHighlightDim,
+              border: `1px solid ${mode === 'dark' ? "rgba(74, 158, 255, 0.2)" : COLORS.blueHighlight + "30"}`,
             }}
           >
             <div className="relative z-10">
@@ -312,8 +331,8 @@ export function EquipmentManifest({ vesselId }: EquipmentManifestProps) {
                 style={{ color: COLORS.blueHighlight }}
                 className="mb-2"
               />
-              <h4 className="text-xl font-bold text-gray-900">{selectedCategory.name}</h4>
-              <p className="text-sm text-gray-500">
+              <h4 className={`text-xl font-bold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{selectedCategory.name}</h4>
+              <p className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-500"}`}>
                 {categoryEquipment.length} equipment{" "}
                 {categoryEquipment.length === 1 ? "item" : "items"} tracked
               </p>
@@ -330,9 +349,9 @@ export function EquipmentManifest({ vesselId }: EquipmentManifestProps) {
           {/* Items list */}
           <div className="space-y-2">
             {categoryEquipment.length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-xl">
-                <p className="text-gray-500 mb-2">No equipment in this category yet</p>
-                <p className="text-sm text-gray-400">
+              <div className={`text-center py-8 rounded-xl ${mode === 'dark' ? "bg-white/5" : "bg-gray-50"}`}>
+                <p className={`mb-2 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>No equipment in this category yet</p>
+                <p className={`text-sm ${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`}>
                   Add items like: {selectedCategory.defaultItems.slice(0, 3).join(", ")}
                 </p>
               </div>
@@ -341,28 +360,40 @@ export function EquipmentManifest({ vesselId }: EquipmentManifestProps) {
                 <div
                   key={item._id}
                   onClick={() => setSelectedEquipment(item)}
-                  className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between hover:border-captain-300 hover:bg-gray-50 transition-all cursor-pointer group"
+                  className={`border rounded-xl p-4 flex items-center justify-between transition-all cursor-pointer group ${
+                    mode === 'dark'
+                      ? "bg-white/5 border-white/10 hover:border-blue-500/50 hover:bg-white/10"
+                      : "bg-white border-gray-200 hover:border-captain-300 hover:bg-gray-50"
+                  }`}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <div className="font-medium text-gray-900">{item.name}</div>
+                      <div className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{item.name}</div>
                       {item.conditionStatus && (
                         <ConditionBadge status={item.conditionStatus} />
                       )}
                     </div>
                     {(item.manufacturer || item.model) && (
-                      <div className="text-sm text-gray-500">
+                      <div className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                         {[item.manufacturer, item.model].filter(Boolean).join(" ")}
                       </div>
                     )}
                     {item.serialNumber && (
-                      <div className="text-xs text-gray-400 mt-0.5">
+                      <div className={`text-xs mt-0.5 ${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`}>
                         S/N: {item.serialNumber}
                       </div>
                     )}
                   </div>
-                  <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center group-hover:bg-captain-50 transition-colors flex-shrink-0 ml-2">
-                    <ChevronRight size={18} className="text-gray-400 group-hover:text-captain-500" />
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ml-2 ${
+                    mode === 'dark' 
+                      ? "bg-white/10 group-hover:bg-blue-500/20" 
+                      : "bg-gray-100 group-hover:bg-captain-50"
+                  }`}>
+                    <ChevronRight size={18} className={`${
+                      mode === 'dark' 
+                        ? "text-gray-400 group-hover:text-blue-400" 
+                        : "text-gray-400 group-hover:text-captain-500"
+                    }`} />
                   </div>
                 </div>
               ))
@@ -372,11 +403,13 @@ export function EquipmentManifest({ vesselId }: EquipmentManifestProps) {
           {/* Add new item button */}
           <button
             onClick={() => setShowAddModal(true)}
-            className="w-full mt-4 p-4 border-2 border-dashed rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all hover:bg-captain-50"
+            className={`w-full mt-4 p-4 border-2 border-dashed rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all ${
+              mode === 'dark' ? "hover:bg-blue-500/10" : "hover:bg-captain-50"
+            }`}
             style={{
-              borderColor: `${COLORS.blueHighlight}60`,
+              borderColor: mode === 'dark' ? "rgba(74, 158, 255, 0.3)" : `${COLORS.blueHighlight}60`,
               color: COLORS.blueHighlight,
-              backgroundColor: COLORS.blueHighlightDim,
+              backgroundColor: mode === 'dark' ? "rgba(74, 158, 255, 0.05)" : COLORS.blueHighlightDim,
             }}
           >
             <Plus size={18} strokeWidth={2.5} />
@@ -420,10 +453,24 @@ export function EquipmentManifest({ vesselId }: EquipmentManifestProps) {
 
 // Condition Badge Component
 function ConditionBadge({ status }: { status: "good" | "fair" | "needs_attention" }) {
+  const { mode } = useTheme();
+  
   const config = {
-    good: { label: "Good", className: "bg-green-100 text-green-700", icon: CheckCircle },
-    fair: { label: "Fair", className: "bg-yellow-100 text-yellow-700", icon: AlertCircle },
-    needs_attention: { label: "Needs Attention", className: "bg-red-100 text-red-700", icon: AlertTriangle },
+    good: { 
+      label: "Good", 
+      className: mode === 'dark' ? "bg-green-500/20 text-green-300 border border-green-500/30" : "bg-green-100 text-green-700", 
+      icon: CheckCircle 
+    },
+    fair: { 
+      label: "Fair", 
+      className: mode === 'dark' ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30" : "bg-yellow-100 text-yellow-700", 
+      icon: AlertCircle 
+    },
+    needs_attention: { 
+      label: "Needs Attention", 
+      className: mode === 'dark' ? "bg-red-500/20 text-red-300 border border-red-500/30" : "bg-red-100 text-red-700", 
+      icon: AlertTriangle 
+    },
   };
 
   const { label, className, icon: Icon } = config[status];
@@ -444,6 +491,7 @@ interface AddEquipmentModalProps {
 }
 
 function AddEquipmentModal({ vesselId, defaultCategory, onClose }: AddEquipmentModalProps) {
+  const { mode } = useTheme();
   const createEquipment = useMutation(api.vesselEquipment.createEquipment);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -477,133 +525,104 @@ function AddEquipmentModal({ vesselId, defaultCategory, onClose }: AddEquipmentM
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md mx-4 rounded-2xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-gray-900">Add Equipment</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X size={20} />
-          </button>
-        </div>
+    <GlassModal onClose={onClose} className="max-w-md p-0 overflow-hidden">
+      <div className={`px-6 py-4 flex items-center justify-between border-b ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}>
+        <h2 className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Add Equipment</h2>
+        <button onClick={onClose} className={`text-gray-400 ${mode === 'dark' ? "hover:text-white" : "hover:text-gray-600"}`}>
+          <X size={20} />
+        </button>
+      </div>
 
+      <div className="p-6 overflow-y-auto max-h-[80vh]">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Category *
-            </label>
-            <select
-              name="category"
-              required
-              defaultValue={defaultCategory || ""}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
-            >
-              <option value="" disabled>
-                Select a category
-              </option>
-              {EQUIPMENT_CATEGORIES.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <GlassSelect
+            label="Category *"
+            name="category"
+            required
+            defaultValue={defaultCategory || ""}
+            options={[
+              { value: "", label: "Select a category", disabled: true },
+              ...EQUIPMENT_CATEGORIES.map((cat) => ({ value: cat.id, label: cat.name })),
+            ]}
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Equipment Name *
-            </label>
-            <input
-              name="name"
-              required
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
-              placeholder="e.g., Main Engine"
+          <GlassInput
+            label="Equipment Name *"
+            name="name"
+            required
+            placeholder="e.g., Main Engine"
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <GlassInput
+              label="Manufacturer"
+              name="manufacturer"
+              placeholder="e.g., Yamaha"
+            />
+            <GlassInput
+              label="Model"
+              name="model"
+              placeholder="e.g., F250XCA"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Manufacturer
-              </label>
-              <input
-                name="manufacturer"
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
-                placeholder="e.g., Yamaha"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Model
-              </label>
-              <input
-                name="model"
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
-                placeholder="e.g., F250XCA"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Serial Number
-              </label>
-              <input
-                name="serialNumber"
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
-                placeholder="e.g., 12345678"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Year Installed
-              </label>
-              <input
-                name="yearInstalled"
-                type="number"
-                min="1900"
-                max={new Date().getFullYear() + 1}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
-                placeholder="2023"
-              />
-            </div>
+            <GlassInput
+              label="Serial Number"
+              name="serialNumber"
+              placeholder="e.g., 12345678"
+            />
+            <GlassInput
+              label="Year Installed"
+              name="yearInstalled"
+              type="number"
+              min="1900"
+              max={new Date().getFullYear() + 1}
+              placeholder="2023"
+            />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
               Notes
             </label>
             <textarea
               name="notes"
               rows={2}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black placeholder:text-gray-400 focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+              className={`w-full rounded-xl px-4 py-3 border transition-all focus:outline-none focus:ring-1 ${
+                mode === 'dark'
+                  ? "bg-black/20 border-white/10 text-white placeholder-gray-400 focus:border-blue-500/50 focus:ring-blue-500/50"
+                  : "bg-white/50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 focus:bg-white"
+              }`}
               placeholder="Additional details..."
             />
           </div>
 
           {error && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</div>
+            <div className={`rounded-lg p-3 text-sm ${mode === 'dark' ? "bg-red-500/10 text-red-300" : "bg-red-50 text-red-600"}`}>{error}</div>
           )}
 
           <div className="flex gap-3 pt-2">
-            <button
+            <GlassButton
               type="button"
+              variant="secondary"
               onClick={onClose}
-              className="flex-1 rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50"
+              className="flex-1 justify-center"
             >
               Cancel
-            </button>
-            <button
+            </GlassButton>
+            <GlassButton
               type="submit"
+              variant="primary"
               disabled={isLoading}
-              className="flex-1 rounded-lg bg-captain-600 px-4 py-2 font-semibold text-white hover:bg-captain-700 disabled:opacity-50"
+              className="flex-1 justify-center"
             >
               {isLoading ? "Adding..." : "Add Equipment"}
-            </button>
+            </GlassButton>
           </div>
         </form>
       </div>
-    </div>
+    </GlassModal>
   );
 }
 
@@ -615,6 +634,7 @@ interface EquipmentDetailModalProps {
 }
 
 function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailModalProps) {
+  const { mode } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -755,34 +775,33 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
   const CategoryIcon = category?.icon || Settings;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-2xl mx-4 rounded-2xl bg-white shadow-xl max-h-[90vh] overflow-hidden flex flex-col">
+    <GlassModal onClose={onClose} className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
         {/* Header */}
-        <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between flex-shrink-0">
+        <div className={`border-b px-6 py-4 flex items-center justify-between flex-shrink-0 ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}>
           <div className="flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: COLORS.blueHighlightDim }}
+              style={{ backgroundColor: mode === 'dark' ? "rgba(74, 158, 255, 0.1)" : COLORS.blueHighlightDim }}
             >
               <CategoryIcon size={20} style={{ color: COLORS.blueHighlight }} />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">{equipment.name}</h2>
-              <p className="text-sm text-gray-500">{category?.name || equipment.category}</p>
+              <h2 className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{equipment.name}</h2>
+              <p className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>{category?.name || equipment.category}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             {!isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="p-2 text-gray-400 hover:text-captain-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className={`p-2 rounded-lg transition-colors ${mode === 'dark' ? "text-gray-400 hover:text-white hover:bg-white/10" : "text-gray-400 hover:text-captain-600 hover:bg-gray-100"}`}
               >
                 <Edit3 size={18} />
               </button>
             )}
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              className={`p-2 rounded-lg transition-colors ${mode === 'dark' ? "text-gray-400 hover:text-white hover:bg-white/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"}`}
             >
               <X size={20} />
             </button>
@@ -790,126 +809,100 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
           {isEditing ? (
             // Edit Form
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Basic Info Section */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                   <Package size={16} />
                   Basic Information
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Equipment Name *
-                    </label>
-                    <input
+                    <GlassInput
+                      label="Equipment Name *"
                       name="name"
                       required
                       defaultValue={equipment.name}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Manufacturer
-                    </label>
-                    <input
+                    <GlassInput
+                      label="Manufacturer"
                       name="manufacturer"
                       defaultValue={equipment.manufacturer || ""}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Model
-                    </label>
-                    <input
+                    <GlassInput
+                      label="Model"
                       name="model"
                       defaultValue={equipment.model || ""}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Serial Number
-                    </label>
-                    <input
+                    <GlassInput
+                      label="Serial Number"
                       name="serialNumber"
                       defaultValue={equipment.serialNumber || ""}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Condition Status
-                    </label>
-                    <select
+                    <GlassSelect
+                      label="Condition Status"
                       name="conditionStatus"
                       defaultValue={equipment.conditionStatus || ""}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
-                    >
-                      <option value="">Select condition</option>
-                      <option value="good">Good</option>
-                      <option value="fair">Fair</option>
-                      <option value="needs_attention">Needs Attention</option>
-                    </select>
+                      options={[
+                        { value: "", label: "Select condition" },
+                        { value: "good", label: "Good" },
+                        { value: "fair", label: "Fair" },
+                        { value: "needs_attention", label: "Needs Attention" },
+                      ]}
+                    />
                   </div>
                 </div>
               </div>
 
               {/* Dates Section */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                   <Calendar size={16} />
                   Installation & Service Dates
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Installation Date
-                    </label>
-                    <input
+                    <GlassInput
+                      label="Installation Date"
                       name="installationDate"
                       type="date"
                       defaultValue={formatDateForInput(equipment.installationDate)}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Last Service Date
-                    </label>
-                    <input
+                    <GlassInput
+                      label="Last Service Date"
                       name="lastServiceDate"
                       type="date"
                       defaultValue={formatDateForInput(equipment.lastServiceDate)}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Next Service Due
-                    </label>
-                    <input
+                    <GlassInput
+                      label="Next Service Due"
                       name="nextServiceDate"
                       type="date"
                       defaultValue={formatDateForInput(equipment.nextServiceDate)}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Service Interval (days)
-                    </label>
-                    <input
+                    <GlassInput
+                      label="Service Interval (days)"
                       name="serviceIntervalDays"
                       type="number"
                       min="1"
                       defaultValue={equipment.serviceIntervalDays || ""}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                       placeholder="e.g., 365"
                     />
                   </div>
@@ -918,35 +911,29 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
 
               {/* Hours Tracking Section */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                   <Clock size={16} />
                   Hours Tracking
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Current Hours
-                    </label>
-                    <input
+                    <GlassInput
+                      label="Current Hours"
                       name="currentHours"
                       type="number"
                       step="0.1"
                       min="0"
                       defaultValue={equipment.currentHours || ""}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                       placeholder="e.g., 450.5"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Service Interval (hours)
-                    </label>
-                    <input
+                    <GlassInput
+                      label="Service Interval (hours)"
                       name="serviceIntervalHours"
                       type="number"
                       min="1"
                       defaultValue={equipment.serviceIntervalHours || ""}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                       placeholder="e.g., 100"
                     />
                   </div>
@@ -955,30 +942,24 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
 
               {/* Warranty Section */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                   <ShieldAlert size={16} />
                   Warranty Information
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Warranty Expiration
-                    </label>
-                    <input
+                    <GlassInput
+                      label="Warranty Expiration"
                       name="warrantyExpiry"
                       type="date"
                       defaultValue={formatDateForInput(equipment.warrantyExpiry)}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Warranty Terms
-                    </label>
-                    <input
+                    <GlassInput
+                      label="Warranty Terms"
                       name="warrantyTerms"
                       defaultValue={equipment.warrantyTerms || ""}
-                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
                       placeholder="e.g., 3 year limited"
                     />
                   </div>
@@ -987,46 +968,50 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
 
               {/* Notes */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                   Notes
                 </label>
                 <textarea
                   name="notes"
                   rows={3}
                   defaultValue={equipment.notes || ""}
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                  className={`w-full rounded-xl px-4 py-3 border transition-all focus:outline-none focus:ring-1 ${
+                    mode === 'dark'
+                      ? "bg-black/20 border-white/10 text-white placeholder-gray-400 focus:border-blue-500/50 focus:ring-blue-500/50"
+                      : "bg-white/50 border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 focus:bg-white"
+                  }`}
                   placeholder="Additional notes..."
                 />
               </div>
 
               {error && (
-                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</div>
+                <div className={`rounded-lg p-3 text-sm ${mode === 'dark' ? "bg-red-500/10 text-red-300" : "bg-red-50 text-red-600"}`}>{error}</div>
               )}
 
               {/* Actions */}
               <div className="flex gap-3 pt-2">
-                <button
+                <GlassButton
                   type="button"
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors"
+                  className={`bg-transparent border border-red-500/30 text-red-500 hover:bg-red-500/10`}
                 >
                   Delete
-                </button>
+                </GlassButton>
                 <div className="flex-1" />
-                <button
+                <GlassButton
                   type="button"
+                  variant="secondary"
                   onClick={() => setIsEditing(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50"
                 >
                   Cancel
-                </button>
-                <button
+                </GlassButton>
+                <GlassButton
                   type="submit"
+                  variant="primary"
                   disabled={isLoading}
-                  className="px-6 py-2 bg-captain-600 text-white rounded-lg font-semibold hover:bg-captain-700 disabled:opacity-50"
                 >
                   {isLoading ? "Saving..." : "Save Changes"}
-                </button>
+                </GlassButton>
               </div>
             </form>
           ) : (
@@ -1037,27 +1022,27 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                 <div
                   className={`p-4 rounded-xl flex items-center gap-3 ${
                     equipment.conditionStatus === "good"
-                      ? "bg-green-50 border border-green-200"
+                      ? mode === 'dark' ? "bg-green-500/10 border border-green-500/20" : "bg-green-50 border border-green-200"
                       : equipment.conditionStatus === "fair"
-                      ? "bg-yellow-50 border border-yellow-200"
-                      : "bg-red-50 border border-red-200"
+                      ? mode === 'dark' ? "bg-yellow-500/10 border border-yellow-500/20" : "bg-yellow-50 border border-yellow-200"
+                      : mode === 'dark' ? "bg-red-500/10 border border-red-500/20" : "bg-red-50 border border-red-200"
                   }`}
                 >
                   {equipment.conditionStatus === "good" ? (
-                    <CheckCircle className="text-green-600" size={24} />
+                    <CheckCircle className={mode === 'dark' ? "text-green-400" : "text-green-600"} size={24} />
                   ) : equipment.conditionStatus === "fair" ? (
-                    <AlertCircle className="text-yellow-600" size={24} />
+                    <AlertCircle className={mode === 'dark' ? "text-yellow-400" : "text-yellow-600"} size={24} />
                   ) : (
-                    <AlertTriangle className="text-red-600" size={24} />
+                    <AlertTriangle className={mode === 'dark' ? "text-red-400" : "text-red-600"} size={24} />
                   )}
                   <div>
                     <div
                       className={`font-medium ${
                         equipment.conditionStatus === "good"
-                          ? "text-green-800"
+                          ? mode === 'dark' ? "text-green-300" : "text-green-800"
                           : equipment.conditionStatus === "fair"
-                          ? "text-yellow-800"
-                          : "text-red-800"
+                          ? mode === 'dark' ? "text-yellow-300" : "text-yellow-800"
+                          : mode === 'dark' ? "text-red-300" : "text-red-800"
                       }`}
                     >
                       Condition:{" "}
@@ -1075,19 +1060,19 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                 <div
                   className={`p-4 rounded-xl flex items-center gap-3 ${
                     nextService.isOverdue
-                      ? "bg-red-50 border border-red-200"
+                      ? mode === 'dark' ? "bg-red-500/10 border border-red-500/20" : "bg-red-50 border border-red-200"
                       : nextService.value <= 30
-                      ? "bg-yellow-50 border border-yellow-200"
-                      : "bg-blue-50 border border-blue-200"
+                      ? mode === 'dark' ? "bg-yellow-500/10 border border-yellow-500/20" : "bg-yellow-50 border border-yellow-200"
+                      : mode === 'dark' ? "bg-blue-500/10 border border-blue-500/20" : "bg-blue-50 border border-blue-200"
                   }`}
                 >
                   <Wrench
                     className={
                       nextService.isOverdue
-                        ? "text-red-600"
+                        ? mode === 'dark' ? "text-red-400" : "text-red-600"
                         : nextService.value <= 30
-                        ? "text-yellow-600"
-                        : "text-blue-600"
+                        ? mode === 'dark' ? "text-yellow-400" : "text-yellow-600"
+                        : mode === 'dark' ? "text-blue-400" : "text-blue-600"
                     }
                     size={24}
                   />
@@ -1095,10 +1080,10 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                     <div
                       className={`font-medium ${
                         nextService.isOverdue
-                          ? "text-red-800"
+                          ? mode === 'dark' ? "text-red-300" : "text-red-800"
                           : nextService.value <= 30
-                          ? "text-yellow-800"
-                          : "text-blue-800"
+                          ? mode === 'dark' ? "text-yellow-300" : "text-yellow-800"
+                          : mode === 'dark' ? "text-blue-300" : "text-blue-800"
                       }`}
                     >
                       {nextService.isOverdue ? "Service Overdue" : "Next Service Due"}
@@ -1106,10 +1091,10 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                     <div
                       className={`text-sm ${
                         nextService.isOverdue
-                          ? "text-red-600"
+                          ? mode === 'dark' ? "text-red-400" : "text-red-600"
                           : nextService.value <= 30
-                          ? "text-yellow-600"
-                          : "text-blue-600"
+                          ? mode === 'dark' ? "text-yellow-400" : "text-yellow-600"
+                          : mode === 'dark' ? "text-blue-400" : "text-blue-600"
                       }`}
                     >
                       {nextService.label}
@@ -1132,7 +1117,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
 
               {/* Service Info */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                   <Wrench size={16} />
                   Service History
                 </h3>
@@ -1169,7 +1154,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
               {/* Warranty Info */}
               {(equipment.warrantyExpiry || equipment.warrantyTerms) && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                     <ShieldAlert size={16} />
                     Warranty
                   </h3>
@@ -1193,7 +1178,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
               {/* Consumable Parts */}
               {equipment.consumablePartNumbers && equipment.consumablePartNumbers.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <h3 className={`text-sm font-semibold mb-3 flex items-center gap-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                     <Package size={16} />
                     Consumable Part Numbers
                   </h3>
@@ -1201,11 +1186,11 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                     {equipment.consumablePartNumbers.map((part, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        className={`flex items-center justify-between p-3 rounded-lg ${mode === 'dark' ? "bg-white/5" : "bg-gray-50"}`}
                       >
                         <div>
-                          <div className="font-medium text-gray-900">{part.name}</div>
-                          <div className="text-sm text-gray-500">
+                          <div className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{part.name}</div>
+                          <div className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                             {part.manufacturer && `${part.manufacturer} • `}P/N: {part.partNumber}
                           </div>
                         </div>
@@ -1218,47 +1203,49 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
               {/* Notes */}
               {equipment.notes && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Notes</h3>
-                  <p className="text-gray-600 text-sm whitespace-pre-wrap">{equipment.notes}</p>
+                  <h3 className={`text-sm font-semibold mb-2 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Notes</h3>
+                  <p className={`text-sm whitespace-pre-wrap ${mode === 'dark' ? "text-gray-300" : "text-gray-600"}`}>{equipment.notes}</p>
                 </div>
               )}
 
               {/* Edit Button */}
-              <button
+              <GlassButton
+                variant="primary"
                 onClick={() => setIsEditing(true)}
-                className="w-full py-3 bg-captain-600 text-white rounded-xl font-semibold hover:bg-captain-700 transition-colors flex items-center justify-center gap-2"
+                className="w-full justify-center"
               >
                 <Edit3 size={18} />
                 Edit Equipment Details
-              </button>
+              </GlassButton>
             </div>
           )}
         </div>
 
         {/* Delete Confirmation Modal */}
         {showDeleteConfirm && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-2xl">
-            <div className="bg-white rounded-xl p-6 max-w-sm mx-4 shadow-xl">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center rounded-2xl z-50">
+            <div className={`rounded-xl p-6 max-w-sm mx-4 shadow-xl ${mode === 'dark' ? "bg-gray-900 border border-white/10" : "bg-white"}`}>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
                   <Trash2 className="text-red-600" size={20} />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">Delete Equipment?</h3>
+                <h3 className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Delete Equipment?</h3>
               </div>
-              <p className="text-gray-600 mb-6">
+              <p className={`mb-6 ${mode === 'dark' ? "text-gray-300" : "text-gray-600"}`}>
                 Are you sure you want to delete "{equipment.name}"? This action cannot be undone.
               </p>
               <div className="flex gap-3">
-                <button
+                <GlassButton
+                  variant="secondary"
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50"
+                  className="flex-1 justify-center"
                 >
                   Cancel
-                </button>
+                </GlassButton>
                 <button
                   onClick={handleDelete}
                   disabled={isLoading}
-                  className="flex-1 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50"
+                  className="flex-1 py-2 bg-red-600 text-white rounded-full font-semibold hover:bg-red-700 disabled:opacity-50 transition-colors"
                 >
                   {isLoading ? "Deleting..." : "Delete"}
                 </button>
@@ -1266,8 +1253,7 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </GlassModal>
   );
 }
 
@@ -1281,16 +1267,17 @@ function InfoField({
   value: string | undefined;
   highlight?: "active" | "expired";
 }) {
+  const { mode } = useTheme();
   return (
     <div>
-      <div className="text-xs text-gray-500 mb-0.5">{label}</div>
+      <div className={`text-xs mb-0.5 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>{label}</div>
       <div
         className={`text-sm font-medium ${
           highlight === "active"
-            ? "text-green-600"
+            ? mode === 'dark' ? "text-green-400" : "text-green-600"
             : highlight === "expired"
-            ? "text-red-600"
-            : "text-gray-900"
+            ? mode === 'dark' ? "text-red-400" : "text-red-600"
+            : mode === 'dark' ? "text-white" : "text-gray-900"
         }`}
       >
         {value || "—"}

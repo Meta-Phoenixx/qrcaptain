@@ -7,7 +7,8 @@ interface MechanicCardProps {
   mechanic: {
     _id: Id<"users">;
     companyName?: string;
-    fullName?: string;
+    firstName?: string;
+    lastName?: string;
     imageUrl: string | null;
     availabilityStatus: "available" | "limited" | "at_capacity" | "unavailable";
     serviceAreas: string[];
@@ -58,7 +59,7 @@ function formatResponseTime(minutes: number | null): string {
 
 export function MechanicCard({ mechanic, onClick }: MechanicCardProps) {
   const status = statusConfig[mechanic.availabilityStatus] || statusConfig.available;
-  const displayName = mechanic.companyName || mechanic.fullName || "Unknown Mechanic";
+  const displayName = mechanic.companyName || (mechanic.firstName && mechanic.lastName ? `${mechanic.firstName} ${mechanic.lastName}` : "Unknown Mechanic");
 
   return (
     <div

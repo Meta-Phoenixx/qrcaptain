@@ -131,7 +131,7 @@ export function FeaturedMechanics({
                 {mechanic.imageUrl ? (
                   <img
                     src={mechanic.imageUrl}
-                    alt={mechanic.companyName || mechanic.fullName || "Mechanic"}
+                    alt={mechanic.companyName || (mechanic.firstName && mechanic.lastName ? `${mechanic.firstName} ${mechanic.lastName}` : "Mechanic")}
                     className="w-14 h-14 rounded-lg object-cover"
                   />
                 ) : (
@@ -148,7 +148,7 @@ export function FeaturedMechanics({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <h4 className="font-semibold text-gray-900 truncate group-hover:text-captain-700">
-                    {mechanic.companyName || mechanic.fullName}
+                    {mechanic.companyName || (mechanic.firstName && mechanic.lastName ? `${mechanic.firstName} ${mechanic.lastName}` : "Unknown")}
                   </h4>
                 </div>
 

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { GlassCard, GlassButton, GlassBadge, GlassInput, GlassSelect, GlassModal } from "./ui/glass";
+import { useTheme } from "./providers/theme-provider";
 import {
   Settings,
   Users,
@@ -77,6 +79,7 @@ const CATEGORY_INFO: Record<SettingCategory, { label: string; icon: React.ReactN
 };
 
 export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
+  const { mode } = useTheme();
   const [activeTab, setActiveTab] = useState<"overview" | "settings" | "announcements">("overview");
   const [activeCategory, setActiveCategory] = useState<SettingCategory>("notifications");
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -153,10 +156,9 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-xl max-w-5xl w-full max-h-[90vh] flex flex-col">
+    <GlassModal onClose={onClose} className="max-w-5xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex-shrink-0 border-b border-gray-200 px-6 py-4">
+        <div className={`flex-shrink-0 border-b px-6 py-4 ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-captain-100 rounded-lg flex items-center justify-center">
@@ -395,8 +397,7 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
             <AnnouncementManager />
           )}
         </div>
-      </div>
-    </div>
+    </GlassModal>
   );
 }
 
