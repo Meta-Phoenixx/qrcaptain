@@ -2,6 +2,7 @@
 
 import { Id } from "../../../convex/_generated/dataModel";
 import { WrenchRating } from "./wrench-rating";
+import { useTheme } from "./providers/theme-provider";
 
 interface MechanicCardProps {
   mechanic: {
@@ -58,13 +59,14 @@ function formatResponseTime(minutes: number | null): string {
 }
 
 export function MechanicCard({ mechanic, onClick }: MechanicCardProps) {
+  const { mode } = useTheme();
   const status = statusConfig[mechanic.availabilityStatus] || statusConfig.available;
   const displayName = mechanic.companyName || (mechanic.firstName && mechanic.lastName ? `${mechanic.firstName} ${mechanic.lastName}` : "Unknown Mechanic");
 
   return (
     <div
       onClick={() => onClick(mechanic._id)}
-      className="bg-white rounded-xl border border-gray-200 hover:border-captain-300 hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden group"
+      className={`${mode === 'dark' ? "bg-white/5 border-white/10 hover:border-captain-500/50" : "bg-white border-gray-200 hover:border-captain-300"} rounded-xl hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden group`}
     >
       {/* Header with image and status */}
       <div className="relative p-4 pb-0">
@@ -75,7 +77,7 @@ export function MechanicCard({ mechanic, onClick }: MechanicCardProps) {
               <img
                 src={mechanic.imageUrl}
                 alt={displayName}
-                className="w-16 h-16 rounded-lg object-cover border border-gray-200"
+                className={`w-16 h-16 rounded-lg object-cover border ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}
               />
             ) : (
               <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-captain-100 to-captain-200 flex items-center justify-center border border-captain-200">
@@ -88,7 +90,7 @@ export function MechanicCard({ mechanic, onClick }: MechanicCardProps) {
 
           {/* Company Name and Status */}
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 text-lg truncate group-hover:text-captain-600 transition-colors">
+            <h3 className={`font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"} text-lg truncate group-hover:text-captain-600 transition-colors`}>
               {displayName}
             </h3>
             
@@ -125,7 +127,7 @@ export function MechanicCard({ mechanic, onClick }: MechanicCardProps) {
           </div>
 
           {/* Response Time */}
-          <div className="flex items-center gap-1 text-sm text-gray-500">
+          <div className={`flex items-center gap-1 text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
@@ -135,7 +137,7 @@ export function MechanicCard({ mechanic, onClick }: MechanicCardProps) {
       </div>
 
       {/* Divider */}
-      <div className="border-t border-gray-100 mx-4"></div>
+      <div className={`border-t ${mode === 'dark' ? "border-white/5" : "border-gray-100"} mx-4`}></div>
 
       {/* Bottom Info */}
       <div className="px-4 py-3 space-y-2">
@@ -146,7 +148,7 @@ export function MechanicCard({ mechanic, onClick }: MechanicCardProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <p className="text-sm text-gray-600 line-clamp-1">
+            <p className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-600"} line-clamp-1`}>
               {mechanic.serviceAreas.slice(0, 3).join(", ")}
               {mechanic.serviceAreas.length > 3 && ` +${mechanic.serviceAreas.length - 3} more`}
             </p>
@@ -165,7 +167,7 @@ export function MechanicCard({ mechanic, onClick }: MechanicCardProps) {
               </span>
             ))}
             {mechanic.specializations.length > 3 && (
-              <span className="text-xs text-gray-500">
+              <span className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                 +{mechanic.specializations.length - 3}
               </span>
             )}
@@ -173,7 +175,7 @@ export function MechanicCard({ mechanic, onClick }: MechanicCardProps) {
         )}
 
         {/* Quick Stats Row */}
-        <div className="flex items-center gap-4 pt-1 text-xs text-gray-500">
+        <div className={`flex items-center gap-4 pt-1 text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
           {mechanic.totalJobsCompleted > 0 && (
             <span className="flex items-center gap-1">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

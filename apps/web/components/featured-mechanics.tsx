@@ -3,6 +3,7 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import { useTheme } from "./providers/theme-provider";
 
 // Availability status badges
 const AVAILABILITY_CONFIG = {
@@ -75,6 +76,7 @@ export function FeaturedMechanics({
   onMechanicClick,
   onViewDirectory,
 }: FeaturedMechanicsProps) {
+  const { mode } = useTheme();
   const featuredMechanics = useQuery(api.mechanicDirectory.getFeaturedMechanics, {
     limit: maxItems,
     serviceAreas,
@@ -84,7 +86,7 @@ export function FeaturedMechanics({
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-32 bg-gray-100 rounded-xl animate-pulse" />
+          <div key={i} className={`h-32 ${mode === 'dark' ? "bg-white/5" : "bg-gray-100"} rounded-xl animate-pulse`} />
         ))}
       </div>
     );
@@ -93,13 +95,13 @@ export function FeaturedMechanics({
   if (featuredMechanics.length === 0) {
     return (
       <div className="text-center py-8">
-        <div className="w-16 h-16 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
+        <div className={`w-16 h-16 mx-auto mb-3 ${mode === 'dark' ? "bg-white/5" : "bg-gray-100"} rounded-full flex items-center justify-center`}>
           <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
         </div>
-        <p className="text-sm font-medium text-gray-900">No mechanics found</p>
-        <p className="text-xs text-gray-500 mt-1">Try adjusting your service area filters</p>
+        <p className={`text-sm font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>No mechanics found</p>
+        <p className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"} mt-1`}>Try adjusting your service area filters</p>
         {onViewDirectory && (
           <button
             onClick={onViewDirectory}
@@ -124,7 +126,7 @@ export function FeaturedMechanics({
             <button
               key={mechanic._id}
               onClick={() => onMechanicClick?.(mechanic._id)}
-              className="flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:border-captain-300 hover:shadow-md transition-all text-left group"
+              className={`flex items-start gap-3 p-4 border ${mode === 'dark' ? "bg-white/5 border-white/10 hover:border-captain-500/50" : "bg-white border-gray-200 hover:border-captain-300"} rounded-xl hover:shadow-md transition-all text-left group`}
             >
               {/* Avatar */}
               <div className="flex-shrink-0">
@@ -147,7 +149,7 @@ export function FeaturedMechanics({
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-semibold text-gray-900 truncate group-hover:text-captain-700">
+                  <h4 className={`font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"} truncate group-hover:text-captain-700`}>
                     {mechanic.companyName || (mechanic.firstName && mechanic.lastName ? `${mechanic.firstName} ${mechanic.lastName}` : "Unknown")}
                   </h4>
                 </div>
@@ -156,7 +158,7 @@ export function FeaturedMechanics({
                 <div className="flex items-center gap-2 mb-2">
                   <WrenchRating rating={mechanic.avgOverallRating} />
                   {mechanic.totalRatings > 0 && (
-                    <span className="text-xs text-gray-500">
+                    <span className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                       ({mechanic.totalRatings})
                     </span>
                   )}
@@ -184,13 +186,13 @@ export function FeaturedMechanics({
 
                 {/* Specializations */}
                 {mechanic.specializations.length > 0 && (
-                  <p className="text-xs text-gray-500 mt-2 truncate">
+                  <p className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"} mt-2 truncate`}>
                     {mechanic.specializations.slice(0, 2).join(" • ")}
                   </p>
                 )}
 
                 {/* Stats */}
-                <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                <div className={`flex items-center gap-3 mt-2 text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                   <span>{mechanic.totalJobsCompleted} jobs</span>
                   {mechanic.avgResponseTimeMinutes && (
                     <span>

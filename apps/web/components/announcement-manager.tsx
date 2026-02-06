@@ -10,12 +10,12 @@ import { useState } from "react";
 type AnnouncementType = "info" | "feature" | "maintenance" | "tip" | "urgent";
 type TargetRole = "owner" | "mechanic" | "admin" | "all";
 
-const TYPE_OPTIONS: { value: AnnouncementType; label: string; color: string }[] = [
-  { value: "info", label: "Information", color: "bg-blue-100 text-blue-700" },
-  { value: "feature", label: "New Feature", color: "bg-purple-100 text-purple-700" },
-  { value: "maintenance", label: "Maintenance", color: "bg-amber-100 text-amber-700" },
-  { value: "tip", label: "Tip", color: "bg-green-100 text-green-700" },
-  { value: "urgent", label: "Urgent", color: "bg-red-100 text-red-700" },
+const TYPE_OPTIONS: { value: AnnouncementType; label: string; color: string; darkColor: string }[] = [
+  { value: "info", label: "Information", color: "bg-blue-100 text-blue-700", darkColor: "bg-blue-500/20 text-blue-300" },
+  { value: "feature", label: "New Feature", color: "bg-purple-100 text-purple-700", darkColor: "bg-purple-500/20 text-purple-300" },
+  { value: "maintenance", label: "Maintenance", color: "bg-amber-100 text-amber-700", darkColor: "bg-amber-500/20 text-amber-300" },
+  { value: "tip", label: "Tip", color: "bg-green-100 text-green-700", darkColor: "bg-green-500/20 text-green-300" },
+  { value: "urgent", label: "Urgent", color: "bg-red-100 text-red-700", darkColor: "bg-red-500/20 text-red-300" },
 ];
 
 const ROLE_OPTIONS: { value: TargetRole; label: string }[] = [
@@ -133,9 +133,9 @@ export function AnnouncementManager() {
   if (!announcements) {
     return (
       <div className="animate-pulse space-y-4">
-        <div className="h-10 bg-gray-200 rounded w-1/4" />
+        <div className={`h-10 rounded w-1/4 ${mode === 'dark' ? "bg-white/10" : "bg-gray-200"}`} />
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-24 bg-gray-100 rounded-lg" />
+          <div key={i} className={`h-24 rounded-lg ${mode === 'dark' ? "bg-white/5" : "bg-gray-100"}`} />
         ))}
       </div>
     );
@@ -146,8 +146,8 @@ export function AnnouncementManager() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Announcements</h3>
-          <p className="text-sm text-gray-500">
+          <h3 className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Announcements</h3>
+          <p className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
             Manage system announcements visible to users
           </p>
         </div>
@@ -169,14 +169,14 @@ export function AnnouncementManager() {
       {/* Announcement List */}
       <div className="space-y-3">
         {announcements.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-xl">
-            <svg className="w-12 h-12 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className={`text-center py-12 rounded-xl ${mode === 'dark' ? "bg-white/5" : "bg-gray-50"}`}>
+            <svg className={`w-12 h-12 mx-auto mb-4 ${mode === 'dark' ? "text-gray-600" : "text-gray-300"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
             </svg>
-            <p className="text-gray-500">No announcements yet</p>
+            <p className={mode === 'dark' ? "text-gray-400" : "text-gray-500"}>No announcements yet</p>
             <button
               onClick={() => setShowForm(true)}
-              className="mt-4 text-captain-600 hover:text-captain-700 font-medium text-sm"
+              className={`mt-4 font-medium text-sm ${mode === 'dark' ? "text-captain-400 hover:text-captain-300" : "text-captain-600 hover:text-captain-700"}`}
             >
               Create your first announcement
             </button>
@@ -189,14 +189,14 @@ export function AnnouncementManager() {
                 key={announcement._id}
                 className={`p-4 rounded-xl border ${
                   announcement.isActive 
-                    ? "bg-white border-gray-200" 
-                    : "bg-gray-50 border-gray-200 opacity-60"
+                    ? mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"
+                    : mode === 'dark' ? "bg-white/[0.02] border-white/5 opacity-60" : "bg-gray-50 border-gray-200 opacity-60"
                 }`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-semibold text-gray-900 truncate">
+                      <h4 className={`font-semibold truncate ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                         {announcement.title}
                       </h4>
                       {announcement.isPinned && (
@@ -205,34 +205,34 @@ export function AnnouncementManager() {
                         </svg>
                       )}
                       {!announcement.isActive && (
-                        <span className="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded-full">
+                        <span className={`px-2 py-0.5 text-xs rounded-full ${mode === 'dark' ? "bg-white/10 text-gray-400" : "bg-gray-200 text-gray-600"}`}>
                           Inactive
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                    <p className={`text-sm line-clamp-2 mb-3 ${mode === 'dark' ? "text-gray-300" : "text-gray-600"}`}>
                       {announcement.content}
                     </p>
                     <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <span className={`px-2 py-0.5 rounded-full ${typeConfig?.color}`}>
+                      <span className={`px-2 py-0.5 rounded-full ${mode === 'dark' ? typeConfig?.darkColor : typeConfig?.color}`}>
                         {typeConfig?.label}
                       </span>
-                      <span className="text-gray-500">
+                      <span className={mode === 'dark' ? "text-gray-400" : "text-gray-500"}>
                         {announcement.targetRoles.includes("all" as TargetRole) 
                           ? "Everyone" 
                           : announcement.targetRoles.join(", ")}
                       </span>
-                      <span className="text-gray-400">•</span>
-                      <span className="text-gray-500">
+                      <span className={mode === 'dark' ? "text-gray-600" : "text-gray-400"}>•</span>
+                      <span className={mode === 'dark' ? "text-gray-400" : "text-gray-500"}>
                         Created {formatDate(announcement.createdAt)}
                       </span>
                       {announcement.expiresAt && (
                         <>
-                          <span className="text-gray-400">•</span>
+                          <span className={mode === 'dark' ? "text-gray-600" : "text-gray-400"}>•</span>
                           <span className={`${
                             announcement.expiresAt < Date.now() 
                               ? "text-red-500" 
-                              : "text-gray-500"
+                              : mode === 'dark' ? "text-gray-400" : "text-gray-500"
                           }`}>
                             {announcement.expiresAt < Date.now() ? "Expired" : `Expires ${formatDate(announcement.expiresAt)}`}
                           </span>
@@ -247,8 +247,8 @@ export function AnnouncementManager() {
                       onClick={() => handleToggleActive(announcement)}
                       className={`p-2 rounded-lg transition-colors ${
                         announcement.isActive
-                          ? "text-green-600 hover:bg-green-50"
-                          : "text-gray-400 hover:bg-gray-100"
+                          ? mode === 'dark' ? "text-green-400 hover:bg-green-500/10" : "text-green-600 hover:bg-green-50"
+                          : mode === 'dark' ? "text-gray-500 hover:bg-white/10" : "text-gray-400 hover:bg-gray-100"
                       }`}
                       title={announcement.isActive ? "Deactivate" : "Activate"}
                     >
@@ -265,7 +265,7 @@ export function AnnouncementManager() {
                     </button>
                     <button
                       onClick={() => handleEdit(announcement)}
-                      className="p-2 text-gray-400 hover:text-captain-600 hover:bg-captain-50 rounded-lg transition-colors"
+                      className={`p-2 rounded-lg transition-colors ${mode === 'dark' ? "text-gray-500 hover:text-captain-400 hover:bg-captain-500/10" : "text-gray-400 hover:text-captain-600 hover:bg-captain-50"}`}
                       title="Edit"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -274,7 +274,7 @@ export function AnnouncementManager() {
                     </button>
                     <button
                       onClick={() => handleDelete(announcement._id)}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className={`p-2 rounded-lg transition-colors ${mode === 'dark' ? "text-gray-500 hover:text-red-400 hover:bg-red-500/10" : "text-gray-400 hover:text-red-600 hover:bg-red-50"}`}
                       title="Delete"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -293,7 +293,7 @@ export function AnnouncementManager() {
       {showForm && (
         <GlassModal onClose={() => setShowForm(false)} className="max-w-lg max-h-[90vh] flex flex-col">
             <div className={`flex items-center justify-between p-4 border-b ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}>
-              <h3 className="font-semibold text-gray-900">
+              <h3 className={`font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                 {editingId ? "Edit Announcement" : "New Announcement"}
               </h3>
               <button
@@ -302,7 +302,7 @@ export function AnnouncementManager() {
                   setEditingId(null);
                   setFormData(defaultFormData);
                 }}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                className={`p-2 rounded-full transition-colors ${mode === 'dark' ? "text-gray-400 hover:text-gray-200 hover:bg-white/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"}`}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -313,7 +313,7 @@ export function AnnouncementManager() {
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4">
               {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                   Title *
                 </label>
                 <input
@@ -321,14 +321,14 @@ export function AnnouncementManager() {
                   required
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
                   placeholder="Announcement title"
                 />
               </div>
 
               {/* Content */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                   Content *
                 </label>
                 <textarea
@@ -336,23 +336,23 @@ export function AnnouncementManager() {
                   rows={4}
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
                   placeholder="Announcement content..."
                 />
               </div>
 
               {/* Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                   Type
                 </label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value as AnnouncementType })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white" : "border-gray-300 text-gray-900"}`}
                 >
                   {TYPE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
+                    <option key={option.value} value={option.value} className={mode === 'dark' ? "bg-gray-800 text-white" : ""}>
                       {option.label}
                     </option>
                   ))}
@@ -361,16 +361,16 @@ export function AnnouncementManager() {
 
               {/* Target Roles */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                   Target Audience
                 </label>
                 <select
                   value={formData.targetRoles[0]}
                   onChange={(e) => setFormData({ ...formData, targetRoles: [e.target.value as TargetRole] })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white" : "border-gray-300 text-gray-900"}`}
                 >
                   {ROLE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
+                    <option key={option.value} value={option.value} className={mode === 'dark' ? "bg-gray-800 text-white" : ""}>
                       {option.label}
                     </option>
                   ))}
@@ -379,14 +379,14 @@ export function AnnouncementManager() {
 
               {/* Expires At */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                   Expiration Date (optional)
                 </label>
                 <input
                   type="date"
                   value={formData.expiresAt}
                   onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white" : "border-gray-300 text-gray-900"}`}
                 />
               </div>
 
@@ -396,9 +396,9 @@ export function AnnouncementManager() {
                   type="checkbox"
                   checked={formData.isPinned}
                   onChange={(e) => setFormData({ ...formData, isPinned: e.target.checked })}
-                  className="w-4 h-4 text-captain-600 border-gray-300 rounded focus:ring-captain-500"
+                  className={`w-4 h-4 text-captain-600 rounded focus:ring-captain-500 ${mode === 'dark' ? "border-white/20 bg-white/5" : "border-gray-300"}`}
                 />
-                <span className="text-sm text-gray-700">
+                <span className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                   Pin to top (cannot be dismissed by users)
                 </span>
               </label>
@@ -412,7 +412,7 @@ export function AnnouncementManager() {
                   setEditingId(null);
                   setFormData(defaultFormData);
                 }}
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className={`px-4 py-2 rounded-lg transition-colors ${mode === 'dark' ? "text-gray-300 hover:bg-white/10" : "text-gray-700 hover:bg-gray-100"}`}
               >
                 Cancel
               </button>

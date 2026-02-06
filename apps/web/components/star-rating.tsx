@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useTheme } from "./providers/theme-provider";
 
 interface StarRatingProps {
   rating: number;                    // 0-5, supports decimals
@@ -85,6 +86,7 @@ export function StarRating({
   onChange,
   className = "",
 }: StarRatingProps) {
+  const { mode } = useTheme();
   // Determine icon size based on prop
   const sizeClasses = {
     sm: "w-4 h-4",
@@ -132,13 +134,13 @@ export function StarRating({
       </div>
       
       {showValue && (
-        <span className="text-sm font-medium text-gray-700 ml-1">
+        <span className={`text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} ml-1`}>
           {rating.toFixed(1)}
         </span>
       )}
       
       {showCount && totalRatings > 0 && (
-        <span className="text-sm text-gray-500 ml-1">
+        <span className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"} ml-1`}>
           ({totalRatings} {totalRatings === 1 ? "review" : "reviews"})
         </span>
       )}
@@ -162,6 +164,7 @@ export function InteractiveStarRating({
   label,
   required = false,
 }: InteractiveStarRatingProps) {
+  const { mode } = useTheme();
   const sizeClasses = {
     sm: "w-6 h-6",
     md: "w-8 h-8",
@@ -176,7 +179,7 @@ export function InteractiveStarRating({
   return (
     <div className="space-y-2">
       {label && (
-        <label className="block text-sm font-medium text-gray-700">
+        <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
@@ -218,11 +221,12 @@ interface RatingBreakdownProps {
 }
 
 export function StarRatingBreakdown({ criteria, size = "sm" }: RatingBreakdownProps) {
+  const { mode } = useTheme();
   return (
     <div className="space-y-2">
       {criteria.map((item, index) => (
         <div key={index} className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">{item.label}</span>
+          <span className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-600"}`}>{item.label}</span>
           <StarRating rating={item.rating} size={size} showValue />
         </div>
       ))}

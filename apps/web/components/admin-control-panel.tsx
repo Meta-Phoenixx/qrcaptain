@@ -161,17 +161,17 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
         <div className={`flex-shrink-0 border-b px-6 py-4 ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-captain-100 rounded-lg flex items-center justify-center">
+              <div className={`w-10 h-10 ${mode === 'dark' ? "bg-captain-500/20" : "bg-captain-100"} rounded-lg flex items-center justify-center`}>
                 <Settings className="w-5 h-5 text-captain-600" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">Admin Control Panel</h2>
-                <p className="text-sm text-gray-500">Manage system settings and view statistics</p>
+                <h2 className={`text-xl font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Admin Control Panel</h2>
+                <p className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>Manage system settings and view statistics</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+              className={`p-2 ${mode === 'dark' ? "text-gray-400 hover:text-gray-200" : "text-gray-400 hover:text-gray-600"} transition-colors`}
             >
               <X className="w-5 h-5" />
             </button>
@@ -184,7 +184,7 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
               className={`pb-2 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
                 activeTab === "overview"
                   ? "border-captain-600 text-captain-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  : `border-transparent ${mode === 'dark' ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"}`
               }`}
             >
               <BarChart3 className="w-4 h-4" />
@@ -195,7 +195,7 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
               className={`pb-2 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
                 activeTab === "settings"
                   ? "border-captain-600 text-captain-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  : `border-transparent ${mode === 'dark' ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"}`
               }`}
             >
               <Settings className="w-4 h-4" />
@@ -206,7 +206,7 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
               className={`pb-2 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
                 activeTab === "announcements"
                   ? "border-captain-600 text-captain-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  : `border-transparent ${mode === 'dark' ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"}`
               }`}
             >
               <Megaphone className="w-4 h-4" />
@@ -231,7 +231,7 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
                 <>
                   {/* User Stats */}
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <h3 className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"} mb-4 flex items-center gap-2`}>
                       <Users className="w-5 h-5 text-captain-600" />
                       Users
                     </h3>
@@ -239,32 +239,36 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
                       <StatCard
                         label="Total Users"
                         value={stats.users.total}
-                        color="bg-gray-100"
+                        color={mode === 'dark' ? "bg-white/5" : "bg-gray-100"}
+                        mode={mode}
                       />
                       <StatCard
                         label="Owners"
                         value={stats.users.owners}
-                        color="bg-blue-100"
+                        color={mode === 'dark' ? "bg-blue-500/10" : "bg-blue-100"}
                         icon={<Ship className="w-4 h-4 text-blue-600" />}
+                        mode={mode}
                       />
                       <StatCard
                         label="Mechanics"
                         value={stats.users.mechanics}
-                        color="bg-orange-100"
+                        color={mode === 'dark' ? "bg-orange-500/10" : "bg-orange-100"}
                         icon={<Wrench className="w-4 h-4 text-orange-600" />}
+                        mode={mode}
                       />
                       <StatCard
                         label="New This Week"
                         value={stats.users.recentSignups}
-                        color="bg-green-100"
+                        color={mode === 'dark' ? "bg-green-500/10" : "bg-green-100"}
                         icon={<Clock className="w-4 h-4 text-green-600" />}
+                        mode={mode}
                       />
                     </div>
                   </div>
 
                   {/* Vessel Stats */}
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <h3 className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"} mb-4 flex items-center gap-2`}>
                       <Ship className="w-5 h-5 text-captain-600" />
                       Vessels
                     </h3>
@@ -272,14 +276,15 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
                       <StatCard
                         label="Total Vessels"
                         value={stats.vessels.total}
-                        color="bg-blue-100"
+                        color={mode === 'dark' ? "bg-blue-500/10" : "bg-blue-100"}
+                        mode={mode}
                       />
                     </div>
                   </div>
 
                   {/* Work Order Stats */}
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <h3 className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"} mb-4 flex items-center gap-2`}>
                       <FileText className="w-5 h-5 text-captain-600" />
                       Work Orders
                     </h3>
@@ -287,31 +292,35 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
                       <StatCard
                         label="Total"
                         value={stats.workOrders.total}
-                        color="bg-gray-100"
+                        color={mode === 'dark' ? "bg-white/5" : "bg-gray-100"}
+                        mode={mode}
                       />
                       <StatCard
                         label="In Progress"
                         value={stats.workOrders.byStatus.in_progress}
-                        color="bg-yellow-100"
+                        color={mode === 'dark' ? "bg-yellow-500/10" : "bg-yellow-100"}
+                        mode={mode}
                       />
                       <StatCard
                         label="Completed"
                         value={stats.workOrders.byStatus.completed}
-                        color="bg-green-100"
+                        color={mode === 'dark' ? "bg-green-500/10" : "bg-green-100"}
+                        mode={mode}
                       />
                       <StatCard
                         label="New This Week"
                         value={stats.workOrders.recentCreated}
-                        color="bg-captain-100"
+                        color={mode === 'dark' ? "bg-captain-500/10" : "bg-captain-100"}
+                        mode={mode}
                       />
                     </div>
                     <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mt-4">
-                      <MiniStatCard label="Quote Requested" value={stats.workOrders.byStatus.quote_requested} />
-                      <MiniStatCard label="Quoted" value={stats.workOrders.byStatus.quoted} />
-                      <MiniStatCard label="In Progress" value={stats.workOrders.byStatus.in_progress} />
-                      <MiniStatCard label="Completed" value={stats.workOrders.byStatus.completed} />
-                      <MiniStatCard label="Declined" value={stats.workOrders.byStatus.declined} />
-                      <MiniStatCard label="Cancelled" value={stats.workOrders.byStatus.cancelled} />
+                      <MiniStatCard label="Quote Requested" value={stats.workOrders.byStatus.quote_requested} mode={mode} />
+                      <MiniStatCard label="Quoted" value={stats.workOrders.byStatus.quoted} mode={mode} />
+                      <MiniStatCard label="In Progress" value={stats.workOrders.byStatus.in_progress} mode={mode} />
+                      <MiniStatCard label="Completed" value={stats.workOrders.byStatus.completed} mode={mode} />
+                      <MiniStatCard label="Declined" value={stats.workOrders.byStatus.declined} mode={mode} />
+                      <MiniStatCard label="Cancelled" value={stats.workOrders.byStatus.cancelled} mode={mode} />
                     </div>
                   </div>
                 </>
@@ -333,7 +342,7 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
                           activeCategory === category
                             ? "bg-captain-50 text-captain-700"
-                            : "text-gray-600 hover:bg-gray-50"
+                            : mode === 'dark' ? "text-gray-400 hover:bg-white/5" : "text-gray-600 hover:bg-gray-50"
                         }`}
                       >
                         <span className={activeCategory === category ? "text-captain-600" : "text-gray-400"}>
@@ -352,10 +361,10 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
               {/* Settings Content */}
               <div className="flex-1">
                 <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
                     {CATEGORY_INFO[activeCategory].label} Settings
                   </h3>
-                  <p className="text-sm text-gray-500">{CATEGORY_INFO[activeCategory].description}</p>
+                  <p className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>{CATEGORY_INFO[activeCategory].description}</p>
                 </div>
 
                 {!allSettings && (
@@ -367,7 +376,7 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
                 {allSettings && (
                   <div className="space-y-4">
                     {getSettingsByCategory(activeCategory).length === 0 ? (
-                      <div className="text-center py-8 text-gray-500">
+                      <div className={`text-center py-8 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                         No settings in this category
                       </div>
                     ) : (
@@ -383,6 +392,7 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
                           onSave={() => handleSave(setting.key)}
                           onReset={() => handleReset(setting.key)}
                           onValueChange={setEditValue}
+                          mode={mode}
                         />
                       ))
                     )}
@@ -407,29 +417,31 @@ function StatCard({
   value,
   color,
   icon,
+  mode,
 }: {
   label: string;
   value: number;
   color: string;
   icon?: React.ReactNode;
+  mode: "light" | "dark";
 }) {
   return (
     <div className={`${color} rounded-lg p-4`}>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-sm text-gray-600">{label}</span>
+        <span className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-600"}`}>{label}</span>
         {icon}
       </div>
-      <span className="text-2xl font-bold text-gray-900">{value}</span>
+      <span className={`text-2xl font-bold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{value}</span>
     </div>
   );
 }
 
 // Mini Stat Card Component
-function MiniStatCard({ label, value }: { label: string; value: number }) {
+function MiniStatCard({ label, value, mode }: { label: string; value: number; mode: "light" | "dark" }) {
   return (
-    <div className="bg-gray-50 rounded-lg p-3 text-center">
-      <span className="block text-lg font-semibold text-gray-900">{value}</span>
-      <span className="text-xs text-gray-500">{label}</span>
+    <div className={`${mode === 'dark' ? "bg-white/5" : "bg-gray-50"} rounded-lg p-3 text-center`}>
+      <span className={`block text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{value}</span>
+      <span className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>{label}</span>
     </div>
   );
 }
@@ -445,6 +457,7 @@ function SettingRow({
   onSave,
   onReset,
   onValueChange,
+  mode,
 }: {
   setting: SettingConfig;
   isEditing: boolean;
@@ -455,6 +468,7 @@ function SettingRow({
   onSave: () => void;
   onReset: () => void;
   onValueChange: (value: string) => void;
+  mode: "light" | "dark";
 }) {
   const formatSettingKey = (key: string) => {
     return key
@@ -464,11 +478,11 @@ function SettingRow({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4">
+    <div className={`${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"} border rounded-lg p-4`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <h4 className="font-medium text-gray-900">{formatSettingKey(setting.key)}</h4>
-          <p className="text-sm text-gray-500 mt-0.5">{setting.description}</p>
+          <h4 className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{formatSettingKey(setting.key)}</h4>
+          <p className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"} mt-0.5`}>{setting.description}</p>
         </div>
 
         <div className="ml-4 flex items-center gap-2">
@@ -481,7 +495,7 @@ function SettingRow({
                   onChange={(e) => onValueChange(e.target.value)}
                   min={setting.min}
                   max={setting.max}
-                  className="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-captain-500 focus:border-captain-500"
+                  className={`w-24 px-3 py-1.5 border ${mode === 'dark' ? "bg-white/5 border-white/10 text-white" : "border-gray-300"} rounded-lg text-sm focus:ring-2 focus:ring-captain-500 focus:border-captain-500`}
                   autoFocus
                 />
                 {setting.unit && <span className="text-sm text-gray-500">{setting.unit}</span>}
@@ -489,7 +503,7 @@ function SettingRow({
               <button
                 onClick={onSave}
                 disabled={saveStatus === "saving"}
-                className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                className={`p-1.5 text-green-600 ${mode === 'dark' ? "hover:bg-green-500/10" : "hover:bg-green-50"} rounded-lg transition-colors disabled:opacity-50`}
               >
                 {saveStatus === "saving" ? (
                   <RefreshCw className="w-4 h-4 animate-spin" />
@@ -499,27 +513,27 @@ function SettingRow({
               </button>
               <button
                 onClick={onCancel}
-                className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors"
+                className={`p-1.5 text-gray-400 ${mode === 'dark' ? "hover:bg-white/10" : "hover:bg-gray-100"} rounded-lg transition-colors`}
               >
                 <X className="w-4 h-4" />
               </button>
             </>
           ) : (
             <>
-              <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
-                <span className="font-mono text-sm font-medium text-gray-900">{setting.value}</span>
+              <div className={`flex items-center gap-2 ${mode === 'dark' ? "bg-white/10" : "bg-gray-100"} px-3 py-1.5 rounded-lg`}>
+                <span className={`font-mono text-sm font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{setting.value}</span>
                 {setting.unit && <span className="text-sm text-gray-500">{setting.unit}</span>}
               </div>
               <button
                 onClick={onEdit}
-                className="px-3 py-1.5 text-sm text-captain-600 hover:bg-captain-50 rounded-lg transition-colors font-medium"
+                className={`px-3 py-1.5 text-sm text-captain-600 ${mode === 'dark' ? "hover:bg-captain-500/10" : "hover:bg-captain-50"} rounded-lg transition-colors font-medium`}
               >
                 Edit
               </button>
               {!setting.isDefault && (
                 <button
                   onClick={onReset}
-                  className="px-3 py-1.5 text-sm text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                  className={`px-3 py-1.5 text-sm text-gray-500 ${mode === 'dark' ? "hover:bg-white/10" : "hover:bg-gray-100"} rounded-lg transition-colors`}
                   title="Reset to default"
                 >
                   <RefreshCw className="w-4 h-4" />

@@ -612,6 +612,11 @@ export function LandingPage() {
                 onRespondToRequest={(workOrderId) => router.push(`/?dashboard=true&respondToRequest=${workOrderId}`)}
                 onViewVessel={() => router.push("/?dashboard=true")}
                 onLeaveRating={(workOrderId) => router.push(`/?dashboard=true&viewRating=${workOrderId}`)}
+                onViewAnnouncement={() => {
+                  setShowNotifications(false);
+                  // User is already on the home screen — scroll to top where announcements are visible
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
               />
             </div>
             <ProfileDropdown

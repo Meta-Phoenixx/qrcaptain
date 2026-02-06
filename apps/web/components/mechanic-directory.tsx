@@ -6,11 +6,14 @@ import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { MechanicCard } from "./mechanic-card";
 import { MechanicSpotlight } from "./mechanic-spotlight";
+import { useTheme } from "./providers/theme-provider";
 
 type SortOption = "rating" | "responseTime" | "jobsCompleted" | "name";
 type AvailabilityStatus = "available" | "limited" | "at_capacity" | "unavailable";
 
 export function MechanicDirectory() {
+  const { mode } = useTheme();
+
   // Filter and sort state
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<AvailabilityStatus | "">("");
@@ -71,14 +74,14 @@ export function MechanicDirectory() {
   const hasActiveFilters = selectedStatus || selectedSpecialization || selectedServiceArea || minRating || searchTerm;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen ${mode === 'dark' ? "bg-transparent" : "bg-gray-50"}`}>
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className={`${mode === 'dark' ? "bg-white/5 border-b border-white/10" : "bg-white border-b border-gray-200"}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">QR Captain Mechanics</h1>
-              <p className="text-sm text-gray-500 mt-1">
+              <h1 className={`text-2xl font-bold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>QR Captain Mechanics</h1>
+              <p className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"} mt-1`}>
                 Find trusted marine mechanics in your area
               </p>
             </div>
@@ -90,7 +93,7 @@ export function MechanicDirectory() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by name or company..."
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black"
+                className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
               />
               <svg
                 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
@@ -109,9 +112,9 @@ export function MechanicDirectory() {
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Filters Sidebar */}
           <div className="lg:w-64 flex-shrink-0">
-            <div className="bg-white rounded-xl border border-gray-200 p-4 sticky top-4">
+            <div className={`${mode === 'dark' ? "bg-white/5 rounded-xl border border-white/10" : "bg-white rounded-xl border border-gray-200"} p-4 sticky top-4`}>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold text-gray-900">Filters</h2>
+                <h2 className={`font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Filters</h2>
                 {hasActiveFilters && (
                   <button
                     onClick={clearFilters}
@@ -125,13 +128,13 @@ export function MechanicDirectory() {
               <div className="space-y-4">
                 {/* Availability Status */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-2`}>
                     Availability
                   </label>
                   <select
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value as AvailabilityStatus | "")}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black bg-white"
+                    className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white" : "border-gray-300 text-gray-900 bg-white"}`}
                   >
                     <option value="">All statuses</option>
                     <option value="available">Available</option>
@@ -143,13 +146,13 @@ export function MechanicDirectory() {
 
                 {/* Minimum Rating */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-2`}>
                     Minimum Rating
                   </label>
                   <select
                     value={minRating || ""}
                     onChange={(e) => setMinRating(e.target.value ? Number(e.target.value) : undefined)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black bg-white"
+                    className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white" : "border-gray-300 text-gray-900 bg-white"}`}
                   >
                     <option value="">Any rating</option>
                     <option value="4">4+ wrenches</option>
@@ -160,13 +163,13 @@ export function MechanicDirectory() {
 
                 {/* Specialization */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-2`}>
                     Specialization
                   </label>
                   <select
                     value={selectedSpecialization}
                     onChange={(e) => setSelectedSpecialization(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black bg-white"
+                    className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white" : "border-gray-300 text-gray-900 bg-white"}`}
                   >
                     <option value="">All specializations</option>
                     {Array.from(allSpecializations).sort().map((spec) => (
@@ -177,13 +180,13 @@ export function MechanicDirectory() {
 
                 {/* Service Area */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-2`}>
                     Service Area
                   </label>
                   <select
                     value={selectedServiceArea}
                     onChange={(e) => setSelectedServiceArea(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black bg-white"
+                    className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white" : "border-gray-300 text-gray-900 bg-white"}`}
                   >
                     <option value="">All areas</option>
                     {Array.from(allServiceAreas).sort().map((area) => (
@@ -194,13 +197,13 @@ export function MechanicDirectory() {
 
                 {/* Sort By */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-2`}>
                     Sort by
                   </label>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value as SortOption)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black bg-white"
+                    className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white" : "border-gray-300 text-gray-900 bg-white"}`}
                   >
                     <option value="rating">Highest Rated</option>
                     <option value="responseTime">Fastest Response</option>
@@ -216,7 +219,7 @@ export function MechanicDirectory() {
           <div className="flex-1">
             {/* Results count */}
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-gray-500">
+              <p className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                 {isLoading ? (
                   "Loading mechanics..."
                 ) : (
@@ -232,28 +235,28 @@ export function MechanicDirectory() {
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
+                  <div key={i} className={`${mode === 'dark' ? "bg-white/5 rounded-xl border border-white/10" : "bg-white rounded-xl border border-gray-200"} p-4 animate-pulse`}>
                     <div className="flex items-start gap-4">
-                      <div className="w-16 h-16 bg-gray-200 rounded-lg"></div>
+                      <div className={`w-16 h-16 ${mode === 'dark' ? "bg-white/10" : "bg-gray-200"} rounded-lg`}></div>
                       <div className="flex-1 space-y-2">
-                        <div className="h-5 bg-gray-200 rounded w-3/4"></div>
-                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                        <div className={`h-5 ${mode === 'dark' ? "bg-white/10" : "bg-gray-200"} rounded w-3/4`}></div>
+                        <div className={`h-4 ${mode === 'dark' ? "bg-white/10" : "bg-gray-200"} rounded w-1/2`}></div>
                       </div>
                     </div>
                     <div className="mt-4 space-y-2">
-                      <div className="h-4 bg-gray-200 rounded w-full"></div>
-                      <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                      <div className={`h-4 ${mode === 'dark' ? "bg-white/10" : "bg-gray-200"} rounded w-full`}></div>
+                      <div className={`h-4 ${mode === 'dark' ? "bg-white/10" : "bg-gray-200"} rounded w-2/3`}></div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : mechanics.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+              <div className={`text-center py-12 ${mode === 'dark' ? "bg-white/5 rounded-xl border border-white/10" : "bg-white rounded-xl border border-gray-200"}`}>
                 <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <h3 className="text-lg font-medium text-gray-900 mb-1">No mechanics found</h3>
-                <p className="text-gray-500">
+                <h3 className={`text-lg font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"} mb-1`}>No mechanics found</h3>
+                <p className={`${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
                   {hasActiveFilters 
                     ? "Try adjusting your filters to see more results."
                     : "No mechanics have completed their profiles yet."

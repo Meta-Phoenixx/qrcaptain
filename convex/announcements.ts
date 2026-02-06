@@ -145,6 +145,36 @@ export const createAnnouncement = mutation({
       createdBy: userId,
     });
 
+    // Send notifications to all targeted users
+    const allUsers = await ctx.db.query("users").collect();
+    const targetUsers = allUsers.filter((u) => {
+      // Don't notify the admin who created the announcement
+      if (u._id === userId) return false;
+      // If targeting "all", include everyone
+      if (args.targetRoles.includes("all")) return true;
+      // Otherwise, check if user's role matches any target role
+      const userRole = u.role || "owner";
+      return args.targetRoles.includes(userRole as any);
+    });
+
+    const now = Date.now();
+    const truncatedContent = args.content.length > 120 
+      ? args.content.substring(0, 120) + "..." 
+      : args.content;
+
+    for (const targetUser of targetUsers) {
+      await ctx.db.insert("notifications", {
+        userId: targetUser._id,
+        type: "new_announcement",
+        title: args.title,
+        message: truncatedContent,
+        relatedId: announcementId,
+        relatedType: "announcement",
+        isRead: false,
+        createdAt: now,
+      });
+    }
+
     return { announcementId };
   },
 });
@@ -176,6 +206,43 @@ export const updateAnnouncement = mutation({
     );
 
     await ctx.db.patch(announcementId, filteredUpdates);
+
+    // Send notifications if the announcement is active and not expired
+    const announcement = await ctx.db.get(announcementId);
+    if (!announcement) return { success: true };
+
+    const now = Date.now();
+    const isActive = announcement.isActive;
+    const isExpired = announcement.expiresAt ? announcement.expiresAt < now : false;
+
+    if (isActive && !isExpired) {
+      const targetRoles = announcement.targetRoles;
+      const allUsers = await ctx.db.query("users").collect();
+      const targetUsers = allUsers.filter((u) => {
+        if (u._id === userId) return false;
+        if (targetRoles.includes("all")) return true;
+        const userRole = u.role || "owner";
+        return targetRoles.includes(userRole as any);
+      });
+
+      const truncatedContent = announcement.content.length > 120
+        ? announcement.content.substring(0, 120) + "..."
+        : announcement.content;
+
+      for (const targetUser of targetUsers) {
+        await ctx.db.insert("notifications", {
+          userId: targetUser._id,
+          type: "new_announcement",
+          title: `Updated: ${announcement.title}`,
+          message: truncatedContent,
+          relatedId: announcementId,
+          relatedType: "announcement",
+          isRead: false,
+          createdAt: now,
+        });
+      }
+    }
+
     return { success: true };
   },
 });

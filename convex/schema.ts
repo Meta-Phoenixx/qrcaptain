@@ -464,7 +464,10 @@ export default defineSchema({
       v.literal("added_to_preferred_list"),  // Mechanic added by owner (includes QR codes)
       
       // Onboarding
-      v.literal("onboarding_reminder")       // Reminder to complete profile
+      v.literal("onboarding_reminder"),      // Reminder to complete profile
+      
+      // Announcements
+      v.literal("new_announcement")          // Admin published a new announcement
     ),
     title: v.string(),
     message: v.string(),

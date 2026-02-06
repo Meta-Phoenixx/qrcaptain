@@ -49,6 +49,7 @@ interface NotificationsPanelProps {
   onRespondToRequest?: (workOrderId: Id<"workOrders">) => void;
   onViewVessel?: (vesselId: Id<"vessels">) => void;
   onLeaveRating?: (workOrderId: Id<"workOrders">) => void;
+  onViewAnnouncement?: () => void;
 }
 
 export function NotificationsPanel({ 
@@ -60,6 +61,7 @@ export function NotificationsPanel({
   onRespondToRequest,
   onViewVessel,
   onLeaveRating,
+  onViewAnnouncement,
 }: NotificationsPanelProps) {
   const notifications = useQuery(api.notifications.getMyNotifications, { limit: 20 });
   const markAsRead = useMutation(api.notifications.markAsRead);
@@ -134,6 +136,13 @@ export function NotificationsPanel({
         }
         break;
 
+      // New announcement - navigate to home screen to view
+      case "new_announcement":
+        if (onViewAnnouncement) {
+          onViewAnnouncement();
+        }
+        break;
+
       default:
         // No specific action for other notification types
         break;
@@ -156,6 +165,7 @@ export function NotificationsPanel({
       "new_rating_received",
       "rate_mechanic_reminder",
       "rate_owner_reminder",
+      "new_announcement",
     ].includes(type);
   };
 
@@ -278,6 +288,14 @@ export function NotificationsPanel({
           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${mode === 'dark' ? "bg-purple-500/20" : "bg-purple-100"}`}>
             <svg className={`w-5 h-5 ${mode === 'dark' ? "text-purple-400" : "text-purple-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+        );
+      case "new_announcement":
+        return (
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${mode === 'dark' ? "bg-indigo-500/20" : "bg-indigo-100"}`}>
+            <svg className={`w-5 h-5 ${mode === 'dark' ? "text-indigo-400" : "text-indigo-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
             </svg>
           </div>
         );

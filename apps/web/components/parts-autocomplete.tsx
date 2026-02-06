@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { useTheme } from "./providers/theme-provider";
 
 export interface PartSuggestion {
   _id?: string;
@@ -32,6 +33,7 @@ export function PartsAutocomplete({
   disabled = false,
   className = "",
 }: PartsAutocompleteProps) {
+  const { mode } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -190,7 +192,7 @@ export function PartsAutocomplete({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 text-black placeholder-gray-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500 disabled:bg-white/[0.02]" : "border-gray-300 text-gray-900 placeholder-gray-400 disabled:bg-gray-100"} disabled:cursor-not-allowed`}
         />
         <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -203,10 +205,10 @@ export function PartsAutocomplete({
       {isOpen && displaySuggestions.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-y-auto"
+          className={`absolute z-50 w-full mt-1 ${mode === 'dark' ? "bg-gray-800 border-white/10" : "bg-white border-gray-200"} border rounded-lg shadow-lg max-h-80 overflow-y-auto`}
         >
           {debouncedQuery.length < 2 && (
-            <div className="px-3 py-2 text-xs font-medium text-gray-500 bg-gray-50 border-b">
+            <div className={`px-3 py-2 text-xs font-medium ${mode === 'dark' ? "text-gray-400 bg-white/5 border-white/10" : "text-gray-500 bg-gray-50 border-b"}`}>
               Popular Parts
             </div>
           )}
@@ -217,8 +219,8 @@ export function PartsAutocomplete({
               onClick={() => handleSelect(part)}
               onMouseEnter={() => setHighlightedIndex(index)}
               className={`px-3 py-2.5 cursor-pointer transition-colors ${
-                index === highlightedIndex ? "bg-captain-50" : "hover:bg-gray-50"
-              } ${index !== displaySuggestions.length - 1 ? "border-b border-gray-100" : ""}`}
+                index === highlightedIndex ? "bg-captain-50" : mode === 'dark' ? "hover:bg-white/5" : "hover:bg-gray-50"
+              } ${index !== displaySuggestions.length - 1 ? `border-b ${mode === 'dark' ? "border-white/5" : "border-gray-100"}` : ""}`}
             >
               {part.isNew ? (
                 <div className="flex items-center gap-2">
@@ -236,7 +238,7 @@ export function PartsAutocomplete({
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-gray-900 truncate">{part.name}</p>
+                      <p className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"} truncate`}>{part.name}</p>
                       {part.category && (
                         <span className={`px-1.5 py-0.5 text-xs font-medium rounded ${getCategoryColor(part.category)}`}>
                           {part.category}
@@ -244,17 +246,17 @@ export function PartsAutocomplete({
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-sm text-gray-600">{part.manufacturer}</span>
+                      <span className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-600"}`}>{part.manufacturer}</span>
                       {part.partNumber && (
                         <>
-                          <span className="text-gray-300">•</span>
+                          <span className={`${mode === 'dark' ? "text-gray-600" : "text-gray-300"}`}>•</span>
                           <span className="text-sm text-gray-500 font-mono">{part.partNumber}</span>
                         </>
                       )}
                     </div>
                   </div>
                   {part.averagePrice && (
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className={`text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
                       ${part.averagePrice.toFixed(2)}
                     </span>
                   )}
@@ -267,9 +269,9 @@ export function PartsAutocomplete({
 
       {/* Loading state */}
       {isOpen && debouncedQuery.length >= 2 && searchResults === undefined && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4">
+        <div className={`absolute z-50 w-full mt-1 ${mode === 'dark' ? "bg-gray-800 border-white/10" : "bg-white border-gray-200"} border rounded-lg shadow-lg p-4`}>
           <div className="flex items-center justify-center gap-2 text-gray-500">
-            <div className="w-4 h-4 border-2 border-gray-300 border-t-captain-600 rounded-full animate-spin"></div>
+            <div className={`w-4 h-4 border-2 ${mode === 'dark' ? "border-white/10" : "border-gray-300"} border-t-captain-600 rounded-full animate-spin`}></div>
             <span className="text-sm">Searching...</span>
           </div>
         </div>
@@ -279,7 +281,7 @@ export function PartsAutocomplete({
       {isOpen && debouncedQuery.length >= 2 && searchResults && searchResults.length === 0 && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg"
+          className={`absolute z-50 w-full mt-1 ${mode === 'dark' ? "bg-gray-800 border-white/10" : "bg-white border-gray-200"} border rounded-lg shadow-lg`}
         >
           <div
             onClick={() => handleSelect({

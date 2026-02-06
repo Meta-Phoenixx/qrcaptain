@@ -6,6 +6,7 @@ import { api } from "../../../convex/_generated/api";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Id } from "../../../convex/_generated/dataModel";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ImageCropper } from "./image-cropper";
 import { EquipmentManifest } from "./equipment-manifest";
 import { OwnerWorkOrderViewer } from "./owner-work-order-viewer";
@@ -153,6 +154,7 @@ function ProfileDropdown({ user, profilePhotoUrl, onProfileClick, onSignOut }: P
 
 export function Dashboard() {
   const { signOut } = useAuthActions();
+  const router = useRouter();
   const user = useQuery(api.users.currentUser);
   const profilePhotoUrl = useQuery(api.storage.getUserProfilePhotoUrl, {});
   const [showNotifications, setShowNotifications] = useState(false);
@@ -286,6 +288,10 @@ export function Dashboard() {
                 onLeaveRating={(workOrderId) => {
                   setShowNotifications(false);
                   setViewingWorkOrderForRating(workOrderId);
+                }}
+                onViewAnnouncement={() => {
+                  setShowNotifications(false);
+                  router.push("/home");
                 }}
               />
             </div>
