@@ -66,6 +66,15 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
   const isInitializedRef = useRef(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Refs to hold latest values for flush-on-unmount (avoids stale closure)
+  const latestValuesRef = useRef({
+    diagnosis: "",
+    workPerformed: "",
+    laborHours: "",
+    laborRate: "",
+    estimatedCompletionDate: "",
+  });
+  
   // Rating states
   const [ratingValues, setRatingValues] = useState<Record<string, number>>({});
   const [ratingReview, setRatingReview] = useState("");
@@ -131,6 +140,11 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
       minute: "2-digit",
     });
   };
+
+  // Keep the latest values ref in sync with state
+  useEffect(() => {
+    latestValuesRef.current = { diagnosis, workPerformed, laborHours, laborRate, estimatedCompletionDate };
+  }, [diagnosis, workPerformed, laborHours, laborRate, estimatedCompletionDate]);
 
   // Initialize form values from work order
   useEffect(() => {
@@ -211,14 +225,46 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
     };
   }, [diagnosis, workPerformed, laborHours, laborRate, estimatedCompletionDate, workOrder, workOrderId, updateWorkOrder]);
 
-  // Cleanup timeout on unmount
+  // Flush unsaved changes on unmount — prevents data loss when closing mid-debounce
+  const updateWorkOrderRef = useRef(updateWorkOrder);
+  updateWorkOrderRef.current = updateWorkOrder;
+  const workOrderRef = useRef(workOrder);
+  workOrderRef.current = workOrder;
+  
   useEffect(() => {
     return () => {
+      // Clear any pending debounced save
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
+      
+      // Flush: perform an immediate save if the work order is in_progress
+      const wo = workOrderRef.current;
+      if (!isInitializedRef.current || !wo || wo.status !== "in_progress") {
+        return;
+      }
+      
+      const vals = latestValuesRef.current;
+      const partsTotal = wo.parts.reduce((sum, p) => sum + (p.unitCost || 0) * p.quantity, 0);
+      const laborTotal = (parseFloat(vals.laborHours) || 0) * (parseFloat(vals.laborRate) || 0);
+      const grandTotal = partsTotal + laborTotal;
+      const completionTimestamp = vals.estimatedCompletionDate
+        ? new Date(vals.estimatedCompletionDate).getTime()
+        : undefined;
+
+      // Fire-and-forget save (component is unmounting so we can't set state)
+      updateWorkOrderRef.current({
+        workOrderId,
+        diagnosis: vals.diagnosis || undefined,
+        workPerformed: vals.workPerformed || undefined,
+        laborHours: vals.laborHours ? parseFloat(vals.laborHours) : undefined,
+        laborRate: vals.laborRate ? parseFloat(vals.laborRate) : undefined,
+        totalCost: grandTotal > 0 ? grandTotal : undefined,
+        estimatedCompletionDate: completionTimestamp,
+      }).catch((err) => console.error("Failed to flush save on close:", err));
     };
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workOrderId]);
 
   if (!workOrder) {
     return (

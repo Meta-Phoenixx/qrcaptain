@@ -8,6 +8,11 @@ import { api } from "../../../convex/_generated/api";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { Dashboard } from "@/components/dashboard";
 
+// Maximum time (ms) to wait for auth state before showing sign-in as fallback.
+// This prevents an infinite loading spinner when the Convex WebSocket connection
+// is slow (e.g. through a tunnel/proxy) or fails to establish.
+const AUTH_LOADING_TIMEOUT_MS = 8000;
+
 function AuthenticatedContent() {
   const router = useRouter();
   const user = useQuery(api.users.currentUser);
@@ -45,30 +50,62 @@ function AuthenticatedContent() {
   return <Dashboard />;
 }
 
+/** Sign-in page content — shared between the root page fallback and /signin route */
+export function SignInPageContent() {
+  return (
+    <div className="flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-bold font-heading mb-2 flex items-center justify-center gap-2">
+            <img src="/qr-captain-logo.png" alt="QR Captain" className="h-10 w-10 brightness-0" />
+            QR Captain
+          </h1>
+          <p className="text-lg opacity-80">
+            Complete vessel maintenance tracking
+          </p>
+        </div>
+        <SignInForm />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Auth loading state with a timeout fallback.
+ * If auth hasn't resolved within AUTH_LOADING_TIMEOUT_MS, we show the sign-in
+ * form instead of an infinite spinner. Once auth resolves (if the connection
+ * eventually succeeds), the Authenticated/Unauthenticated wrappers take over.
+ */
+function AuthLoadingWithTimeout() {
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setTimedOut(true), AUTH_LOADING_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (timedOut) {
+    // Show sign-in form as fallback — if auth eventually resolves the
+    // Authenticated/Unauthenticated wrappers will replace this content
+    return <SignInPageContent />;
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
+    </div>
+  );
+}
+
 export default function Home() {
   return (
     <main className="min-h-screen">
       <AuthLoading>
-        <div className="flex min-h-screen items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
-        </div>
+        <AuthLoadingWithTimeout />
       </AuthLoading>
       
       <Unauthenticated>
-        <div className="flex min-h-screen items-center justify-center p-4">
-          <div className="w-full max-w-md">
-            <div className="mb-8 text-center">
-              <h1 className="text-4xl font-bold font-heading mb-2 flex items-center justify-center gap-2">
-                <img src="/qr-captain-logo.png" alt="QR Captain" className="h-10 w-10 brightness-0" />
-                QR Captain
-              </h1>
-              <p className="text-lg opacity-80">
-                Complete vessel maintenance tracking
-              </p>
-            </div>
-            <SignInForm />
-          </div>
-        </div>
+        <SignInPageContent />
       </Unauthenticated>
       
       <Authenticated>

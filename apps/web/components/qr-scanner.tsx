@@ -18,7 +18,6 @@ export function QRScanner({ onClose, onVesselFound }: QRScannerProps) {
   const [manualCode, setManualCode] = useState("");
   const [scannedCode, setScannedCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [cameraError, setCameraError] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   
   const scannerRef = useRef<HTMLDivElement>(null);
@@ -92,18 +91,13 @@ export function QRScanner({ onClose, onVesselFound }: QRScannerProps) {
 
         if (isMountedRef.current && !isCleanedUp) {
           setIsScanning(true);
-          setCameraError(null);
         }
       } catch (err) {
         console.error("Failed to start scanner:", err);
         if (isMountedRef.current && !isCleanedUp) {
-          setCameraError(
-            err instanceof Error
-              ? err.message.includes("Permission")
-                ? "Camera permission denied. Please allow camera access or enter the code manually."
-                : "Failed to start camera. Try entering the code manually."
-              : "Camera not available"
-          );
+          // Auto-switch to manual entry when camera is unavailable
+          // (common on desktops, test environments, and restricted browsers)
+          setMode("manual");
           setIsScanning(false);
         }
       }
@@ -267,40 +261,11 @@ export function QRScanner({ onClose, onVesselFound }: QRScannerProps) {
                 className="w-full min-h-[280px]"
               />
               {/* Overlay states - positioned over scanner but NOT inside qr-reader */}
-              {!isScanning && !cameraError && (
+              {!isScanning && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="text-center text-white">
                     <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
                     <p className="text-sm">Starting camera...</p>
-                  </div>
-                </div>
-              )}
-              {cameraError && (
-                <div className={`absolute inset-0 flex items-center justify-center p-6 ${themeMode === 'dark' ? "bg-black/90" : "bg-gray-900"}`}>
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-red-100/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <svg
-                        className="w-8 h-8 text-red-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                        />
-                      </svg>
-                    </div>
-                    <p className="text-white text-sm mb-4">{cameraError}</p>
-                    <GlassButton
-                      variant="secondary"
-                      onClick={() => setMode("manual")}
-                      className="w-full justify-center text-sm"
-                    >
-                      Enter Code Manually
-                    </GlassButton>
                   </div>
                 </div>
               )}

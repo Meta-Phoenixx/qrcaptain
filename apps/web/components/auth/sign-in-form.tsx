@@ -3,6 +3,8 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
 import { GlassCard, GlassInput, GlassButton, GlassSelect } from "../ui/glass";
 import { useTheme } from "../providers/theme-provider";
 
@@ -40,7 +42,14 @@ export function SignInForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState("owner");
+  const [signUpEmail, setSignUpEmail] = useState("");
   const { mode } = useTheme();
+
+  // Check if email already exists (only during sign-up with a valid-looking email)
+  const emailAlreadyExists = useQuery(
+    api.users.emailExists,
+    isSignUp && signUpEmail.includes("@") ? { email: signUpEmail } : "skip"
+  );
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     // ... existing implementation ...
@@ -52,6 +61,13 @@ export function SignInForm() {
     formData.set("flow", isSignUp ? "signUp" : "signIn");
     
     if (isSignUp) {
+      // Block sign-up if the email is already registered
+      if (emailAlreadyExists) {
+        setError("An account with this email already exists. Please sign in instead.");
+        setIsLoading(false);
+        return;
+      }
+
       const firstName = formData.get("firstName") as string;
       const lastName = formData.get("lastName") as string;
       formData.set("name", `${firstName} ${lastName}`.trim());
@@ -188,7 +204,21 @@ export function SignInForm() {
             type="email"
             required
             placeholder="you@example.com"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              if (isSignUp) {
+                setSignUpEmail(e.target.value);
+                // Clear the "already exists" error when user changes email
+                if (error?.includes("already exists")) {
+                  setError(null);
+                }
+              }
+            }}
           />
+          {isSignUp && emailAlreadyExists && (
+            <p className="mt-1 text-sm text-red-400">
+              This email is already registered. Please sign in instead.
+            </p>
+          )}
         </div>
 
         <div>
@@ -225,7 +255,7 @@ export function SignInForm() {
 
       <div className="mt-6 text-center">
         <button
-          onClick={() => setIsSignUp(!isSignUp)}
+          onClick={() => { setIsSignUp(!isSignUp); setError(null); setSignUpEmail(""); }}
           className={`text-sm transition-colors ${mode === 'dark' ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-700"}`}
         >
           {isSignUp

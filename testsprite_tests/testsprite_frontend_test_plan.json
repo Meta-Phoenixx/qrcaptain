@@ -1,0 +1,679 @@
+[
+  {
+    "id": "TC001",
+    "title": "User Registration with Role Assignment",
+    "description": "Verify that users can register successfully with valid credentials and are assigned the correct role (owner, mechanic, admin) with proper validation and error handling.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to registration page"
+      },
+      {
+        "type": "action",
+        "description": "Fill registration form with valid details including selecting a role"
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm user account is created and assigned the selected role"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify welcome or onboarding page is shown based on role"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Authentication and Redirect Based on Role",
+    "description": "Check that registered users can login with correct credentials and are redirected to role-specific dashboards.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to sign-in page"
+      },
+      {
+        "type": "action",
+        "description": "Enter valid email and password"
+      },
+      {
+        "type": "action",
+        "description": "Click sign-in"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify login succeeds"
+      },
+      {
+        "type": "assertion",
+        "description": "Check user is redirected to a dashboard customized to the user role"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Failed Login With Incorrect Credentials",
+    "description": "Verify login failure occurs with incorrect email or password and appropriate error message is shown.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to sign-in page"
+      },
+      {
+        "type": "action",
+        "description": "Input invalid or non-existing email and/or incorrect password"
+      },
+      {
+        "type": "action",
+        "description": "Click sign-in button"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm login fails"
+      },
+      {
+        "type": "assertion",
+        "description": "Check proper error message is displayed to user"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Add Vessel with Complete Details and QR Code Generation",
+    "description": "Verify that vessel owners can add a vessel with required details, upload photos, and receive a unique QR code linking correctly to the vessel record.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as vessel owner"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to vessel onboarding component"
+      },
+      {
+        "type": "action",
+        "description": "Enter all mandatory fields for vessel details"
+      },
+      {
+        "type": "action",
+        "description": "Upload vessel photos"
+      },
+      {
+        "type": "action",
+        "description": "Submit vessel registration"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify vessel record is created in system"
+      },
+      {
+        "type": "assertion",
+        "description": "Check that a unique QR code is generated and displayed"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Verify Equipment Manifest with All Categories and Service Interval Tracking",
+    "description": "Ensure the equipment manifest supports all 15 categories with capability to add service intervals, warranty information, condition monitoring, and photo uploads for equipment.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as vessel owner"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to equipment manifest section for a vessel"
+      },
+      {
+        "type": "action",
+        "description": "Add equipment items covering all 15 categories with detailed info"
+      },
+      {
+        "type": "action",
+        "description": "Attach service intervals and warranty data"
+      },
+      {
+        "type": "action",
+        "description": "Upload equipment photos"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify all equipment entries are saved accurately"
+      },
+      {
+        "type": "assertion",
+        "description": "Check service interval reminders or conditions are tracked correctly"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Mechanic Scans QR Code and Requests Vessel Access",
+    "description": "Validate that a mechanic can scan vessel QR code through the web scanner, identify vessel correctly, and send an access request to the owner with notification generated.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as mechanic"
+      },
+      {
+        "type": "action",
+        "description": "Open QR scanner and scan a valid vessel QR code"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify vessel details are displayed after scan"
+      },
+      {
+        "type": "action",
+        "description": "Send access request for the vessel"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm access request notification is sent to vessel owner"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Vessel Owner Approves or Denies Mechanic Access Request",
+    "description": "Ensure vessel owners can view access requests from mechanics, approve or deny them, and access permissions are granted or revoked accordingly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as vessel owner with pending access requests"
+      },
+      {
+        "type": "action",
+        "description": "View details of access request from mechanic"
+      },
+      {
+        "type": "action",
+        "description": "Approve the access request"
+      },
+      {
+        "type": "assertion",
+        "description": "Check that mechanic receives confirmation and access permission"
+      },
+      {
+        "type": "action",
+        "description": "Deny an access request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify mechanic is notified of denial and access is not granted"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Full Work Order Lifecycle: Request to Completion",
+    "description": "Test entire work order lifecycle including owner submitting request, mechanic quoting, owner approval, in-progress updates with parts and photos, and work completion with rating.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Owner submits a detailed work order request"
+      },
+      {
+        "type": "action",
+        "description": "Mechanic reviews and submits a quote including labor and parts estimate"
+      },
+      {
+        "type": "assertion",
+        "description": "Owner receives notification and reviews quote"
+      },
+      {
+        "type": "action",
+        "description": "Owner approves the quote"
+      },
+      {
+        "type": "action",
+        "description": "Mechanic updates work order status as in-progress with photos and parts added"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify all updates are saved and displayed properly"
+      },
+      {
+        "type": "action",
+        "description": "Mechanic marks work order as complete"
+      },
+      {
+        "type": "action",
+        "description": "Both owner and mechanic submit ratings with comments"
+      },
+      {
+        "type": "assertion",
+        "description": "Check both ratings are recorded and reflected in profiles"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Quote Submission with Revision Workflow and Notifications",
+    "description": "Verify mechanics can submit quotes with detailed breakdowns, send revisions after negotiation, and the owner receives notifications of each update.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Mechanic creates initial quote for work order"
+      },
+      {
+        "type": "action",
+        "description": "Send quote to owner"
+      },
+      {
+        "type": "assertion",
+        "description": "Owner receives notification of new quote"
+      },
+      {
+        "type": "action",
+        "description": "Mechanic submits revised quote with changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Owner receives notification of revised quote"
+      },
+      {
+        "type": "action",
+        "description": "Owner accepts final quote"
+      },
+      {
+        "type": "assertion",
+        "description": "Quote status updates accordingly"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Parts Database Autocomplete and Per-Work-Order Parts Logging",
+    "description": "Confirm that the parts database autocomplete provides relevant suggestions as mechanic types, and parts used are logged on specific work orders with metadata and photos.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Mechanic starts entering part name in parts entry field on work order"
+      },
+      {
+        "type": "assertion",
+        "description": "Autocomplete suggestions appear based on input"
+      },
+      {
+        "type": "action",
+        "description": "Select part from suggestions or enter new part"
+      },
+      {
+        "type": "action",
+        "description": "Add metadata such as quantity and cost"
+      },
+      {
+        "type": "action",
+        "description": "Optionally upload photo of part"
+      },
+      {
+        "type": "action",
+        "description": "Save parts used for work order"
+      },
+      {
+        "type": "assertion",
+        "description": "Parts are recorded correctly under the work order"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Bidirectional Rating System Post Work Order Completion",
+    "description": "Check that upon work order completion, owners and mechanics can submit ratings and comments for each other and the aggregated ratings update mechanic and owner profiles.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "After work order completion, owner accesses rating form for mechanic"
+      },
+      {
+        "type": "action",
+        "description": "Owner submits rating with comments"
+      },
+      {
+        "type": "action",
+        "description": "Mechanic accesses rating form for owner"
+      },
+      {
+        "type": "action",
+        "description": "Mechanic submits rating with comments"
+      },
+      {
+        "type": "assertion",
+        "description": "Confirm both ratings are stored in the system"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify aggregated ratings on profile pages reflect new reviews"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Mechanic Directory Search and Filtering",
+    "description": "Verify that users can search and filter marine mechanics by certifications, availability, rating, and location accurately and that results update dynamically.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to mechanic directory page"
+      },
+      {
+        "type": "action",
+        "description": "Enter search terms and apply multiple filters including certification, availability, rating, and location"
+      },
+      {
+        "type": "assertion",
+        "description": "Search results update dynamically matching filters"
+      },
+      {
+        "type": "assertion",
+        "description": "Mechanic cards show correct metadata and status"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Preferred Mechanics List Management",
+    "description": "Validate that boat owners can add or remove mechanics to their preferred list, add private notes, and that the list is persisted correctly.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as boat owner"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to preferred mechanics management"
+      },
+      {
+        "type": "action",
+        "description": "Add a mechanic to preferred list with optional private note"
+      },
+      {
+        "type": "assertion",
+        "description": "Preferred mechanic is listed correctly"
+      },
+      {
+        "type": "action",
+        "description": "Remove mechanic from preferred list"
+      },
+      {
+        "type": "assertion",
+        "description": "Mechanic is removed and no longer listed"
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Messaging Between Owner and Mechanic Contextual to Vessel and Work Order",
+    "description": "Ensure real-time direct messaging is delivered correctly between owners and mechanics with context of vessel and associated work orders including notifications.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as owner and mechanic respectively"
+      },
+      {
+        "type": "action",
+        "description": "Initiate messaging regarding a specific vessel and/or work order"
+      },
+      {
+        "type": "action",
+        "description": "Send messages back and forth"
+      },
+      {
+        "type": "assertion",
+        "description": "Messages appear in real-time in both sender and receiver views"
+      },
+      {
+        "type": "assertion",
+        "description": "Notification alerts trigger upon new messages"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Notifications for Access Requests, Work Orders, Quotes, Messaging, and Ratings",
+    "description": "Verify the in-app notification system generates alerts for various event types, displays them correctly, and supports marking as read.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Trigger events: access request sent, work order updated, quote submitted, message received, rating completed"
+      },
+      {
+        "type": "assertion",
+        "description": "Corresponding notifications appear in app notification feed"
+      },
+      {
+        "type": "action",
+        "description": "Mark notifications as read"
+      },
+      {
+        "type": "assertion",
+        "description": "Read notifications are visually distinct and can be filtered"
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Admin Announcement CRUD with Role Targeting, Pinning and Expiration",
+    "description": "Verify admins can create, update, delete announcements targeted at specific user roles with the ability to pin announcements and set expiration dates.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as admin"
+      },
+      {
+        "type": "action",
+        "description": "Create announcement with title, content, role targeting, pinning option, and expiration date"
+      },
+      {
+        "type": "assertion",
+        "description": "Announcement appears in role-targeted feeds and pinned announcements section"
+      },
+      {
+        "type": "action",
+        "description": "Update announcement content and settings"
+      },
+      {
+        "type": "assertion",
+        "description": "Changes are reflected correctly"
+      },
+      {
+        "type": "action",
+        "description": "Delete announcement"
+      },
+      {
+        "type": "assertion",
+        "description": "Announcement is removed from feeds"
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Help Center Role-Filtered Documentation and Markdown Rendering",
+    "description": "Ensure help center displays relevant guides filtered by user role and renders markdown content correctly for readability and formatting.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as different user roles"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to help center"
+      },
+      {
+        "type": "assertion",
+        "description": "Displayed help articles correspond to user role"
+      },
+      {
+        "type": "assertion",
+        "description": "Markdown content renders accurately with headings, lists, links, and code blocks"
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Admin Control Panel User and Settings Management",
+    "description": "Test full CRUD operations on users, app settings, announcements, and help content in the admin control panel with role-based access checks.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as admin"
+      },
+      {
+        "type": "action",
+        "description": "Create, update, and delete user accounts"
+      },
+      {
+        "type": "assertion",
+        "description": "Changes are reflected immediately across the system"
+      },
+      {
+        "type": "action",
+        "description": "Modify application-wide settings and save"
+      },
+      {
+        "type": "assertion",
+        "description": "Settings changes persist and affect relevant features"
+      },
+      {
+        "type": "action",
+        "description": "Manage help content and announcements CRUD"
+      },
+      {
+        "type": "assertion",
+        "description": "Validate role-based access prevents unauthorized operations"
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "Role-Adaptive Landing Page Content Display",
+    "description": "Verify that upon login, the landing page dynamically shows relevant stats, quick actions, feeds, and navigation elements appropriate to the logged-in user's role.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as owner"
+      },
+      {
+        "type": "assertion",
+        "description": "Landing page shows owner-specific content and statistics"
+      },
+      {
+        "type": "action",
+        "description": "Logout and login as mechanic"
+      },
+      {
+        "type": "assertion",
+        "description": "Landing page updates to mechanic-specific content and features"
+      },
+      {
+        "type": "action",
+        "description": "Logout and login as admin"
+      },
+      {
+        "type": "assertion",
+        "description": "Landing page displays admin dashboard and controls"
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "Dark/Light Mode Toggle and Theme Consistency",
+    "description": "Verify that the theme toggle correctly switches between dark and light modes and that the UI components maintain visual consistency with glassmorphism styling across all pages.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login to application"
+      },
+      {
+        "type": "action",
+        "description": "Toggle theme from light mode to dark mode"
+      },
+      {
+        "type": "assertion",
+        "description": "UI updates to dark mode with glassmorphism effects properly rendered"
+      },
+      {
+        "type": "action",
+        "description": "Toggle back to light mode"
+      },
+      {
+        "type": "assertion",
+        "description": "UI returns to light mode with consistent styling"
+      }
+    ]
+  },
+  {
+    "id": "TC021",
+    "title": "Service History and Scheduled Maintenance Reminders",
+    "description": "Validate the service history viewer displays accurate past maintenance records for vessels and equipment, and scheduled reminders appear when service intervals approach.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as owner"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to service history viewer"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify all recorded service events are listed with proper details"
+      },
+      {
+        "type": "assertion",
+        "description": "Check scheduled maintenance reminders trigger based on interval thresholds"
+      },
+      {
+        "type": "assertion",
+        "description": "Reminders display notifications or alerts in the UI"
+      }
+    ]
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3000",
+  "loginUser": "dee+02@meta-phoenix.io",
+  "loginPassword": "Test12345",
+  "executionArgs": {
+    "projectName": "qrcaptian_v1",
+    "projectPath": "/Users/tigerphoenix/Documents/cursor/qrcaptian_v1",
+    "testIds": [],
+    "additionalInstruction": "The /signin route is now available for direct sign-in access. When testing authentication flows, navigate to /signin instead of / if the root page shows a loading spinner. The theme toggle button is in the header bar with data-testid=\"theme-toggle\". Notification items have data-testid=\"notification-item\" and data-read=\"true/false\" attributes.",
+    "envs": {
+      "API_KEY": "sk-user--4nnV7jL9YVg_LzZFQp48HHaasvXp5sxXww1izD-WOeA6VxhHCZJUTp1ZuuY7ofvsGvmrxRi5iDZcsarv4_rdXIpZc1KLLevra5kV9KjUJ_CUWsy4hgPzg_KvE3xy6G2EHc"
+    }
+  },
+  "serverPort": 51877,
+  "proxy": "http://ef6b6c83-ce95-4bdc-8fde-9a1ea86e3c1f:b96VyxlfCtTvxq2xvpFWZHQAnI1ChWYa@tun.testsprite.com:8080"
+}

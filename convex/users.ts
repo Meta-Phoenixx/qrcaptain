@@ -2,6 +2,25 @@ import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
+// Check if an email is already registered (used during sign-up to prevent silent sign-in)
+export const emailExists = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    if (!args.email) return false;
+    // Check both exact case and lowercased since we don't normalize on write
+    const exactMatch = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+    if (exactMatch) return true;
+    const lowerMatch = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
+      .first();
+    return !!lowerMatch;
+  },
+});
+
 // Get the current authenticated user
 export const currentUser = query({
   args: {},

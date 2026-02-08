@@ -165,7 +165,7 @@ export function Dashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<Id<"accessRequests"> | null>(null);
   const [showProfile, setShowProfile] = useState(false);
-  const { mode } = useTheme();
+  const { mode, toggleTheme } = useTheme();
   
   // Notification-linked states
   const [viewingQuoteId, setViewingQuoteId] = useState<Id<"workOrders"> | null>(null);
@@ -300,6 +300,29 @@ export function Dashboard() {
                 }}
               />
             </div>
+
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              data-testid="theme-toggle"
+              aria-label={mode === 'dark' ? "Switch to light mode" : "Switch to dark mode"}
+              title={mode === 'dark' ? "Switch to light mode" : "Switch to dark mode"}
+              className={`p-2 rounded-lg transition-colors ${
+                mode === 'dark'
+                  ? "text-gray-300 hover:text-yellow-400 hover:bg-white/10"
+                  : "text-gray-600 hover:text-captain-600 hover:bg-captain-50"
+              }`}
+            >
+              {mode === 'dark' ? (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              )}
+            </button>
             
             {/* Profile Dropdown */}
             <ProfileDropdown
@@ -399,9 +422,12 @@ export function Dashboard() {
 
 function OwnerMechanicsView() {
   const mechanics = useQuery(api.accessRequests.getMechanicsForOwner);
+  const preferredMechanics = useQuery(api.preferredMechanics.getPreferredMechanics);
+  const removeFromPreferred = useMutation(api.preferredMechanics.removeFromPreferredList);
   const toggleAccess = useMutation(api.accessRequests.toggleMechanicAccess);
   const [togglingAccess, setTogglingAccess] = useState<string | null>(null);
   const [expandedMechanic, setExpandedMechanic] = useState<string | null>(null);
+  const [removingPreferred, setRemovingPreferred] = useState<string | null>(null);
   const { mode } = useTheme();
 
   const handleToggleAccess = async (
@@ -449,11 +475,152 @@ function OwnerMechanicsView() {
     );
   }
 
+  const handleRemovePreferred = async (mechanicId: Id<"users">) => {
+    setRemovingPreferred(mechanicId);
+    try {
+      await removeFromPreferred({ mechanicId, revokeVesselAccess: false });
+    } catch (err) {
+      console.error("Failed to remove preferred mechanic:", err);
+    } finally {
+      setRemovingPreferred(null);
+    }
+  };
+
   return (
     <div>
+      {/* Preferred Mechanics Section */}
+      <div className="mb-8">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h2 className={`text-2xl font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
+              Preferred Mechanics
+            </h2>
+            <p className={`text-sm mt-1 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
+              Your saved mechanics for quick access
+            </p>
+          </div>
+          <Link
+            href="/mechanics"
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              mode === 'dark'
+                ? "bg-blue-600 hover:bg-blue-500 text-white"
+                : "bg-captain-600 hover:bg-captain-700 text-white"
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            Find Mechanics
+          </Link>
+        </div>
+
+        {preferredMechanics === undefined ? (
+          <div className="flex items-center justify-center py-8">
+            <div className={`h-6 w-6 animate-spin rounded-full border-4 ${mode === 'dark' ? "border-white/10 border-t-blue-500" : "border-gray-200 border-t-blue-600"}`}></div>
+          </div>
+        ) : preferredMechanics.length === 0 ? (
+          <GlassCard className="p-6 text-center">
+            <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 ${mode === 'dark' ? "bg-white/5" : "bg-gray-100"}`}>
+              <svg className={`w-7 h-7 ${mode === 'dark' ? "text-gray-400" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            </div>
+            <h3 className={`text-lg font-semibold mb-1 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>No Preferred Mechanics</h3>
+            <p className={`text-sm mb-4 max-w-sm mx-auto ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
+              Browse the mechanic directory to find and save mechanics for easy access.
+            </p>
+            <Link
+              href="/mechanics"
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                mode === 'dark'
+                  ? "bg-blue-600 hover:bg-blue-500 text-white"
+                  : "bg-captain-600 hover:bg-captain-700 text-white"
+              }`}
+            >
+              Browse Mechanic Directory
+            </Link>
+          </GlassCard>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {preferredMechanics.map((mechanic: any) => (
+              <GlassCard key={mechanic._id} className="p-4">
+                <div className="flex items-start gap-3">
+                  {mechanic.imageUrl ? (
+                    <img
+                      src={mechanic.imageUrl}
+                      alt={mechanic.companyName || mechanic.firstName}
+                      className={`w-12 h-12 rounded-full object-cover border-2 ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}
+                    />
+                  ) : (
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${mode === 'dark' ? "bg-white/10 border-white/10" : "bg-captain-100 border-gray-200"}`}>
+                      <span className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-captain-600"}`}>
+                        {(mechanic.companyName || mechanic.firstName || "M").charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h4 className={`font-semibold truncate ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
+                      {mechanic.companyName || `${mechanic.firstName || ""} ${mechanic.lastName || ""}`.trim() || "Mechanic"}
+                    </h4>
+                    {mechanic.companyName && mechanic.firstName && (
+                      <p className={`text-xs truncate ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
+                        {mechanic.firstName} {mechanic.lastName}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-2 mt-1">
+                      {mechanic.avgOverallRating && (
+                        <span className={`text-xs flex items-center gap-1 ${mode === 'dark' ? "text-yellow-400" : "text-yellow-600"}`}>
+                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                          {mechanic.avgOverallRating.toFixed(1)} ({mechanic.totalRatings})
+                        </span>
+                      )}
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                        mechanic.availabilityStatus === "available"
+                          ? (mode === 'dark' ? "bg-green-500/20 text-green-300" : "bg-green-100 text-green-700")
+                          : mechanic.availabilityStatus === "busy"
+                            ? (mode === 'dark' ? "bg-yellow-500/20 text-yellow-300" : "bg-yellow-100 text-yellow-700")
+                            : (mode === 'dark' ? "bg-gray-500/20 text-gray-300" : "bg-gray-100 text-gray-600")
+                      }`}>
+                        {mechanic.availabilityStatus === "available" ? "Available" : mechanic.availabilityStatus === "busy" ? "Busy" : "Unavailable"}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleRemovePreferred(mechanic.mechanicId)}
+                    disabled={removingPreferred === mechanic.mechanicId}
+                    title="Remove from preferred"
+                    className={`p-1.5 rounded-lg transition-colors flex-shrink-0 ${
+                      mode === 'dark'
+                        ? "text-gray-500 hover:text-red-400 hover:bg-red-500/10"
+                        : "text-gray-400 hover:text-red-500 hover:bg-red-50"
+                    } ${removingPreferred === mechanic.mechanicId ? "opacity-50" : ""}`}
+                  >
+                    {removingPreferred === mechanic.mechanicId ? (
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                {mechanic.notes && (
+                  <p className={`text-xs mt-2 italic ${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`}>
+                    "{mechanic.notes}"
+                  </p>
+                )}
+              </GlassCard>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* All Mechanics Section (existing) */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h2 className={`text-2xl font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Mechanics</h2>
+          <h2 className={`text-2xl font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>All Mechanics</h2>
           <p className={`text-sm mt-1 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
             Manage mechanic access to your vessels
           </p>

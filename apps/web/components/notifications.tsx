@@ -32,7 +32,10 @@ export function NotificationBell({ onClick }: NotificationBellProps) {
         />
       </svg>
       {unreadCount !== undefined && unreadCount > 0 && (
-        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
+        <span
+          data-testid="notification-unread-count"
+          className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1"
+        >
           {unreadCount > 99 ? "99+" : unreadCount}
         </span>
       )}
@@ -340,6 +343,7 @@ export function NotificationsPanel({
           {notifications && notifications.length > 0 && (
             <button
               onClick={handleMarkAllRead}
+              data-testid="mark-all-read"
               className={`text-sm font-medium ${mode === 'dark' ? "text-blue-400 hover:text-blue-300" : "text-captain-600 hover:text-captain-700"}`}
             >
               Mark all read
@@ -370,6 +374,10 @@ export function NotificationsPanel({
                   <div
                     key={notification._id}
                     onClick={() => handleNotificationClick(notification)}
+                    data-testid="notification-item"
+                    data-notification-type={notification.type}
+                    data-read={notification.isRead ? "true" : "false"}
+                    aria-label={`${notification.isRead ? "Read" : "Unread"} notification: ${notification.title}`}
                     className={`p-4 transition-colors ${
                       clickable ? (mode === 'dark' ? "hover:bg-gray-800/50 cursor-pointer" : "hover:bg-gray-50 cursor-pointer") : ""
                     } ${!notification.isRead ? (mode === 'dark' ? "bg-blue-500/10" : "bg-captain-50/50") : ""}`}
