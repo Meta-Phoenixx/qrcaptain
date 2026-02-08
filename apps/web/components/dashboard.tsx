@@ -34,6 +34,7 @@ import {
   User,
   X,
   Camera,
+  Pencil,
 } from "lucide-react";
 
 // ============================================
@@ -101,7 +102,11 @@ function ProfileDropdown({ user, profilePhotoUrl, onProfileClick, onSignOut }: P
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <GlassCard className="absolute right-0 mt-2 w-64 py-2 z-50">
+        <div className={`absolute right-0 mt-2 w-64 py-2 z-50 rounded-2xl border backdrop-blur-xl overflow-hidden ${
+          mode === 'dark'
+            ? "bg-gray-900/95 border-white/10 shadow-[0_4px_24px_-1px_rgba(0,0,0,0.4)]"
+            : "bg-white/95 border-gray-200 shadow-[0_4px_24px_-1px_rgba(0,0,0,0.12)]"
+        }`}>
           {/* User Info */}
           <div className={`px-4 py-3 border-b ${mode === 'dark' ? "border-white/10" : "border-gray-100"}`}>
             <p className={`text-sm font-semibold truncate ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{displayName}</p>
@@ -142,7 +147,7 @@ function ProfileDropdown({ user, profilePhotoUrl, onProfileClick, onSignOut }: P
               Sign Out
             </button>
           </div>
-        </GlassCard>
+        </div>
       )}
     </div>
   );
@@ -1237,12 +1242,78 @@ function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onC
   const vesselImageUrl = useQuery(api.storage.getVesselImageUrl, { vesselId });
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const saveVesselImage = useMutation(api.storage.saveVesselImage);
+  const updateVessel = useMutation(api.vessels.updateVessel);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [selectedWorkOrderId, setSelectedWorkOrderId] = useState<Id<"workOrders"> | null>(null);
   const [showWorkOrderRequest, setShowWorkOrderRequest] = useState(false);
+
+  // Editing state
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editMake, setEditMake] = useState("");
+  const [editModel, setEditModel] = useState("");
+  const [editYear, setEditYear] = useState("");
+  const [editVesselType, setEditVesselType] = useState("");
+  const [editRegistrationNumber, setEditRegistrationNumber] = useState("");
+  const [editHullId, setEditHullId] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+
+  const startEditing = () => {
+    if (!vessel) return;
+    setEditName(vessel.name);
+    setEditMake(vessel.make);
+    setEditModel(vessel.model);
+    setEditYear(String(vessel.year));
+    setEditVesselType(vessel.vesselType);
+    setEditRegistrationNumber(vessel.registrationNumber || "");
+    setEditHullId(vessel.hullId || "");
+    setEditNotes(vessel.notes || "");
+    setEditError(null);
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditError(null);
+  };
+
+  const saveEdits = async () => {
+    if (!editName.trim() || !editMake.trim() || !editModel.trim() || !editYear.trim()) {
+      setEditError("Name, make, model, and year are required.");
+      return;
+    }
+    const yearNum = parseInt(editYear);
+    if (isNaN(yearNum) || yearNum < 1900 || yearNum > new Date().getFullYear() + 1) {
+      setEditError("Please enter a valid year.");
+      return;
+    }
+
+    setIsSaving(true);
+    setEditError(null);
+    try {
+      await updateVessel({
+        vesselId,
+        name: editName.trim(),
+        make: editMake.trim(),
+        model: editModel.trim(),
+        year: yearNum,
+        vesselType: editVesselType,
+        registrationNumber: editRegistrationNumber.trim() || undefined,
+        hullId: editHullId.trim() || undefined,
+        notes: editNotes.trim() || undefined,
+      });
+      setIsEditing(false);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : "Failed to update vessel");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Handle file selection - show cropper first
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1318,7 +1389,16 @@ function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onC
             <h2 className={`text-xl font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{vessel.name}</h2>
             <p className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-500"}`}>{vessel.make} {vessel.model} ({vessel.year})</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {!isEditing && (
+              <button
+                onClick={startEditing}
+                title="Edit vessel info"
+                className={`p-2 rounded-lg transition-colors ${mode === 'dark' ? "text-gray-400 hover:text-white hover:bg-white/10" : "text-gray-400 hover:text-gray-700 hover:bg-gray-100"}`}
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
             <GlassButton
               onClick={() => setShowWorkOrderRequest(true)}
               variant="primary"
@@ -1394,31 +1474,142 @@ function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onC
             vesselName={vessel.name}
           />
 
-          {/* Vessel Details */}
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <span className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-500"}`}>Type</span>
-              <p className={`font-medium capitalize ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{vessel.vesselType.replace('_', ' ')}</p>
-            </div>
-            {vessel.registrationNumber && (
-              <div>
-                <span className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-500"}`}>Registration</span>
-                <p className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{vessel.registrationNumber}</p>
-              </div>
-            )}
-            {vessel.hullId && (
-              <div>
-                <span className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-500"}`}>Hull ID</span>
-                <p className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{vessel.hullId}</p>
-              </div>
-            )}
-          </div>
+          {/* Vessel Details — view or edit mode */}
+          {isEditing ? (
+            <div className={`mb-6 rounded-xl p-4 border ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-gray-50 border-gray-200"}`}>
+              <h3 className={`font-semibold mb-3 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>Edit Vessel Info</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
+                    Vessel Name *
+                  </label>
+                  <GlassInput value={editName} onChange={(e) => setEditName(e.target.value)} required placeholder="e.g., Sea Breeze" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
+                      Make *
+                    </label>
+                    <GlassInput value={editMake} onChange={(e) => setEditMake(e.target.value)} required placeholder="e.g., Boston Whaler" />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
+                      Model *
+                    </label>
+                    <GlassInput value={editModel} onChange={(e) => setEditModel(e.target.value)} required placeholder="e.g., Outrage 330" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
+                      Year *
+                    </label>
+                    <GlassInput value={editYear} onChange={(e) => setEditYear(e.target.value)} type="number" required min={1900} max={new Date().getFullYear() + 1} placeholder="2023" />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
+                      Vessel Type *
+                    </label>
+                    <GlassSelect value={editVesselType} onChange={(e) => setEditVesselType(e.target.value)}>
+                      <option value="powerboat">Powerboat</option>
+                      <option value="sailboat">Sailboat</option>
+                      <option value="yacht">Yacht</option>
+                      <option value="fishing">Fishing Boat</option>
+                      <option value="pontoon">Pontoon</option>
+                      <option value="jet_ski">Jet Ski / PWC</option>
+                      <option value="center_console">Center Console</option>
+                      <option value="cabin_cruiser">Cabin Cruiser</option>
+                      <option value="other">Other</option>
+                    </GlassSelect>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
+                      Registration Number
+                    </label>
+                    <GlassInput value={editRegistrationNumber} onChange={(e) => setEditRegistrationNumber(e.target.value)} placeholder="FL 1234 AB" />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
+                      Hull ID (HIN)
+                    </label>
+                    <GlassInput value={editHullId} onChange={(e) => setEditHullId(e.target.value)} placeholder="ABC12345D678" />
+                  </div>
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
+                    Notes
+                  </label>
+                  <textarea
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    rows={3}
+                    className={`w-full rounded-lg px-4 py-2 focus:outline-none focus:ring-2 transition-all duration-200 ${
+                      mode === 'dark'
+                        ? "bg-black/20 border border-white/10 text-white placeholder-gray-400 focus:border-blue-500/50 focus:ring-blue-500/50"
+                        : "bg-white/50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-blue-500 focus:bg-white"
+                    }`}
+                    placeholder="Any additional information about your vessel..."
+                  />
+                </div>
 
-          {vessel.notes && (
-            <div className="mb-6">
-              <span className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-500"}`}>Notes</span>
-              <p className={mode === 'dark' ? "text-gray-300" : "text-gray-700"}>{vessel.notes}</p>
+                {editError && (
+                  <div className={`rounded-lg p-3 text-sm ${mode === 'dark' ? "bg-red-500/10 text-red-200 border border-red-500/20" : "bg-red-50 text-red-600"}`}>
+                    {editError}
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <GlassButton
+                    type="button"
+                    onClick={cancelEditing}
+                    variant="secondary"
+                    className="flex-1"
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </GlassButton>
+                  <GlassButton
+                    type="button"
+                    onClick={saveEdits}
+                    variant="primary"
+                    className="flex-1"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? "Saving..." : "Save Changes"}
+                  </GlassButton>
+                </div>
+              </div>
             </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <span className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-500"}`}>Type</span>
+                  <p className={`font-medium capitalize ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{vessel.vesselType.replace('_', ' ')}</p>
+                </div>
+                {vessel.registrationNumber && (
+                  <div>
+                    <span className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-500"}`}>Registration</span>
+                    <p className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{vessel.registrationNumber}</p>
+                  </div>
+                )}
+                {vessel.hullId && (
+                  <div>
+                    <span className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-500"}`}>Hull ID</span>
+                    <p className={`font-medium ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{vessel.hullId}</p>
+                  </div>
+                )}
+              </div>
+
+              {vessel.notes && (
+                <div className="mb-6">
+                  <span className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-500"}`}>Notes</span>
+                  <p className={mode === 'dark' ? "text-gray-300" : "text-gray-700"}>{vessel.notes}</p>
+                </div>
+              )}
+            </>
           )}
 
           {/* Equipment Manifest Section */}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { GlassCard, GlassInput, GlassButton, GlassSelect } from "../ui/glass";
 import { useTheme } from "../providers/theme-provider";
@@ -34,6 +35,7 @@ function getErrorMessage(error: unknown, isSignUp: boolean): string {
 
 export function SignInForm() {
   const { signIn } = useAuthActions();
+  const router = useRouter();
   const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,15 +58,12 @@ export function SignInForm() {
     }
 
     try {
-      const result = await signIn("password", formData);
-      
-      if (result && typeof result === 'object' && 'redirect' in result) {
-        const redirect = result.redirect;
-        window.location.href = typeof redirect === 'string' ? redirect : redirect?.toString() || '/';
-        return;
-      }
-      
-      setIsLoading(false);
+      await signIn("password", formData);
+      // Navigate immediately after successful sign-in while the
+      // component is still mounted and the router is in a stable state.
+      // Relying on the <Authenticated> wrapper to trigger a redirect
+      // via useEffect was unreliable during the auth state transition.
+      router.push("/home");
     } catch (err) {
       setError(getErrorMessage(err, isSignUp));
       setIsLoading(false);
