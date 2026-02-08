@@ -26,6 +26,7 @@ import { MechanicQuoteForm } from "./mechanic-quote-form";
 import { QuoteViewer } from "./quote-viewer";
 import { WorkOrderRequestForm } from "./work-order-request-form";
 import { AdminControlPanel } from "./admin-control-panel";
+import { GeneralMessaging } from "./general-messaging";
 import { GlassCard, GlassButton, GlassBadge, GlassInput, GlassSelect, GlassModal } from "./ui/glass";
 import { useTheme } from "./providers/theme-provider";
 import {
@@ -154,6 +155,83 @@ function ProfileDropdown({ user, profilePhotoUrl, onProfileClick, onSignOut }: P
 }
 
 // ============================================
+// MESSAGE NOTIFICATION VIEWER
+// ============================================
+
+function MessageNotificationViewer({ 
+  messageId, 
+  onClose 
+}: { 
+  messageId: Id<"messages">; 
+  onClose: () => void; 
+}) {
+  const messageDetails = useQuery(api.messages.getMessageById, { messageId });
+
+  if (messageDetails === undefined) {
+    // Loading
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (messageDetails === null) {
+    // Message not found or not authorized
+    onClose();
+    return null;
+  }
+
+  return (
+    <GeneralMessaging
+      recipientId={messageDetails.otherUserId}
+      recipientName={messageDetails.otherUserName}
+      recipientCompany={messageDetails.otherUserCompany}
+      vesselId={messageDetails.vesselId}
+      onClose={onClose}
+    />
+  );
+}
+
+// ============================================
+// PREFERRED MECHANIC NOTIFICATION VIEWER
+// ============================================
+
+function PreferredMechanicNotificationViewer({ 
+  preferredId, 
+  onClose 
+}: { 
+  preferredId: Id<"preferredMechanics">; 
+  onClose: () => void; 
+}) {
+  const details = useQuery(api.preferredMechanics.getPreferredMechanicById, { preferredId });
+
+  if (details === undefined) {
+    // Loading
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (details === null) {
+    // Record not found or not authorized
+    onClose();
+    return null;
+  }
+
+  return (
+    <GeneralMessaging
+      recipientId={details.otherUserId}
+      recipientName={details.otherUserName}
+      recipientCompany={details.otherUserCompany}
+      onClose={onClose}
+    />
+  );
+}
+
+// ============================================
 // MAIN DASHBOARD COMPONENT
 // ============================================
 
@@ -174,6 +252,8 @@ export function Dashboard() {
   const [viewingWorkOrderForRating, setViewingWorkOrderForRating] = useState<Id<"workOrders"> | null>(null);
   const [respondingToRequestId, setRespondingToRequestId] = useState<Id<"workOrders"> | null>(null);
   const [viewingVesselId, setViewingVesselId] = useState<Id<"vessels"> | null>(null);
+  const [viewingMessageId, setViewingMessageId] = useState<Id<"messages"> | null>(null);
+  const [viewingPreferredId, setViewingPreferredId] = useState<Id<"preferredMechanics"> | null>(null);
 
   // Handle URL params from landing page notification clicks
   useEffect(() => {
@@ -298,6 +378,14 @@ export function Dashboard() {
                   setShowNotifications(false);
                   router.push("/home");
                 }}
+                onViewMessage={(messageId) => {
+                  setShowNotifications(false);
+                  setViewingMessageId(messageId);
+                }}
+                onViewPreferredOwner={(preferredId) => {
+                  setShowNotifications(false);
+                  setViewingPreferredId(preferredId);
+                }}
               />
             </div>
 
@@ -412,6 +500,22 @@ export function Dashboard() {
           onClose={() => setViewingVesselId(null)}
         />
       )}
+
+      {/* Message Viewer - Opens GeneralMessaging from notification click */}
+      {viewingMessageId && (
+        <MessageNotificationViewer
+          messageId={viewingMessageId}
+          onClose={() => setViewingMessageId(null)}
+        />
+      )}
+
+      {/* Preferred Mechanic Viewer - Opens messaging with the owner who added you */}
+      {viewingPreferredId && (
+        <PreferredMechanicNotificationViewer
+          preferredId={viewingPreferredId}
+          onClose={() => setViewingPreferredId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -458,7 +562,7 @@ function OwnerMechanicsView() {
     );
   }
 
-  if (mechanics.length === 0) {
+  if (mechanics.length === 0 && (!preferredMechanics || preferredMechanics.length === 0)) {
     return (
       <GlassCard className="p-8 text-center">
         <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${mode === 'dark' ? "bg-white/5" : "bg-gray-100"}`}>

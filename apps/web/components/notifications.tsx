@@ -53,6 +53,8 @@ interface NotificationsPanelProps {
   onViewVessel?: (vesselId: Id<"vessels">) => void;
   onLeaveRating?: (workOrderId: Id<"workOrders">) => void;
   onViewAnnouncement?: () => void;
+  onViewMessage?: (messageId: Id<"messages">) => void;
+  onViewPreferredOwner?: (preferredId: Id<"preferredMechanics">) => void;
 }
 
 export function NotificationsPanel({ 
@@ -65,6 +67,8 @@ export function NotificationsPanel({
   onViewVessel,
   onLeaveRating,
   onViewAnnouncement,
+  onViewMessage,
+  onViewPreferredOwner,
 }: NotificationsPanelProps) {
   const notifications = useQuery(api.notifications.getMyNotifications, { limit: 20 });
   const markAsRead = useMutation(api.notifications.markAsRead);
@@ -146,6 +150,39 @@ export function NotificationsPanel({
         }
         break;
 
+      // New message - route based on relatedType
+      case "new_message":
+        if (notification.relatedType === "message" && onViewMessage) {
+          // General message - open messaging with sender
+          onViewMessage(notification.relatedId as Id<"messages">);
+        } else if (onViewWorkOrder) {
+          // Work order message - relatedId is the work order ID
+          onViewWorkOrder(notification.relatedId as Id<"workOrders">);
+        }
+        break;
+
+      // Added to preferred list - open messaging with the owner who added you
+      case "added_to_preferred_list":
+        if (onViewPreferredOwner) {
+          onViewPreferredOwner(notification.relatedId as Id<"preferredMechanics">);
+        }
+        break;
+
+      // Access denied - informational, mark as read
+      case "access_denied":
+        break;
+
+      // Access revoked - navigate to vessel if available
+      case "access_revoked":
+        if (notification.relatedType === "vessel" && onViewVessel) {
+          onViewVessel(notification.relatedId as Id<"vessels">);
+        }
+        break;
+
+      // Onboarding reminder - no specific deep link
+      case "onboarding_reminder":
+        break;
+
       default:
         // No specific action for other notification types
         break;
@@ -169,6 +206,11 @@ export function NotificationsPanel({
       "rate_mechanic_reminder",
       "rate_owner_reminder",
       "new_announcement",
+      "new_message",
+      "added_to_preferred_list",
+      "access_denied",
+      "access_revoked",
+      "onboarding_reminder",
     ].includes(type);
   };
 

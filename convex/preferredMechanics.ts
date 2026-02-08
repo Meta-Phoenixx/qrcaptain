@@ -85,6 +85,38 @@ export const getPreferredMechanics = query({
   },
 });
 
+// Get preferred mechanic record by ID (for notification routing)
+export const getPreferredMechanicById = query({
+  args: {
+    preferredId: v.id("preferredMechanics"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+
+    const record = await ctx.db.get(args.preferredId);
+    if (!record) return null;
+
+    // Only the owner or mechanic in the record can view it
+    if (record.ownerId !== userId && record.mechanicId !== userId) {
+      return null;
+    }
+
+    // Return the "other" user's info (from the viewer's perspective)
+    const otherUserId = record.ownerId === userId ? record.mechanicId : record.ownerId;
+    const otherUser = await ctx.db.get(otherUserId);
+
+    return {
+      ...record,
+      otherUserId,
+      otherUserName: otherUser?.firstName && otherUser?.lastName
+        ? `${otherUser.firstName} ${otherUser.lastName}`
+        : otherUser?.name || "Unknown",
+      otherUserCompany: otherUser?.companyName,
+    };
+  },
+});
+
 // Add mechanic to preferred list
 export const addToPreferredList = mutation({
   args: {

@@ -634,6 +634,14 @@ export function LandingPage() {
                   // User is already on the home screen — scroll to top where announcements are visible
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 }}
+                onViewMessage={() => {
+                  setShowNotifications(false);
+                  router.push("/?dashboard=true");
+                }}
+                onViewPreferredOwner={() => {
+                  setShowNotifications(false);
+                  router.push("/?dashboard=true");
+                }}
               />
             </div>
             {/* Theme Toggle */}

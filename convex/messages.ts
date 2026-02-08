@@ -54,6 +54,38 @@ export const sendMessage = mutation({
   },
 });
 
+// Get a single message by ID (for notification routing)
+export const getMessageById = query({
+  args: {
+    messageId: v.id("messages"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+
+    const message = await ctx.db.get(args.messageId);
+    if (!message) return null;
+
+    // Only allow sender or receiver to view
+    if (message.senderId !== userId && message.receiverId !== userId) {
+      return null;
+    }
+
+    // Get the other user's info
+    const otherUserId = message.senderId === userId ? message.receiverId : message.senderId;
+    const otherUser = await ctx.db.get(otherUserId);
+
+    return {
+      ...message,
+      otherUserId,
+      otherUserName: otherUser?.firstName && otherUser?.lastName
+        ? `${otherUser.firstName} ${otherUser.lastName}`
+        : otherUser?.name || "Unknown",
+      otherUserCompany: otherUser?.companyName,
+    };
+  },
+});
+
 // Get conversation between two users (optionally filtered by vessel)
 export const getConversation = query({
   args: {
