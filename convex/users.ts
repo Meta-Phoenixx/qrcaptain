@@ -33,8 +33,10 @@ export const currentUser = query({
   },
 });
 
-// Seed an admin user - call this via CLI: npx convex run users:seedAdmin
-export const seedAdmin = internalMutation({
+// Seed an admin user - run from Convex dashboard or CLI:
+//   npx convex run users:seedAdmin       (dev)
+//   npx convex run --prod users:seedAdmin (production)
+export const seedAdmin = mutation({
   args: {},
   handler: async (ctx) => {
     // Check if admin already exists
@@ -69,7 +71,8 @@ export const seedAdmin = internalMutation({
 });
 
 // Update a user's role to admin (for promoting existing users)
-export const promoteToAdmin = internalMutation({
+// Run from CLI: npx convex run --prod users:promoteToAdmin '{"email":"you@example.com"}'
+export const promoteToAdmin = mutation({
   args: { email: v.string() },
   handler: async (ctx, args) => {
     const user = await ctx.db
