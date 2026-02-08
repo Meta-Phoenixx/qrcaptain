@@ -1,9 +1,11 @@
 import { convexAuth } from "@convex-dev/auth/server";
 import { Password } from "@convex-dev/auth/providers/Password";
+import { ResendOTPPasswordReset } from "./ResendOTPPasswordReset";
 
 export const { auth, signIn, signOut, store } = convexAuth({
   providers: [
     Password({
+      reset: ResendOTPPasswordReset,
       profile(params) {
         const role = (params.role as string) || "owner";
         const isMechanic = role === "mechanic";

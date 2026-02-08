@@ -13,9 +13,12 @@
     "dev:convex": "cd convex && npx convex dev"
   },
   "dependencies": {
+    "@auth/core": "^0.34.3",
     "@convex-dev/auth": "^0.0.71",
+    "@oslojs/crypto": "^1.0.1",
     "convex": "^1.17.0",
-    "react-image-crop": "^11.0.10"
+    "react-image-crop": "^11.0.10",
+    "resend": "^6.9.1"
   },
   "devDependencies": {
     "turbo": "^2.3.0",

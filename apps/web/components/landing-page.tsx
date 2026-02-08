@@ -17,6 +17,8 @@ import { ServiceReminders, ServiceReminderBadge } from "./service-reminders";
 import { FeaturedMechanics, FeaturedMechanicsBadge } from "./featured-mechanics";
 import { NotificationBell, NotificationsPanel } from "./notifications";
 import { MechanicSpotlight } from "./mechanic-spotlight";
+import { MechanicProfile } from "./mechanic-profile";
+import { OwnerProfile } from "./owner-profile";
 
 // ============================================
 // PROFILE DROPDOWN (Shared with dashboard)
@@ -560,6 +562,7 @@ export function LandingPage() {
   const user = useQuery(api.users.currentUser);
   const profilePhotoUrl = useQuery(api.storage.getUserProfilePhotoUrl, {});
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   const { mode, toggleTheme } = useTheme();
 
@@ -584,10 +587,7 @@ export function LandingPage() {
   };
 
   const handleProfileClick = () => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("qr-captain-prefer-dashboard", "true");
-    }
-    router.push("/?dashboard=true");
+    setShowProfile(true);
   };
 
   return (
@@ -686,6 +686,14 @@ export function LandingPage() {
           <p>&copy; {new Date().getFullYear()} QR Captain. All rights reserved.</p>
         </div>
       </footer>
+
+      {/* Profile Modal - Role-specific */}
+      {showProfile && user.role === "owner" && (
+        <OwnerProfile onClose={() => setShowProfile(false)} />
+      )}
+      {showProfile && user.role === "mechanic" && (
+        <MechanicProfile onClose={() => setShowProfile(false)} />
+      )}
     </div>
   );
 }
