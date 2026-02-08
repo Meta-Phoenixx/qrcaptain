@@ -478,18 +478,15 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
                 </div>
                 <div>
                   <GlassSelect
-                    label="Vessel Type"
                     required
                     value={vesselData.vesselType}
                     onChange={(e) => updateVesselData("vesselType", e.target.value)}
-                    options={[
-                      { value: "", label: "Select type..." },
-                      ...VESSEL_TYPES.map((type) => ({
-                        value: type.value,
-                        label: type.label,
-                      })),
-                    ]}
-                  />
+                  >
+                    <option value="">Select type...</option>
+                    {VESSEL_TYPES.map((type) => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </GlassSelect>
                 </div>
               </div>
 
@@ -565,11 +562,12 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
                     <GlassSelect
                       value={equipmentData.engineType}
                       onChange={(e) => updateEquipmentData("engineType", e.target.value)}
-                      options={[
-                        { value: "", label: "Select engine type..." },
-                        ...ENGINE_TYPES.map((type) => ({ value: type, label: type })),
-                      ]}
-                    />
+                    >
+                      <option value="">Select engine type...</option>
+                      {ENGINE_TYPES.map((type) => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </GlassSelect>
                     <div className="grid grid-cols-3 gap-2">
                       <GlassInput
                         value={equipmentData.engineMake}
@@ -630,11 +628,12 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
                       <GlassSelect
                         value={equipmentData.batteryType}
                         onChange={(e) => updateEquipmentData("batteryType", e.target.value)}
-                        options={[
-                          { value: "", label: "Select battery type..." },
-                          ...BATTERY_TYPES.map((type) => ({ value: type, label: type })),
-                        ]}
-                      />
+                      >
+                        <option value="">Select battery type...</option>
+                        {BATTERY_TYPES.map((type) => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
+                      </GlassSelect>
                       <GlassInput
                         type="number"
                         min="1"

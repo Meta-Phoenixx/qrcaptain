@@ -3,7 +3,7 @@
 import { Authenticated } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { SignInPageContent } from "../page";
+import { SignInPageContent } from "@/components/sign-in-page-content";
 
 /**
  * Dedicated sign-in page at /signin.

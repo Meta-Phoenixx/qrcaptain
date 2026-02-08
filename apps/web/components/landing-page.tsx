@@ -229,7 +229,7 @@ function OwnerLandingPage({
 }) {
   const router = useRouter();
   const vessels = useQuery(api.vessels.listMyVessels);
-  const workOrderRequests = useQuery(api.workOrders.getMyWorkOrderRequests);
+  const workOrderRequests = useQuery(api.workOrders.getMyWorkOrderRequests, {});
   const [selectedMechanicId, setSelectedMechanicId] = useState<Id<"users"> | null>(null);
   const { mode } = useTheme();
 

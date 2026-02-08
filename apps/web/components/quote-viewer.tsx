@@ -102,13 +102,13 @@ export function QuoteViewer({ workOrderId, onClose }: QuoteViewerProps) {
               <div className="flex justify-between">
                 <span className={`${mode === 'dark' ? "text-gray-300" : "text-gray-600"}`}>Priority</span>
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                  workOrder.priority === "urgent" 
+                  (workOrder as any).priority === "urgent" 
                     ? "bg-red-100 text-red-700"
-                    : workOrder.priority === "high"
+                    : (workOrder as any).priority === "high"
                     ? "bg-orange-100 text-orange-700"
                     : "bg-green-100 text-green-700"
                 }`}>
-                  {workOrder.priority || "normal"}
+                  {(workOrder as any).priority || "normal"}
                 </span>
               </div>
             </div>

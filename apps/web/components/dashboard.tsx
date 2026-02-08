@@ -1323,16 +1323,15 @@ function AddVesselModal({ onClose }: { onClose: () => void }) {
               <GlassSelect
                 name="vesselType"
                 required
-                options={[
-                  { value: "powerboat", label: "Powerboat" },
-                  { value: "sailboat", label: "Sailboat" },
-                  { value: "yacht", label: "Yacht" },
-                  { value: "fishing", label: "Fishing Boat" },
-                  { value: "pontoon", label: "Pontoon" },
-                  { value: "jet_ski", label: "Jet Ski / PWC" },
-                  { value: "other", label: "Other" },
-                ]}
-              />
+              >
+                <option value="powerboat">Powerboat</option>
+                <option value="sailboat">Sailboat</option>
+                <option value="yacht">Yacht</option>
+                <option value="fishing">Fishing Boat</option>
+                <option value="pontoon">Pontoon</option>
+                <option value="jet_ski">Jet Ski / PWC</option>
+                <option value="other">Other</option>
+              </GlassSelect>
             </div>
           </div>
 

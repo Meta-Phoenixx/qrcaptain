@@ -31,10 +31,7 @@ export function AddPreferredMechanicModal({
 
   // Get current user and their vessels
   const currentUser = useQuery(api.users.currentUser);
-  const vessels = useQuery(
-    api.vessels.listByOwner,
-    currentUser?._id ? { ownerId: currentUser._id } : "skip"
-  );
+  const vessels = useQuery(api.vessels.listMyVessels);
 
   // Add to preferred list mutation
   const addToPreferredList = useMutation(api.preferredMechanics.addToPreferredList);

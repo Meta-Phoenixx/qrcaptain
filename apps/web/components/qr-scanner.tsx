@@ -383,7 +383,7 @@ export function VesselInfoModal({
       <div className={`px-6 py-6 flex items-start justify-between ${mode === 'dark' ? "bg-gradient-to-r from-blue-900/40 to-cyan-900/40 border-b border-white/10" : "bg-gradient-to-r from-captain-600 to-captain-700 text-white"}`}>
         <div className="flex items-center gap-4">
           <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${mode === 'dark' ? "bg-white/10" : "bg-white/20"}`}>
-            <Anchor className={`w-7 h-7 ${themeMode === 'dark' ? "text-blue-400" : "text-white"}`} />
+            <Anchor className={`w-7 h-7 ${mode === 'dark' ? "text-blue-400" : "text-white"}`} />
           </div>
           <div>
             <h2 className={`text-xl font-bold ${mode === 'dark' ? "text-white" : "text-white"}`}>{vessel.name}</h2>

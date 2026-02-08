@@ -280,7 +280,7 @@ export function ServiceHistoryViewer({
 }
 
 // Status Badge Component
-function StatusBadge({ status }: { status: "in_progress" | "completed" | "cancelled" }) {
+function StatusBadge({ status }: { status: string }) {
   const config = {
     in_progress: {
       label: "In Progress",
@@ -299,7 +299,7 @@ function StatusBadge({ status }: { status: "in_progress" | "completed" | "cancel
     },
   };
 
-  const { label, className, icon: Icon } = config[status];
+  const { label, className, icon: Icon } = config[status as keyof typeof config] || config.completed;
 
   return (
     <span
@@ -316,7 +316,7 @@ interface InProgressWidgetProps {
   order: {
     _id: Id<"workOrders">;
     description: string;
-    status: "in_progress" | "completed" | "cancelled";
+    status: string;
     startedAt: number;
     mechanicName?: string;
     mechanicCompany?: string;

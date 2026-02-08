@@ -144,8 +144,8 @@ export function WorkOrderRequestForm({
                 setSelectedEquipmentId("");
                 // Reset mechanic if they don't have access to new vessel
                 if (selectedMechanicId) {
-                  const hasAccess = preferredMechanics?.find(m => m.mechanicId === selectedMechanicId)
-                    ?.vesselAuthorizations.some(a => a.vesselId === e.target.value && a.isAuthorized);
+                  const hasAccess = preferredMechanics?.find((m: any) => m?.mechanicId === selectedMechanicId)
+                    ?.vesselAuthorizations?.some((a: any) => a?.vesselId === e.target.value && a?.isAuthorized);
                   if (!hasAccess) {
                     setSelectedMechanicId("");
                   }
@@ -186,7 +186,7 @@ export function WorkOrderRequestForm({
                 disabled={!!preSelectedMechanicId}
               >
                 <option value="">Choose a mechanic...</option>
-                {availableMechanics.map((mechanic) => (
+                {availableMechanics.filter((m): m is NonNullable<typeof m> => m != null).map((mechanic) => (
                   <option key={mechanic.mechanicId} value={mechanic.mechanicId}>
                     {mechanic.companyName || (mechanic.firstName && mechanic.lastName ? `${mechanic.firstName} ${mechanic.lastName}` : "Unknown")}
                     {mechanic.avgOverallRating ? ` (${mechanic.avgOverallRating.toFixed(1)} wrenches)` : ""}

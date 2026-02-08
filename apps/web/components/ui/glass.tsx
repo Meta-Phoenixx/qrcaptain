@@ -83,10 +83,11 @@ export const GlassButton = ({
   );
 };
 
-export const GlassInput = ({ className = "", ...props }: React.InputHTMLAttributes<HTMLInputElement>) => {
+export const GlassInput = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement> & { label?: React.ReactNode }>(({ className = "", label, ...props }, ref) => {
   const { mode } = useTheme();
-  return (
+  const input = (
     <input
+      ref={ref}
       className={`
         w-full rounded-xl px-4 py-3 backdrop-blur-md transition-all
         focus:outline-none focus:ring-1 
@@ -98,11 +99,28 @@ export const GlassInput = ({ className = "", ...props }: React.InputHTMLAttribut
       {...props}
     />
   );
-};
-
-export const GlassSelect = ({ className = "", ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) => {
-  const { mode } = useTheme();
+  if (!label) return input;
   return (
+    <div>
+      <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>{label}</label>
+      {input}
+    </div>
+  );
+});
+GlassInput.displayName = "GlassInput";
+
+interface GlassSelectOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+
+export const GlassSelect = ({ className = "", label, options, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & {
+  label?: React.ReactNode;
+  options?: GlassSelectOption[];
+}) => {
+  const { mode } = useTheme();
+  const select = (
     <select
       className={`
         w-full rounded-xl px-4 py-3 backdrop-blur-md appearance-none transition-all
@@ -114,8 +132,21 @@ export const GlassSelect = ({ className = "", ...props }: React.SelectHTMLAttrib
       `}
       {...props}
     >
-      {props.children}
+      {options
+        ? options.map((opt) => (
+            <option key={opt.value} value={opt.value} disabled={opt.disabled}>
+              {opt.label}
+            </option>
+          ))
+        : children}
     </select>
+  );
+  if (!label) return select;
+  return (
+    <div>
+      <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>{label}</label>
+      {select}
+    </div>
   );
 };
 

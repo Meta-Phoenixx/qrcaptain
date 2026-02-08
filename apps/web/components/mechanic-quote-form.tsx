@@ -97,7 +97,7 @@ export function MechanicQuoteForm({ workOrderId, onClose, onSuccess }: MechanicQ
     try {
       await declineRequest({ 
         workOrderId,
-        reason: declineReason || undefined,
+        declineReason: declineReason || undefined,
       });
       
       if (onSuccess) {

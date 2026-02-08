@@ -535,16 +535,17 @@ function AddEquipmentModal({ vesselId, defaultCategory, onClose }: AddEquipmentM
 
       <div className="p-6 overflow-y-auto max-h-[80vh]">
         <form onSubmit={handleSubmit} className="space-y-4">
+          <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>Category *</label>
           <GlassSelect
-            label="Category *"
             name="category"
             required
             defaultValue={defaultCategory || ""}
-            options={[
-              { value: "", label: "Select a category", disabled: true },
-              ...EQUIPMENT_CATEGORIES.map((cat) => ({ value: cat.id, label: cat.name })),
-            ]}
-          />
+          >
+            <option value="" disabled>Select a category</option>
+            {EQUIPMENT_CATEGORIES.map((cat) => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </GlassSelect>
 
           <GlassInput
             label="Equipment Name *"
@@ -850,17 +851,16 @@ function EquipmentDetailModal({ equipment, onClose, onUpdate }: EquipmentDetailM
                     />
                   </div>
                   <div>
+                    <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>Condition Status</label>
                     <GlassSelect
-                      label="Condition Status"
                       name="conditionStatus"
                       defaultValue={equipment.conditionStatus || ""}
-                      options={[
-                        { value: "", label: "Select condition" },
-                        { value: "good", label: "Good" },
-                        { value: "fair", label: "Fair" },
-                        { value: "needs_attention", label: "Needs Attention" },
-                      ]}
-                    />
+                    >
+                      <option value="">Select condition</option>
+                      <option value="good">Good</option>
+                      <option value="fair">Fair</option>
+                      <option value="needs_attention">Needs Attention</option>
+                    </GlassSelect>
                   </div>
                 </div>
               </div>

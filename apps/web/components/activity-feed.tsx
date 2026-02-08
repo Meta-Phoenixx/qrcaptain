@@ -43,7 +43,7 @@ interface ActivityFeedProps {
 
 export function ActivityFeed({ maxItems = 10, onViewWorkOrder, onViewQuote }: ActivityFeedProps) {
   // Use notifications as the activity feed source
-  const notifications = useQuery(api.notifications.getMyNotifications);
+  const notifications = useQuery(api.notifications.getMyNotifications, {});
   const user = useQuery(api.users.currentUser);
   const { mode } = useTheme();
 
@@ -175,7 +175,7 @@ export function ActivityFeed({ maxItems = 10, onViewWorkOrder, onViewQuote }: Ac
 
 // Compact activity summary for dashboard cards
 export function ActivitySummary() {
-  const notifications = useQuery(api.notifications.getMyNotifications);
+  const notifications = useQuery(api.notifications.getMyNotifications, {});
   const { mode } = useTheme();
 
   if (!notifications) {
