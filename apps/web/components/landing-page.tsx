@@ -85,7 +85,7 @@ function ProfileDropdown({ user, profilePhotoUrl, onProfileClick, onSignOut }: P
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div data-dropdown-v2="true" className={`absolute right-0 mt-2 w-64 py-2 z-50 rounded-2xl border backdrop-blur-xl overflow-hidden ${
+        <div className={`absolute right-0 mt-2 w-64 py-2 z-50 rounded-2xl border backdrop-blur-xl overflow-hidden ${
           mode === 'dark'
             ? "bg-gray-900/95 border-white/10 shadow-[0_4px_24px_-1px_rgba(0,0,0,0.4)]"
             : "bg-white/95 border-gray-200 shadow-[0_4px_24px_-1px_rgba(0,0,0,0.12)]"
