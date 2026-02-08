@@ -3,7 +3,7 @@
   "buildCommand": "pnpm turbo build --filter=web",
   "installCommand": "pnpm install",
   "framework": "nextjs",
-  "outputDirectory": ".next",
+  "outputDirectory": "apps/web/.next",
   "ignoreCommand": "npx turbo-ignore",
   "headers": [
     {
