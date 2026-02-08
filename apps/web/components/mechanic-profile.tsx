@@ -590,10 +590,10 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
       onClick={() => toggleSection(section)}
     >
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-captain-100 rounded-lg flex items-center justify-center">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${mode === 'dark' ? "bg-captain-500/20" : "bg-captain-100"}`}>
           <Icon className="w-5 h-5 text-captain-600" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <h3 className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{title}</h3>
       </div>
       <div className="flex items-center gap-2">
         {canEdit && !isEditing && expandedSections.has(section) && (
@@ -602,7 +602,7 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
               e.stopPropagation();
               setEditSection(section as EditSection);
             }}
-            className="p-2 text-gray-500 hover:text-captain-600 hover:bg-captain-50 rounded-lg transition-colors"
+            className={`p-2 rounded-lg transition-colors ${mode === 'dark' ? "text-gray-400 hover:text-captain-400 hover:bg-captain-500/10" : "text-gray-500 hover:text-captain-600 hover:bg-captain-50"}`}
           >
             <Edit3 size={18} />
           </button>
@@ -621,8 +621,8 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
     <div className="flex items-start gap-3 py-2">
       {Icon && <Icon className="w-4 h-4 text-gray-400 mt-0.5" />}
       <div>
-        <p className="text-xs text-gray-500">{label}</p>
-        <p className="text-sm text-gray-900">{value || <span className="text-gray-400 italic">Not provided</span>}</p>
+        <p className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>{label}</p>
+        <p className={`text-sm ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{value || <span className="text-gray-400 italic">Not provided</span>}</p>
       </div>
     </div>
   );
@@ -754,21 +754,21 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
 
       {/* Success/Error Messages */}
       {saveSuccess && (
-        <div className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
+        <div className={`p-4 border rounded-xl flex items-center gap-3 ${mode === 'dark' ? "bg-green-500/10 border-green-500/20" : "bg-green-50 border-green-200"}`}>
           <Check className="w-5 h-5 text-green-600" />
-          <span className="text-green-700">Profile updated successfully!</span>
+          <span className={`${mode === 'dark' ? "text-green-400" : "text-green-700"}`}>Profile updated successfully!</span>
         </div>
       )}
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+        <div className={`p-4 border rounded-xl flex items-center gap-3 ${mode === 'dark' ? "bg-red-500/10 border-red-500/20" : "bg-red-50 border-red-200"}`}>
           <AlertCircle className="w-5 h-5 text-red-600" />
-          <span className="text-red-700">{error}</span>
+          <span className={`${mode === 'dark' ? "text-red-400" : "text-red-700"}`}>{error}</span>
         </div>
       )}
 
       {/* Basic Information */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
+      <div className={`rounded-xl border overflow-hidden ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"}`}>
+        <div className={`p-4 border-b ${mode === 'dark' ? "border-white/5" : "border-gray-100"}`}>
           <SectionHeader 
             title="Basic Information" 
             icon={User} 
@@ -783,46 +783,46 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                    <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-1`}>First Name</label>
                     <input
                       type="text"
                       value={formData.firstName}
                       onChange={(e) => updateFormData("firstName", e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                    <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-1`}>Last Name</label>
                     <input
                       type="text"
                       value={formData.lastName}
                       onChange={(e) => updateFormData("lastName", e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
+                    <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-1`}>Business Name</label>
                     <input
                       type="text"
                       value={formData.companyName}
                       onChange={(e) => updateFormData("companyName", e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                  <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-1`}>Phone Number</label>
                   <input
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => updateFormData("phone", e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
                   />
                 </div>
                 <div className="flex justify-end gap-2">
                   <button
                     onClick={cancelEdit}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    className={`px-4 py-2 rounded-lg transition-colors ${mode === 'dark' ? "text-gray-300 bg-white/10 hover:bg-white/15" : "text-gray-700 bg-gray-100 hover:bg-gray-200"}`}
                   >
                     Cancel
                   </button>
@@ -848,8 +848,8 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
       </div>
 
       {/* Business Details */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
+      <div className={`rounded-xl border overflow-hidden ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"}`}>
+        <div className={`p-4 border-b ${mode === 'dark' ? "border-white/5" : "border-gray-100"}`}>
           <SectionHeader 
             title="Business Details" 
             icon={Building2} 
@@ -864,33 +864,33 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Years in Business</label>
+                    <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-1`}>Years in Business</label>
                     <input
                       type="number"
                       min="0"
                       value={formData.businessYearsInOperation}
                       onChange={(e) => updateFormData("businessYearsInOperation", e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Business License #</label>
+                    <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-1`}>Business License #</label>
                     <input
                       type="text"
                       value={formData.businessLicenseNumber}
                       onChange={(e) => updateFormData("businessLicenseNumber", e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Business Address</label>
+                  <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-1`}>Business Address</label>
                   <input
                     type="text"
                     placeholder="Street"
                     value={formData.street}
                     onChange={(e) => updateFormData("street", e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 mb-2"
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 mb-2 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
                   />
                   <div className="grid grid-cols-3 gap-2">
                     <input
@@ -898,26 +898,26 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
                       placeholder="City"
                       value={formData.city}
                       onChange={(e) => updateFormData("city", e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
                     />
                     <input
                       type="text"
                       placeholder="State"
                       value={formData.state}
                       onChange={(e) => updateFormData("state", e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
                     />
                     <input
                       type="text"
                       placeholder="ZIP"
                       value={formData.zipCode}
                       onChange={(e) => updateFormData("zipCode", e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
                     />
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <button onClick={cancelEdit} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                  <button onClick={cancelEdit} className={`px-4 py-2 rounded-lg transition-colors ${mode === 'dark' ? "text-gray-300 bg-white/10 hover:bg-white/15" : "text-gray-700 bg-gray-100 hover:bg-gray-200"}`}>Cancel</button>
                   <button onClick={() => handleSave("business")} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-captain-600 text-white rounded-lg hover:bg-captain-700 disabled:opacity-50 transition-colors">
                     {isSaving ? "Saving..." : <><Save size={16} /> Save</>}
                   </button>
@@ -944,8 +944,8 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
       </div>
 
       {/* Services & Coverage */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
+      <div className={`rounded-xl border overflow-hidden ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"}`}>
+        <div className={`p-4 border-b ${mode === 'dark' ? "border-white/5" : "border-gray-100"}`}>
           <SectionHeader 
             title="Services & Coverage" 
             icon={Wrench} 
@@ -960,7 +960,7 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
               <div className="space-y-4">
                 {/* Service Areas */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Service Areas</label>
+                  <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-2`}>Service Areas</label>
                   <div className="relative">
                     <div className="flex gap-2 mb-2">
                       <div className="relative flex-1">
@@ -975,7 +975,7 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
                           }}
                           onFocus={() => setShowServiceAreaSuggestions(true)}
                           onKeyDown={handleServiceAreaKeyDown}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                          className={`w-full px-4 py-2.5 border rounded-lg focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
                           placeholder="Type city names or separate with commas..."
                           autoComplete="off"
                         />
@@ -983,7 +983,7 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
                         {showServiceAreaSuggestions && filteredServiceAreaSuggestions.length > 0 && (
                           <div
                             ref={serviceAreaSuggestionsRef}
-                            className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+                            className={`absolute z-10 w-full mt-1 rounded-lg shadow-lg max-h-48 overflow-y-auto border ${mode === 'dark' ? "bg-gray-800 border-white/10" : "bg-white border-gray-200"}`}
                           >
                             {filteredServiceAreaSuggestions.map((suggestion, index) => (
                               <button
@@ -993,7 +993,7 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
                                 className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 transition-colors ${
                                   index === serviceAreaHighlightedIndex
                                     ? "bg-captain-50 text-captain-700"
-                                    : "text-gray-700 hover:bg-gray-50"
+                                    : mode === 'dark' ? "text-gray-300 hover:bg-white/5" : "text-gray-700 hover:bg-gray-50"
                                 }`}
                               >
                                 <MapPin size={14} className="text-gray-400 flex-shrink-0" />
@@ -1022,22 +1022,22 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
                 
                 {/* Service Types */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Services Offered</label>
+                  <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-2`}>Services Offered</label>
                   <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1">
                     {SERVICE_TYPE_OPTIONS.map((type) => (
-                      <label key={type} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${formData.serviceTypes.includes(type) ? "bg-captain-50 border-captain-300" : "bg-white border-gray-200 hover:border-gray-300"}`}>
+                      <label key={type} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${formData.serviceTypes.includes(type) ? (mode === 'dark' ? "bg-captain-500/20 border-captain-500/50" : "bg-captain-50 border-captain-300") : mode === 'dark' ? "bg-white/5 border-white/10 hover:border-white/20" : "bg-white border-gray-200 hover:border-gray-300"}`}>
                         <input type="checkbox" checked={formData.serviceTypes.includes(type)} onChange={() => toggleServiceType(type)} className="sr-only" />
-                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${formData.serviceTypes.includes(type) ? "bg-captain-600 border-captain-600" : "border-gray-300"}`}>
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${formData.serviceTypes.includes(type) ? "bg-captain-600 border-captain-600" : mode === 'dark' ? "border-white/20" : "border-gray-300"}`}>
                           {formData.serviceTypes.includes(type) && <Check size={12} className="text-white" />}
                         </div>
-                        <span className="text-sm text-gray-700">{type}</span>
+                        <span className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>{type}</span>
                       </label>
                     ))}
                   </div>
                 </div>
                 
                 <div className="flex justify-end gap-2">
-                  <button onClick={cancelEdit} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                  <button onClick={cancelEdit} className={`px-4 py-2 rounded-lg transition-colors ${mode === 'dark' ? "text-gray-300 bg-white/10 hover:bg-white/15" : "text-gray-700 bg-gray-100 hover:bg-gray-200"}`}>Cancel</button>
                   <button onClick={() => handleSave("services")} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-captain-600 text-white rounded-lg hover:bg-captain-700 disabled:opacity-50 transition-colors">
                     {isSaving ? "Saving..." : <><Save size={16} /> Save</>}
                   </button>
@@ -1046,12 +1046,12 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
             ) : (
               <div className="space-y-4">
                 <div>
-                  <p className="text-xs text-gray-500 mb-2">Service Areas</p>
+                  <p className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"} mb-2`}>Service Areas</p>
                   {user.serviceAreas && user.serviceAreas.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {user.serviceAreas.map((area) => (
-                        <span key={area} className="inline-flex items-center gap-1 px-3 py-1 bg-captain-100 text-captain-700 rounded-full text-sm">
-                          <MapPin size={12} className="text-captain-500" />
+                        <span key={area} className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${mode === 'dark' ? "bg-captain-500/20 text-captain-300" : "bg-captain-100 text-captain-700"}`}>
+                          <MapPin size={12} className={mode === 'dark' ? "text-captain-400" : "text-captain-500"} />
                           {area}
                         </span>
                       ))}
@@ -1061,11 +1061,11 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
                   )}
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 mb-2">Services Offered</p>
+                  <p className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"} mb-2`}>Services Offered</p>
                   {user.serviceTypes && user.serviceTypes.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {user.serviceTypes.map((type) => (
-                        <span key={type} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">{type}</span>
+                        <span key={type} className={`px-3 py-1 rounded-full text-sm ${mode === 'dark' ? "bg-white/10 text-gray-300" : "bg-gray-100 text-gray-700"}`}>{type}</span>
                       ))}
                     </div>
                   ) : (
@@ -1079,8 +1079,8 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
       </div>
 
       {/* Hours of Operation */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
+      <div className={`rounded-xl border overflow-hidden ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"}`}>
+        <div className={`p-4 border-b ${mode === 'dark' ? "border-white/5" : "border-gray-100"}`}>
           <SectionHeader 
             title="Hours of Operation" 
             icon={Clock} 
@@ -1097,22 +1097,22 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
                   {(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const).map((day) => {
                     const hours = formData.hoursOfOperation[day];
                     return (
-                      <div key={day} className="flex items-center gap-4 py-2 border-b border-gray-100 last:border-0">
+                      <div key={day} className={`flex items-center gap-4 py-2 border-b ${mode === 'dark' ? "border-white/5" : "border-gray-100"} last:border-0`}>
                         <div className="w-24">
-                          <span className="text-sm font-medium text-gray-700 capitalize">{day}</span>
+                          <span className={`text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} capitalize`}>{day}</span>
                         </div>
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input type="checkbox" checked={!hours.closed} onChange={(e) => updateHours(day, "closed", !e.target.checked)} className="sr-only" />
-                          <div className={`w-10 h-6 rounded-full transition-colors ${!hours.closed ? "bg-captain-600" : "bg-gray-300"}`}>
+                          <div className={`w-10 h-6 rounded-full transition-colors ${!hours.closed ? "bg-captain-600" : mode === 'dark' ? "bg-white/20" : "bg-gray-300"}`}>
                             <div className={`w-4 h-4 bg-white rounded-full mt-1 transition-transform ${!hours.closed ? "translate-x-5" : "translate-x-1"}`} />
                           </div>
                           <span className="text-sm text-gray-500">{hours.closed ? "Closed" : "Open"}</span>
                         </label>
                         {!hours.closed && (
                           <div className="flex items-center gap-2">
-                            <input type="time" value={hours.open} onChange={(e) => updateHours(day, "open", e.target.value)} className="px-2 py-1 border border-gray-300 rounded text-sm text-black" />
+                            <input type="time" value={hours.open} onChange={(e) => updateHours(day, "open", e.target.value)} className={`px-2 py-1 border rounded text-sm ${mode === 'dark' ? "bg-white/5 border-white/10 text-white" : "border-gray-300 text-gray-900"}`} />
                             <span className="text-gray-400">to</span>
-                            <input type="time" value={hours.close} onChange={(e) => updateHours(day, "close", e.target.value)} className="px-2 py-1 border border-gray-300 rounded text-sm text-black" />
+                            <input type="time" value={hours.close} onChange={(e) => updateHours(day, "close", e.target.value)} className={`px-2 py-1 border rounded text-sm ${mode === 'dark' ? "bg-white/5 border-white/10 text-white" : "border-gray-300 text-gray-900"}`} />
                           </div>
                         )}
                       </div>
@@ -1120,7 +1120,7 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
                   })}
                 </div>
                 <div className="flex justify-end gap-2">
-                  <button onClick={cancelEdit} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                  <button onClick={cancelEdit} className={`px-4 py-2 rounded-lg transition-colors ${mode === 'dark' ? "text-gray-300 bg-white/10 hover:bg-white/15" : "text-gray-700 bg-gray-100 hover:bg-gray-200"}`}>Cancel</button>
                   <button onClick={() => handleSave("hours")} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-captain-600 text-white rounded-lg hover:bg-captain-700 disabled:opacity-50 transition-colors">
                     {isSaving ? "Saving..." : <><Save size={16} /> Save</>}
                   </button>
@@ -1133,11 +1133,11 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
                     const hours = user.hoursOfOperation?.[day];
                     return (
                       <div key={day} className="flex items-center gap-4 py-1.5">
-                        <span className="w-24 text-sm text-gray-600 capitalize">{day}</span>
+                        <span className={`w-24 text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-600"} capitalize`}>{day}</span>
                         {hours?.closed ? (
                           <span className="text-sm text-gray-400">Closed</span>
                         ) : hours ? (
-                          <span className="text-sm text-gray-900">{formatTime(hours.open)} - {formatTime(hours.close)}</span>
+                          <span className={`text-sm ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{formatTime(hours.open)} - {formatTime(hours.close)}</span>
                         ) : (
                           <span className="text-sm text-gray-400 italic">Not set</span>
                         )}
@@ -1154,8 +1154,8 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
       </div>
 
       {/* Credentials & Capabilities */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
+      <div className={`rounded-xl border overflow-hidden ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"}`}>
+        <div className={`p-4 border-b ${mode === 'dark' ? "border-white/5" : "border-gray-100"}`}>
           <SectionHeader 
             title="Credentials & Capabilities" 
             icon={Award} 
@@ -1170,15 +1170,15 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
               <div className="space-y-4">
                 {/* Certifications */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Certifications</label>
+                  <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-2`}>Certifications</label>
                   <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
                     {CERTIFICATION_OPTIONS.map((cert) => (
-                      <label key={cert} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${formData.certifications.includes(cert) ? "bg-green-50 border-green-300" : "bg-white border-gray-200 hover:border-gray-300"}`}>
+                      <label key={cert} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${formData.certifications.includes(cert) ? (mode === 'dark' ? "bg-green-500/20 border-green-500/50" : "bg-green-50 border-green-300") : mode === 'dark' ? "bg-white/5 border-white/10 hover:border-white/20" : "bg-white border-gray-200 hover:border-gray-300"}`}>
                         <input type="checkbox" checked={formData.certifications.includes(cert)} onChange={() => toggleCertification(cert)} className="sr-only" />
-                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${formData.certifications.includes(cert) ? "bg-green-600 border-green-600" : "border-gray-300"}`}>
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${formData.certifications.includes(cert) ? "bg-green-600 border-green-600" : mode === 'dark' ? "border-white/20" : "border-gray-300"}`}>
                           {formData.certifications.includes(cert) && <Check size={12} className="text-white" />}
                         </div>
-                        <span className="text-sm text-gray-700">{cert}</span>
+                        <span className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>{cert}</span>
                       </label>
                     ))}
                   </div>
@@ -1186,15 +1186,15 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
 
                 {/* Specializations */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Specializations</label>
+                  <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-2`}>Specializations</label>
                   <div className="grid grid-cols-3 gap-2">
                     {SPECIALIZATION_OPTIONS.map((spec) => (
-                      <label key={spec} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${formData.specializations.includes(spec) ? "bg-captain-50 border-captain-300" : "bg-white border-gray-200 hover:border-gray-300"}`}>
+                      <label key={spec} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${formData.specializations.includes(spec) ? (mode === 'dark' ? "bg-captain-500/20 border-captain-500/50" : "bg-captain-50 border-captain-300") : mode === 'dark' ? "bg-white/5 border-white/10 hover:border-white/20" : "bg-white border-gray-200 hover:border-gray-300"}`}>
                         <input type="checkbox" checked={formData.specializations.includes(spec)} onChange={() => toggleSpecialization(spec)} className="sr-only" />
-                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${formData.specializations.includes(spec) ? "bg-captain-600 border-captain-600" : "border-gray-300"}`}>
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${formData.specializations.includes(spec) ? "bg-captain-600 border-captain-600" : mode === 'dark' ? "border-white/20" : "border-gray-300"}`}>
                           {formData.specializations.includes(spec) && <Check size={12} className="text-white" />}
                         </div>
-                        <span className="text-sm text-gray-700">{spec}</span>
+                        <span className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>{spec}</span>
                       </label>
                     ))}
                   </div>
@@ -1202,25 +1202,25 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
 
                 {/* Insurance/Bonding/Mobile */}
                 <div className="grid grid-cols-3 gap-4">
-                  <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${formData.isInsured ? "bg-green-50 border-green-300" : "bg-white border-gray-200"}`}>
+                  <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${formData.isInsured ? (mode === 'dark' ? "bg-green-500/20 border-green-500/50" : "bg-green-50 border-green-300") : mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"}`}>
                     <input type="checkbox" checked={formData.isInsured} onChange={(e) => updateFormData("isInsured", e.target.checked)} className="sr-only" />
-                    <Shield size={20} className={formData.isInsured ? "text-green-600" : "text-gray-400"} />
-                    <span className="text-sm font-medium">Insured</span>
+                    <Shield size={20} className={formData.isInsured ? (mode === 'dark' ? "text-green-400" : "text-green-600") : "text-gray-400"} />
+                    <span className={`text-sm font-medium ${mode === 'dark' ? "text-white" : ""}`}>Insured</span>
                   </label>
-                  <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${formData.isBonded ? "bg-green-50 border-green-300" : "bg-white border-gray-200"}`}>
+                  <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${formData.isBonded ? (mode === 'dark' ? "bg-green-500/20 border-green-500/50" : "bg-green-50 border-green-300") : mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"}`}>
                     <input type="checkbox" checked={formData.isBonded} onChange={(e) => updateFormData("isBonded", e.target.checked)} className="sr-only" />
-                    <Shield size={20} className={formData.isBonded ? "text-green-600" : "text-gray-400"} />
-                    <span className="text-sm font-medium">Bonded</span>
+                    <Shield size={20} className={formData.isBonded ? (mode === 'dark' ? "text-green-400" : "text-green-600") : "text-gray-400"} />
+                    <span className={`text-sm font-medium ${mode === 'dark' ? "text-white" : ""}`}>Bonded</span>
                   </label>
-                  <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${formData.hasMobileCapabilities ? "bg-captain-50 border-captain-300" : "bg-white border-gray-200"}`}>
+                  <label className={`flex items-center gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${formData.hasMobileCapabilities ? (mode === 'dark' ? "bg-captain-500/20 border-captain-500/50" : "bg-captain-50 border-captain-300") : mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"}`}>
                     <input type="checkbox" checked={formData.hasMobileCapabilities} onChange={(e) => updateFormData("hasMobileCapabilities", e.target.checked)} className="sr-only" />
-                    <Truck size={20} className={formData.hasMobileCapabilities ? "text-captain-600" : "text-gray-400"} />
-                    <span className="text-sm font-medium">Mobile Service</span>
+                    <Truck size={20} className={formData.hasMobileCapabilities ? (mode === 'dark' ? "text-captain-400" : "text-captain-600") : "text-gray-400"} />
+                    <span className={`text-sm font-medium ${mode === 'dark' ? "text-white" : ""}`}>Mobile Service</span>
                   </label>
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <button onClick={cancelEdit} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                  <button onClick={cancelEdit} className={`px-4 py-2 rounded-lg transition-colors ${mode === 'dark' ? "text-gray-300 bg-white/10 hover:bg-white/15" : "text-gray-700 bg-gray-100 hover:bg-gray-200"}`}>Cancel</button>
                   <button onClick={() => handleSave("credentials")} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-captain-600 text-white rounded-lg hover:bg-captain-700 disabled:opacity-50 transition-colors">
                     {isSaving ? "Saving..." : <><Save size={16} /> Save</>}
                   </button>
@@ -1230,11 +1230,11 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
               <div className="space-y-4">
                 {/* Certifications Display */}
                 <div>
-                  <p className="text-xs text-gray-500 mb-2">Certifications</p>
+                  <p className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"} mb-2`}>Certifications</p>
                   {user.certifications && user.certifications.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {user.certifications.map((cert) => (
-                        <span key={cert} className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
+                        <span key={cert} className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm ${mode === 'dark' ? "bg-green-500/20 text-green-300" : "bg-green-100 text-green-700"}`}>
                           <Award size={12} /> {cert}
                         </span>
                       ))}
@@ -1246,11 +1246,11 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
 
                 {/* Specializations Display */}
                 <div>
-                  <p className="text-xs text-gray-500 mb-2">Specializations</p>
+                  <p className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"} mb-2`}>Specializations</p>
                   {user.specializations && user.specializations.length > 0 ? (
                     <div className="flex flex-wrap gap-2">
                       {user.specializations.map((spec) => (
-                        <span key={spec} className="px-3 py-1 bg-captain-100 text-captain-700 rounded-full text-sm">{spec}</span>
+                        <span key={spec} className={`px-3 py-1 rounded-full text-sm ${mode === 'dark' ? "bg-captain-500/20 text-captain-300" : "bg-captain-100 text-captain-700"}`}>{spec}</span>
                       ))}
                     </div>
                   ) : (
@@ -1261,20 +1261,20 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
                 {/* Badges */}
                 <div className="flex gap-4">
                   {user.isInsured && (
-                    <div className="flex items-center gap-2 text-green-700">
-                      <Shield size={18} className="text-green-600" />
+                    <div className={`flex items-center gap-2 ${mode === 'dark' ? "text-green-400" : "text-green-700"}`}>
+                      <Shield size={18} className={mode === 'dark' ? "text-green-400" : "text-green-600"} />
                       <span className="text-sm font-medium">Insured</span>
                     </div>
                   )}
                   {user.isBonded && (
-                    <div className="flex items-center gap-2 text-green-700">
-                      <Shield size={18} className="text-green-600" />
+                    <div className={`flex items-center gap-2 ${mode === 'dark' ? "text-green-400" : "text-green-700"}`}>
+                      <Shield size={18} className={mode === 'dark' ? "text-green-400" : "text-green-600"} />
                       <span className="text-sm font-medium">Bonded</span>
                     </div>
                   )}
                   {user.hasMobileCapabilities !== false && (
-                    <div className="flex items-center gap-2 text-captain-700">
-                      <Truck size={18} className="text-captain-600" />
+                    <div className={`flex items-center gap-2 ${mode === 'dark' ? "text-captain-400" : "text-captain-700"}`}>
+                      <Truck size={18} className={mode === 'dark' ? "text-captain-400" : "text-captain-600"} />
                       <span className="text-sm font-medium">Mobile Service Available</span>
                     </div>
                   )}
@@ -1286,8 +1286,8 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
       </div>
 
       {/* About & Links */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
+      <div className={`rounded-xl border overflow-hidden ${mode === 'dark' ? "bg-white/5 border-white/10" : "bg-white border-gray-200"}`}>
+        <div className={`p-4 border-b ${mode === 'dark' ? "border-white/5" : "border-gray-100"}`}>
           <SectionHeader 
             title="About & Links" 
             icon={Globe} 
@@ -1301,61 +1301,61 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
             {editSection === "about" ? (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">About Your Business</label>
+                  <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-1`}>About Your Business</label>
                   <textarea
                     value={formData.bio}
                     onChange={(e) => updateFormData("bio", e.target.value)}
                     rows={4}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 resize-none"
+                    className={`w-full px-4 py-2.5 border rounded-lg focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 resize-none ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
                     placeholder="Tell boat owners about your experience and expertise..."
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                    <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-1`}>Website</label>
                     <input
                       type="url"
                       value={formData.websiteUrl}
                       onChange={(e) => updateFormData("websiteUrl", e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
                       placeholder="https://example.com"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Google My Business</label>
+                    <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-1`}>Google My Business</label>
                     <input
                       type="url"
                       value={formData.googleMyBusinessUrl}
                       onChange={(e) => updateFormData("googleMyBusinessUrl", e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className={`w-full px-4 py-2.5 border rounded-lg focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
                       placeholder="Google Business URL"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Languages Spoken</label>
+                  <label className={`block text-sm font-medium ${mode === 'dark' ? "text-gray-300" : "text-gray-700"} mb-2`}>Languages Spoken</label>
                   <div className="flex gap-2 mb-2">
                     <input
                       type="text"
                       value={formData.languageInput}
                       onChange={(e) => updateFormData("languageInput", e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addLanguage())}
-                      className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-black focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20"
+                      className={`flex-1 px-4 py-2.5 border rounded-lg focus:border-captain-500 focus:outline-none focus:ring-2 focus:ring-captain-500/20 ${mode === 'dark' ? "bg-white/5 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-gray-900"}`}
                       placeholder="Add a language"
                     />
-                    <button type="button" onClick={addLanguage} className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">Add</button>
+                    <button type="button" onClick={addLanguage} className={`px-4 py-2.5 rounded-lg transition-colors ${mode === 'dark' ? "bg-white/10 text-gray-300 hover:bg-white/15" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}>Add</button>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {formData.languagesSpoken.map((lang) => (
-                      <span key={lang} className="inline-flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                      <span key={lang} className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm ${mode === 'dark' ? "bg-white/10 text-gray-300" : "bg-gray-100 text-gray-700"}`}>
                         {lang}
-                        <button type="button" onClick={() => removeLanguage(lang)} className="hover:text-gray-900"><X size={14} /></button>
+                        <button type="button" onClick={() => removeLanguage(lang)} className={`${mode === 'dark' ? "hover:text-white" : "hover:text-gray-900"}`}><X size={14} /></button>
                       </span>
                     ))}
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <button onClick={cancelEdit} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                  <button onClick={cancelEdit} className={`px-4 py-2 rounded-lg transition-colors ${mode === 'dark' ? "text-gray-300 bg-white/10 hover:bg-white/15" : "text-gray-700 bg-gray-100 hover:bg-gray-200"}`}>Cancel</button>
                   <button onClick={() => handleSave("about")} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-captain-600 text-white rounded-lg hover:bg-captain-700 disabled:opacity-50 transition-colors">
                     {isSaving ? "Saving..." : <><Save size={16} /> Save</>}
                   </button>
@@ -1365,8 +1365,8 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
               <div className="space-y-4">
                 {user.bio ? (
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">About</p>
-                    <p className="text-sm text-gray-700">{user.bio}</p>
+                    <p className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"} mb-1`}>About</p>
+                    <p className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>{user.bio}</p>
                   </div>
                 ) : (
                   <p className="text-sm text-gray-400 italic">No bio provided</p>
@@ -1387,10 +1387,10 @@ export function MechanicProfile({ onClose }: MechanicProfileProps = {}) {
 
                 {user.languagesSpoken && user.languagesSpoken.length > 0 && (
                   <div>
-                    <p className="text-xs text-gray-500 mb-2">Languages</p>
+                    <p className={`text-xs ${mode === 'dark' ? "text-gray-400" : "text-gray-500"} mb-2`}>Languages</p>
                     <div className="flex flex-wrap gap-2">
                       {user.languagesSpoken.map((lang) => (
-                        <span key={lang} className="flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                        <span key={lang} className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm ${mode === 'dark' ? "bg-white/10 text-gray-300" : "bg-gray-100 text-gray-700"}`}>
                           <Languages size={12} /> {lang}
                         </span>
                       ))}

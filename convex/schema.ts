@@ -577,12 +577,18 @@ export default defineSchema({
       v.literal("mechanic"),
       v.literal("admin")
     )),
+    book: v.optional(v.union(
+      v.literal("owner"),
+      v.literal("mechanic")
+    )),
     sortOrder: v.number(),
     isActive: v.boolean(),
+    isPlaceholder: v.optional(v.boolean()),  // True for "coming soon" guides
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_category", ["category"])
     .index("by_active", ["isActive"])
-    .index("by_sort_order", ["sortOrder"]),
+    .index("by_sort_order", ["sortOrder"])
+    .index("by_book", ["book", "isActive"]),
 });

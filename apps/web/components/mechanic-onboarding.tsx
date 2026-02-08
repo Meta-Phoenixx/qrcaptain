@@ -967,7 +967,7 @@ export function MechanicOnboarding({
           )}
 
           {error && (
-            <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+            <div className={`mt-4 p-3 rounded-lg text-sm ${mode === 'dark' ? "bg-red-500/10 border border-red-500/20 text-red-400" : "bg-red-50 text-red-700"}`}>
               {error}
             </div>
           )}
