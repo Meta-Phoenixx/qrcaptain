@@ -171,3 +171,88 @@ export const sendWaitlistConfirmation = internalAction({
     }
   },
 });
+
+// ─── Donation Emails ──────────────────────────────────────────
+
+export const sendDonationConfirmation = internalAction({
+  args: {
+    entryId: v.id("donationEntries"),
+    name: v.string(),
+    email: v.string(),
+    amount: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const apiKey = process.env.AUTH_RESEND_KEY;
+    if (!apiKey) {
+      console.error("AUTH_RESEND_KEY not set, skipping donation confirmation email");
+      return;
+    }
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: process.env.AUTH_EMAIL ?? "The QR Captain <noreply@theqrcaptain.com>",
+        to: [args.email],
+        subject: "Thank You for Your Donation! | Walden Marine x The QR Captain",
+        html: `
+          <div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background: #f8f9fa;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h1 style="font-size: 24px; font-weight: bold; margin: 0 0 4px; color: #0c4a6e;">From the Water to a Worthy Cause</h1>
+              <p style="color: #0284c7; margin: 0; font-size: 16px; font-weight: 600;">Thank You for Your Donation</p>
+              <p style="color: #666; margin: 8px 0 0; font-size: 13px;">Presented by Walden Marine & The QR Captain</p>
+            </div>
+
+            <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e5e7eb;">
+              <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Thank you, ${args.name}!</p>
+              <p style="margin: 0 0 16px; color: #333;">
+                Your generous donation of <strong>$${args.amount}</strong> is helping support
+                <strong>Cass Walden's</strong> missionary aviation training at the Moody Aviation Institute.
+              </p>
+
+              <div style="background: #f0f9ff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border-left: 4px solid #0ea5e9;">
+                <p style="margin: 0 0 4px; font-weight: 600; color: #075985;">VIP Access Included</p>
+                <p style="margin: 0; color: #0369a1; font-size: 14px;">
+                  As a thank you, you'll receive <strong>free VIP access</strong> to The QR Captain community
+                  when the platform launches. We'll be in touch with your access details!
+                </p>
+              </div>
+
+              <p style="margin: 0; color: #666; font-size: 14px;">
+                Your donation helps Cass complete his 5-year program training to become a missionary pilot,
+                delivering disaster relief, medical supplies, and critical resources to remote communities
+                that depend on aviation for survival.
+              </p>
+            </div>
+
+            <div style="text-align: center; color: #999; font-size: 12px;">
+              <p style="margin: 0 0 4px;">From the Water to a Worthy Cause</p>
+              <p style="margin: 0;">Walden Marine & The QR Captain — Forged in Saltwater</p>
+              <p style="margin: 4px 0 0;">813-965-8711 · waldenmarine@gmail.com</p>
+            </div>
+          </div>
+        `,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`Failed to send donation confirmation: ${errorData}`);
+      return;
+    }
+
+    await ctx.runMutation(internal.emails.markDonationEmailSent, {
+      entryId: args.entryId,
+    });
+  },
+});
+
+export const markDonationEmailSent = internalMutation({
+  args: { entryId: v.id("donationEntries") },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.entryId, { confirmationEmailSent: true });
+  },
+});

@@ -15,6 +15,7 @@ import type * as auth from "../auth.js";
 import type * as convex__generated_api from "../convex/_generated/api.js";
 import type * as convex__generated_server from "../convex/_generated/server.js";
 import type * as crons from "../crons.js";
+import type * as donations from "../donations.js";
 import type * as emails from "../emails.js";
 import type * as helpGuides from "../helpGuides.js";
 import type * as http from "../http.js";
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   "convex/_generated/api": typeof convex__generated_api;
   "convex/_generated/server": typeof convex__generated_server;
   crons: typeof crons;
+  donations: typeof donations;
   emails: typeof emails;
   helpGuides: typeof helpGuides;
   http: typeof http;

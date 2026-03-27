@@ -629,4 +629,20 @@ export default defineSchema({
   })
     .index("by_email", ["email"])
     .index("by_created", ["createdAt"]),
+
+  // ============================================
+  // DONATION ENTRIES (Cass Walden / Moody Aviation)
+  // ============================================
+  donationEntries: defineTable({
+    name: v.string(),
+    email: v.string(),
+    phone: v.optional(v.string()),
+    amount: v.number(),
+    customAmount: v.boolean(),
+    message: v.optional(v.string()),
+    confirmationEmailSent: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_email", ["email"])
+    .index("by_created", ["createdAt"]),
 });
