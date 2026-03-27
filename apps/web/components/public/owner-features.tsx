@@ -83,7 +83,7 @@ export function OwnerFeatures() {
             Your vessel, your records, your control
           </h2>
           <p className="text-white/50 text-base max-w-[550px] mx-auto" style={{ lineHeight: 1.7 }}>
-            Whether you own a center console or a 50-foot sportfish, QR Captain gives you a
+            Whether you own a center console or a 50-foot sportfish, The QR Captain gives you a
             complete digital record of every service, every part, every mechanic.
           </p>
         </div>

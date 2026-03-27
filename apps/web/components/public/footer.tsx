@@ -16,7 +16,7 @@ export function Footer() {
             />
             <div>
               <span className="text-white/50 font-heading font-medium text-sm">
-                QR Captain
+                The QR Captain
               </span>
               <span className="text-white/20 mx-2">·</span>
               <span className="text-white/30 text-sm italic">
@@ -50,7 +50,7 @@ export function Footer() {
 
           {/* Copyright */}
           <p className="text-white/20 text-xs">
-            &copy; {new Date().getFullYear()} QR Captain. All rights reserved.
+            &copy; {new Date().getFullYear()} The QR Captain. All rights reserved.
           </p>
         </div>
       </div>

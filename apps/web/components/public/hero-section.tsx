@@ -64,7 +64,7 @@ export function HeroSection() {
           className="text-white/60 max-w-[600px] mx-auto mb-10 font-inter"
           style={{ fontSize: "clamp(1rem, 2vw, 1.25rem)", lineHeight: 1.7 }}
         >
-          QR Captain connects boat owners and marine mechanics through QR-coded
+          The QR Captain connects boat owners and marine mechanics through QR-coded
           vessel profiles, real-time work tracking, and verified maintenance
           history — so every service is documented, every part is traceable, and
           your vessel&apos;s story is never lost.

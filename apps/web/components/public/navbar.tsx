@@ -64,7 +64,7 @@ export function Navbar() {
             className="h-8 w-8 brightness-0 invert transition-transform duration-300 group-hover:scale-110"
           />
           <span className="text-white font-heading font-bold text-lg tracking-tight">
-            QR Captain
+            The QR Captain
           </span>
         </Link>
 

@@ -8,7 +8,7 @@ const BETA_PERKS = [
       </svg>
     ),
     title: "Early Access",
-    description: "Be the first to use QR Captain before public launch.",
+    description: "Be the first to use The QR Captain before public launch.",
   },
   {
     icon: (
@@ -69,7 +69,7 @@ export function BetaSection() {
             </h2>
             <p className="text-white/50 text-base max-w-[500px] mx-auto mb-10" style={{ lineHeight: 1.7 }}>
               We&apos;re looking for passionate boaters and mechanics to be our founding crew.
-              Help shape QR Captain from the inside and get a head start on the platform.
+              Help shape The QR Captain from the inside and get a head start on the platform.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">

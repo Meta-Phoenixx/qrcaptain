@@ -54,7 +54,7 @@ export function WaitlistSection() {
             Be First On Board
           </h2>
           <p className="text-white/50 text-base" style={{ lineHeight: 1.7 }}>
-            Join the waitlist to get priority access when QR Captain launches.
+            Join the waitlist to get priority access when The QR Captain launches.
             Early adopters get founding member status.
           </p>
         </div>

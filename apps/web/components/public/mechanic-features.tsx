@@ -82,7 +82,7 @@ export function MechanicFeatures() {
             Work smarter, build trust, grow your business
           </h2>
           <p className="text-white/50 text-base max-w-[550px] mx-auto" style={{ lineHeight: 1.7 }}>
-            QR Captain gives mechanics the tools to document work professionally,
+            The QR Captain gives mechanics the tools to document work professionally,
             build a verifiable track record, and connect with vessel owners who need them.
           </p>
         </div>

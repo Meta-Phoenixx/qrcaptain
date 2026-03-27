@@ -203,7 +203,7 @@ export function RafflePage() {
                 alt="QR Captain"
                 className="h-7 w-7 brightness-0 invert"
               />
-              <span className="text-white/70 font-heading font-medium text-sm">QR Captain</span>
+              <span className="text-white/70 font-heading font-medium text-sm">The QR Captain</span>
             </Link>
             <Link
               href="/"
