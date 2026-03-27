@@ -240,7 +240,7 @@ export function DonationPage() {
             <AboutCauseCard />
 
             <div className="rounded-2xl overflow-hidden border border-white/[0.08]">
-              <img src="/donate/donation-flyer.png" alt="Donation Flyer" className="w-full h-auto" />
+              <img src="/donate/donation-flyer.jpg" alt="Donation Flyer" className="w-full h-auto" />
             </div>
 
             <DonationFooter />
@@ -279,7 +279,7 @@ export function DonationPage() {
           {/* Flyer + Footer — desktop only, centered */}
           <div className="hidden lg:flex mt-12 flex-col items-center">
             <div className="w-full max-w-[520px] rounded-2xl overflow-hidden border border-white/[0.08]">
-              <img src="/donate/donation-flyer.png" alt="Donation Flyer" className="w-full h-auto" />
+              <img src="/donate/donation-flyer.jpg" alt="Donation Flyer" className="w-full h-auto" />
             </div>
             <div className="mt-8 w-full">
               <DonationFooter />
