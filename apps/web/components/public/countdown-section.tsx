@@ -128,9 +128,9 @@ export function CountdownSection() {
           border-radius: 1.5rem;
         }
 
-        /* Rotating glow orb — hidden on mobile */
+        /* Rotating glow orb — subtle on mobile */
         .glow-orb {
-          display: none;
+          display: block;
           position: absolute;
           width: 120px;
           height: 120px;
@@ -156,12 +156,12 @@ export function CountdownSection() {
           border-radius: 9999px;
           animation: countdown-hue 6s linear infinite;
           transform: scaleY(1.8) scaleX(2.2);
-          opacity: 0.5;
+          opacity: 0.03;
         }
 
         @media (min-width: 768px) {
-          .glow-orb {
-            display: block;
+          .glow-orb:after {
+            opacity: 0.5;
           }
         }
 
@@ -236,11 +236,11 @@ export function CountdownSection() {
       {/* Divider */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1200px] h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
 
-      {/* Background glow — desktop only */}
-      <div className="hidden md:block absolute inset-0 pointer-events-none">
+      {/* Background glow — subtle on mobile, stronger on desktop */}
+      <div className="absolute inset-0 pointer-events-none">
         <div
-          className="absolute w-[700px] h-[500px] rounded-full blur-[160px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)" }}
+          className="absolute w-[700px] h-[500px] rounded-full blur-[160px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-50 md:opacity-100"
+          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.03) 0%, transparent 70%)" }}
         />
       </div>
 
