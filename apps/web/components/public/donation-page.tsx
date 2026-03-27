@@ -28,7 +28,16 @@ function DonationTally({ stats }: { stats: { totalRaised: number; donorCount: nu
         <span>{stats?.donorCount ?? 0} donor{(stats?.donorCount ?? 0) !== 1 ? "s" : ""}</span>
       </div>
       <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/[0.08]">
-        <p className="text-xs sm:text-sm text-emerald-300/80">100% goes to Cass Walden&apos;s training</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs sm:text-sm text-white/70 mb-0.5">90% to Cause</p>
+            <p className="text-emerald-300/80 text-xs sm:text-sm font-medium">Cass Walden&apos;s Training</p>
+          </div>
+          <div>
+            <p className="text-xs sm:text-sm text-white/70 mb-0.5">10% to Platform</p>
+            <p className="text-captain-300/80 text-xs sm:text-sm font-medium">The QR Captain Development</p>
+          </div>
+        </div>
       </div>
     </div>
   );
