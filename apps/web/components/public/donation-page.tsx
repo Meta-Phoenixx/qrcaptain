@@ -142,7 +142,7 @@ export function DonationPage() {
         message: message.trim() || undefined,
       });
       if (res.success) {
-        setDonatedAmount(res.amount);
+        setDonatedAmount(res.amount ?? finalAmount);
         setStatus("success");
       }
     } catch {
