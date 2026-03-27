@@ -591,4 +591,42 @@ export default defineSchema({
     .index("by_active", ["isActive"])
     .index("by_sort_order", ["sortOrder"])
     .index("by_book", ["book", "isActive"]),
+
+  // ============================================
+  // WAITLIST SIGNUPS (Pre-launch)
+  // ============================================
+  waitlistSignups: defineTable({
+    name: v.string(),
+    email: v.string(),
+    roleInterest: v.union(
+      v.literal("owner"),
+      v.literal("mechanic"),
+      v.literal("both")
+    ),
+    source: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_email", ["email"])
+    .index("by_created", ["createdAt"]),
+
+  // ============================================
+  // RAFFLE ENTRIES (Safety Harbor Slam 2026)
+  // ============================================
+  raffleEntries: defineTable({
+    name: v.string(),
+    phone: v.string(),
+    email: v.string(),
+    ticketTier: v.union(
+      v.literal("single"),
+      v.literal("popular"),
+      v.literal("value"),
+      v.literal("bigdog")
+    ),
+    ticketCount: v.number(),
+    amount: v.number(),
+    confirmationEmailSent: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_email", ["email"])
+    .index("by_created", ["createdAt"]),
 });

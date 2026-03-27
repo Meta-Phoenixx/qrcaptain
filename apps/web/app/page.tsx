@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { Dashboard } from "@/components/dashboard";
-import { SignInPageContent } from "@/components/sign-in-page-content";
+import { PublicLandingPage } from "@/components/public/public-landing-page";
 
 // Maximum time (ms) to wait for auth state before showing sign-in as fallback.
 // This prevents an infinite loading spinner when the Convex WebSocket connection
@@ -65,9 +65,9 @@ function AuthLoadingWithTimeout() {
   }, []);
 
   if (timedOut) {
-    // Show sign-in form as fallback — if auth eventually resolves the
+    // Show landing page as fallback — if auth eventually resolves the
     // Authenticated/Unauthenticated wrappers will replace this content
-    return <SignInPageContent />;
+    return <PublicLandingPage />;
   }
 
   return (
@@ -85,7 +85,7 @@ export default function Home() {
       </AuthLoading>
       
       <Unauthenticated>
-        <SignInPageContent />
+        <PublicLandingPage />
       </Unauthenticated>
       
       <Authenticated>
