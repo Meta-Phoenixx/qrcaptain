@@ -69,14 +69,14 @@ function HowItWorksCard() {
       className="p-5 sm:p-6 rounded-2xl border border-white/[0.08] bg-white/[0.02]"
       style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)" }}
     >
-      <h3 className="font-heading font-medium text-white text-sm mb-3 sm:mb-4">How It Works</h3>
+      <h3 className="font-heading font-medium text-white text-base sm:text-lg mb-3 sm:mb-4">How It Works</h3>
       <div className="space-y-2.5 sm:space-y-3">
         {HOW_IT_WORKS.map((step, i) => (
           <div key={i} className="flex items-start gap-2.5 sm:gap-3">
             <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-captain-500/15 border border-captain-500/20 flex items-center justify-center text-captain-400 text-[10px] sm:text-xs font-bold shrink-0 mt-0.5">
               {i + 1}
             </span>
-            <p className="text-white/50 text-xs sm:text-sm" style={{ lineHeight: 1.6 }}>
+            <p className="text-white/50 text-sm sm:text-base" style={{ lineHeight: 1.6 }}>
               {step}
             </p>
           </div>
@@ -92,15 +92,15 @@ function GiveBackCard() {
       className="p-5 sm:p-6 rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.03]"
       style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)" }}
     >
-      <h3 className="font-heading font-medium text-emerald-400 text-sm mb-2 sm:mb-3">
+      <h3 className="font-heading font-medium text-emerald-400 text-base sm:text-lg mb-2 sm:mb-3">
         Give Back
       </h3>
-      <p className="text-white/50 text-xs sm:text-sm mb-2 sm:mb-3" style={{ lineHeight: 1.7 }}>
+      <p className="text-white/50 text-sm sm:text-base mb-2 sm:mb-3" style={{ lineHeight: 1.7 }}>
         Proceeds from this raffle support <strong className="text-white/70">Cass Walden</strong>,
         a student in the <strong className="text-white/70">Moody Aviation Program</strong>,
         training to become a missionary pilot serving remote and hard-to-reach regions around the world.
       </p>
-      <p className="text-white/40 text-[11px] sm:text-xs" style={{ lineHeight: 1.6 }}>
+      <p className="text-white/40 text-xs sm:text-sm" style={{ lineHeight: 1.6 }}>
         Through this 5-year program, Cass is being equipped to deliver disaster relief,
         medical supplies, and critical resources to communities that depend on aviation for survival.
         Your participation helps fund his continued training and mission.
@@ -180,7 +180,7 @@ export function RafflePage() {
 
   return (
     <div
-      className="min-h-screen font-inter text-white"
+      className="min-h-screen font-inter text-white text-base"
       style={{
         background: "linear-gradient(180deg, #030014 0%, #07192b 40%, #0a2540 70%, #030014 100%)",
       }}
@@ -217,15 +217,15 @@ export function RafflePage() {
         {/* ── Hero ── */}
         <section className="pt-[88px] pb-5 sm:pt-[100px] md:pt-[120px] md:pb-12 text-center px-4 sm:px-5">
           {/* Partnership logos */}
-          <div className="flex items-center justify-center gap-3 sm:gap-5 mb-4 sm:mb-6 flex-wrap">
+          <div className="flex flex-col items-center gap-2 sm:gap-3 mb-5 sm:mb-6">
             <span className="text-[10px] sm:text-xs text-white/30 uppercase tracking-wider">Presented by</span>
-            <div className="flex items-center gap-3 sm:gap-4">
-              <a href="https://waldenmarine.com" target="_blank" rel="noopener noreferrer" className="opacity-60 hover:opacity-100 transition-opacity duration-200">
-                <img src="/raffle/walden-marine-logo.png" alt="Walden Marine" className="h-7 sm:h-9 w-auto" />
+            <div className="flex items-center gap-4 sm:gap-6">
+              <a href="https://waldenmarine.com" target="_blank" rel="noopener noreferrer" className="opacity-70 hover:opacity-100 transition-opacity duration-200">
+                <img src="/raffle/walden-marine-logo.png" alt="Walden Marine" className="h-10 sm:h-14 lg:h-16 w-auto" />
               </a>
-              <span className="text-white/20 text-sm">&amp;</span>
-              <a href="/" className="opacity-60 hover:opacity-100 transition-opacity duration-200">
-                <img src="/qr-captain-logo.png" alt="QR Captain" className="h-6 sm:h-8 w-auto brightness-0 invert" />
+              <span className="text-white/20 text-base sm:text-lg">&amp;</span>
+              <a href="/" className="opacity-70 hover:opacity-100 transition-opacity duration-200">
+                <img src="/qr-captain-logo.png" alt="QR Captain" className="h-9 sm:h-12 lg:h-14 w-auto brightness-0 invert" />
               </a>
             </div>
           </div>
@@ -245,7 +245,7 @@ export function RafflePage() {
           <p className="text-white/50 text-sm sm:text-lg font-medium mb-1 sm:mb-2">
             Biggest Trout — 50/50 Raffle
           </p>
-          <p className="text-captain-400 font-medium text-xs sm:text-sm">
+          <p className="text-captain-400 font-medium text-sm sm:text-base">
             Catch Big. Win Big. Give Back.
           </p>
         </section>
@@ -270,7 +270,7 @@ export function RafflePage() {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-white font-heading font-medium text-xs sm:text-sm mb-0.5">
+                  <p className="text-white font-heading font-medium text-sm sm:text-base mb-0.5">
                     Safety Harbor Slam — March 28-29, 2026
                   </p>
                   <p className="text-white/40 text-[11px] leading-relaxed">
@@ -358,15 +358,19 @@ export function RafflePage() {
               <LivePotCard stats={stats} />
               <HowItWorksCard />
               <GiveBackCard />
+            </div>
+          </div>
 
-              <div className="rounded-2xl overflow-hidden border border-white/[0.08]">
-                <img
-                  src="/raffle/Water2WorthyCause-Flyer_v2.png"
-                  alt="Biggest Trout 50/50 Raffle Flyer"
-                  className="w-full h-auto"
-                />
-              </div>
-
+          {/* Flyer + Footer — centered below both columns */}
+          <div className="mt-12 flex flex-col items-center">
+            <div className="w-full max-w-[520px] rounded-2xl overflow-hidden border border-white/[0.08]">
+              <img
+                src="/raffle/Water2WorthyCause-Flyer_v2.png"
+                alt="Biggest Trout 50/50 Raffle Flyer"
+                className="w-full h-auto"
+              />
+            </div>
+            <div className="mt-8 w-full">
               <ContactFooter />
             </div>
           </div>
@@ -382,7 +386,7 @@ export function RafflePage() {
 function TicketSelector({ selectedTier, onSelect }: { selectedTier: TicketTier; onSelect: (t: TicketTier) => void }) {
   return (
     <div className="mb-5 sm:mb-6">
-      <h3 className="font-heading font-medium text-white text-xs sm:text-sm mb-3 flex items-center gap-2">
+      <h3 className="font-heading font-medium text-white text-sm sm:text-base mb-3 flex items-center gap-2">
         Select Your Tickets
       </h3>
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
@@ -435,7 +439,7 @@ function EntryForm({
     <form onSubmit={onSubmit}>
       <div className="space-y-3 sm:space-y-4 mb-5 sm:mb-6">
         <div>
-          <label className="block text-xs sm:text-sm font-medium text-white/60 mb-1 sm:mb-1.5">Full Name</label>
+          <label className="block text-sm sm:text-base font-medium text-white/60 mb-1 sm:mb-1.5">Full Name</label>
           <input
             type="text"
             required
@@ -446,7 +450,7 @@ function EntryForm({
           />
         </div>
         <div>
-          <label className="block text-xs sm:text-sm font-medium text-white/60 mb-1 sm:mb-1.5">Phone Number</label>
+          <label className="block text-sm sm:text-base font-medium text-white/60 mb-1 sm:mb-1.5">Phone Number</label>
           <input
             type="tel"
             required
@@ -457,7 +461,7 @@ function EntryForm({
           />
         </div>
         <div>
-          <label className="block text-xs sm:text-sm font-medium text-white/60 mb-1 sm:mb-1.5">Email Address</label>
+          <label className="block text-sm sm:text-base font-medium text-white/60 mb-1 sm:mb-1.5">Email Address</label>
           <input
             type="email"
             required
@@ -495,12 +499,12 @@ function SuccessState({ result }: { result: { ticketCount: number; amount: numbe
       <h3 className="font-heading font-bold text-white text-lg sm:text-xl mb-2">
         You&apos;re In!
       </h3>
-      <p className="text-white/60 text-xs sm:text-sm mb-3 sm:mb-4">
+      <p className="text-white/60 text-sm sm:text-base mb-3 sm:mb-4">
         You selected <strong className="text-white">{result.ticketCount} ticket{result.ticketCount > 1 ? "s" : ""}</strong> (${result.amount}).
         Check your email for a confirmation.
       </p>
       <div className="p-3 sm:p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-        <p className="text-amber-300 text-xs sm:text-sm font-medium">
+        <p className="text-amber-300 text-sm sm:text-base font-medium">
           Remember: Pick up &amp; purchase your tickets at the Captain&apos;s Meeting
         </p>
         <p className="text-amber-300/70 text-[11px] sm:text-xs mt-1">

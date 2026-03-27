@@ -12,7 +12,7 @@ import { Footer } from "./footer";
 export function PublicLandingPage() {
   return (
     <div
-      className="min-h-screen font-inter text-white scroll-smooth"
+      className="min-h-screen font-inter text-white scroll-smooth text-base"
       style={{ background: "#030014" }}
     >
       {/* Override ThemeWrapper background */}

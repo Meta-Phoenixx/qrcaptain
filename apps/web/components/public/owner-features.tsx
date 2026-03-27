@@ -69,7 +69,7 @@ export function OwnerFeatures() {
       <div className="max-w-[1200px] mx-auto px-5">
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-captain-500/20 bg-captain-500/5 mb-5">
-            <span className="text-xs text-captain-400 font-medium uppercase tracking-wider">
+            <span className="text-sm text-captain-400 font-medium uppercase tracking-wider">
               For Boat Owners
             </span>
           </div>
@@ -82,28 +82,28 @@ export function OwnerFeatures() {
           >
             Your vessel, your records, your control
           </h2>
-          <p className="text-white/50 max-w-[550px] mx-auto" style={{ lineHeight: 1.7 }}>
+          <p className="text-white/50 text-base max-w-[550px] mx-auto" style={{ lineHeight: 1.7 }}>
             Whether you own a center console or a 50-foot sportfish, QR Captain gives you a
             complete digital record of every service, every part, every mechanic.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {OWNER_FEATURES.map((feature, i) => (
             <div
               key={i}
-              className="group p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-300"
+              className="group p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-300"
               style={{
                 boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.04)",
               }}
             >
-              <div className="w-10 h-10 rounded-xl bg-captain-500/10 border border-captain-500/20 flex items-center justify-center text-captain-400 mb-4 group-hover:bg-captain-500/15 transition-colors duration-300">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-captain-500/10 border border-captain-500/20 flex items-center justify-center text-captain-400 mb-3 sm:mb-4 group-hover:bg-captain-500/15 transition-colors duration-300">
                 {feature.icon}
               </div>
-              <h3 className="font-heading font-medium text-white text-base mb-2">
+              <h3 className="font-heading font-medium text-white text-sm sm:text-lg mb-1 sm:mb-2">
                 {feature.title}
               </h3>
-              <p className="text-white/40 text-sm" style={{ lineHeight: 1.7 }}>
+              <p className="text-white/40 text-xs sm:text-base" style={{ lineHeight: 1.7 }}>
                 {feature.description}
               </p>
             </div>

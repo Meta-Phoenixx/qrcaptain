@@ -53,7 +53,7 @@ export function WaitlistSection() {
           >
             Be First On Board
           </h2>
-          <p className="text-white/50" style={{ lineHeight: 1.7 }}>
+          <p className="text-white/50 text-base" style={{ lineHeight: 1.7 }}>
             Join the waitlist to get priority access when QR Captain launches.
             Early adopters get founding member status.
           </p>
@@ -69,7 +69,7 @@ export function WaitlistSection() {
             <h3 className="font-heading font-bold text-white text-xl mb-2">
               You&apos;re on the list!
             </h3>
-            <p className="text-white/50 text-sm">
+            <p className="text-white/50 text-base">
               Check your email for a confirmation. We&apos;ll notify you when the Beta Program opens in Q2 2026.
             </p>
           </div>

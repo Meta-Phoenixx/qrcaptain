@@ -62,7 +62,20 @@ export function Navbar() {
 
         {/* Right — Desktop */}
         <div className="hidden md:flex items-center gap-4">
-          {/* Hidden login — triple-click to reveal */}
+          <Link
+            href="/raffle"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 text-amber-300 text-sm font-semibold hover:bg-amber-400/20 hover:border-amber-400/50 hover:text-amber-200 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+            style={{
+              boxShadow: "0 0 12px rgba(251,191,36,0.1)",
+            }}
+          >
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M4 4a2 2 0 012-2h4l2 2h6a2 2 0 012 2v2H4V4z" opacity=".3" />
+              <path d="M2 8h20v2H2V8zm1 3h18l-1.5 9a2 2 0 01-2 2H6.5a2 2 0 01-2-2L3 11zm5 2v5h2v-5H8zm3 0v5h2v-5h-2zm3 0v5h2v-5h-2z" />
+            </svg>
+            50/50 Raffle
+          </Link>
+          {/* Hidden login — dev only */}
           <Link
             href="/signin"
             className="text-sm text-transparent select-none pointer-events-auto hover:text-transparent focus-visible:outline-none rounded px-2 py-1"
@@ -127,6 +140,17 @@ export function Navbar() {
                 {link.label}
               </button>
             ))}
+            <Link
+              href="/raffle"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2 px-4 py-3 text-amber-300 font-semibold hover:bg-amber-400/10 rounded-xl transition-colors duration-200"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M4 4a2 2 0 012-2h4l2 2h6a2 2 0 012 2v2H4V4z" opacity=".3" />
+                <path d="M2 8h20v2H2V8zm1 3h18l-1.5 9a2 2 0 01-2 2H6.5a2 2 0 01-2-2L3 11zm5 2v5h2v-5H8zm3 0v5h2v-5h-2zm3 0v5h2v-5h-2z" />
+              </svg>
+              50/50 Raffle
+            </Link>
             <button
               onClick={() => scrollTo("#waitlist")}
               className="mt-2 px-5 py-3 text-sm font-medium rounded-full bg-gradient-to-b from-captain-500 to-captain-600 text-white border border-captain-400/30 active:scale-95 transition-all duration-200"

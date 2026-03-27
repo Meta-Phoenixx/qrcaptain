@@ -67,7 +67,7 @@ export function BetaSection() {
             >
               Beta Program
             </h2>
-            <p className="text-white/50 max-w-[500px] mx-auto mb-10" style={{ lineHeight: 1.7 }}>
+            <p className="text-white/50 text-base max-w-[500px] mx-auto mb-10" style={{ lineHeight: 1.7 }}>
               We&apos;re looking for passionate boaters and mechanics to be our founding crew.
               Help shape QR Captain from the inside and get a head start on the platform.
             </p>
@@ -78,10 +78,10 @@ export function BetaSection() {
                   <div className="w-9 h-9 rounded-lg bg-captain-500/10 flex items-center justify-center text-captain-400 mx-auto mb-3">
                     {perk.icon}
                   </div>
-                  <h3 className="font-heading font-medium text-white text-sm mb-1">
+                  <h3 className="font-heading font-medium text-white text-base mb-1">
                     {perk.title}
                   </h3>
-                  <p className="text-white/40 text-xs" style={{ lineHeight: 1.6 }}>
+                  <p className="text-white/40 text-sm" style={{ lineHeight: 1.6 }}>
                     {perk.description}
                   </p>
                 </div>

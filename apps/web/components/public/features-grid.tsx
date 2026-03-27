@@ -58,7 +58,7 @@ export function FeaturesGrid() {
           >
             Built for the water
           </h2>
-          <p className="text-white/50 max-w-[500px] mx-auto" style={{ lineHeight: 1.7 }}>
+          <p className="text-white/50 text-base max-w-[500px] mx-auto" style={{ lineHeight: 1.7 }}>
             Everything you need to manage vessel maintenance, from dock to done.
           </p>
         </div>
@@ -73,10 +73,10 @@ export function FeaturesGrid() {
 
               <div className="p-8 rounded-2xl transition-all duration-300 hover:bg-white/[0.02] group-hover:border-white/[0.06]">
                 <div className="text-captain-400 mb-5">{feature.icon}</div>
-                <h3 className="font-heading font-medium text-white text-base mb-2">
+                <h3 className="font-heading font-medium text-white text-lg mb-2">
                   {feature.title}
                 </h3>
-                <p className="text-white/40 text-sm" style={{ lineHeight: 1.7 }}>
+                <p className="text-white/40 text-base" style={{ lineHeight: 1.7 }}>
                   {feature.description}
                 </p>
               </div>
