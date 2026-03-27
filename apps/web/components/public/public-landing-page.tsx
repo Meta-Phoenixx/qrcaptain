@@ -5,6 +5,7 @@ import { HeroSection } from "./hero-section";
 import { FeaturesGrid } from "./features-grid";
 import { OwnerFeatures } from "./owner-features";
 import { MechanicFeatures } from "./mechanic-features";
+import { CountdownSection } from "./countdown-section";
 import { BetaSection } from "./beta-section";
 import { WaitlistSection } from "./waitlist-section";
 import { Footer } from "./footer";
@@ -24,6 +25,7 @@ export function PublicLandingPage() {
         <FeaturesGrid />
         <OwnerFeatures />
         <MechanicFeatures />
+        <CountdownSection />
         <BetaSection />
         <WaitlistSection />
         <Footer />
