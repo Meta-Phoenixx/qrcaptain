@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 const TICKET_TIERS = {
   single: { count: 1, amount: 5 },
@@ -46,6 +47,19 @@ export const submitRaffleEntry = mutation({
     });
 
     return { success: true, id, ticketCount: tier.count, amount: tier.amount };
+  },
+});
+
+export const listAllRaffleEntries = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const user = await ctx.db.get(userId);
+    if (!user || user.role !== "admin") throw new Error("Admin access required");
+
+    const entries = await ctx.db.query("raffleEntries").collect();
+    return entries.sort((a, b) => b.createdAt - a.createdAt);
   },
 });
 

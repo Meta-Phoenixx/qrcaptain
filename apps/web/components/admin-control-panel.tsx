@@ -20,6 +20,8 @@ import {
   FileText,
   X,
   Megaphone,
+  Heart,
+  Ticket,
 } from "lucide-react";
 import { AnnouncementManager } from "./announcement-manager";
 
@@ -80,7 +82,7 @@ const CATEGORY_INFO: Record<SettingCategory, { label: string; icon: React.ReactN
 
 export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
   const { mode } = useTheme();
-  const [activeTab, setActiveTab] = useState<"overview" | "settings" | "announcements">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "settings" | "announcements" | "donations" | "waitlist" | "raffle">("overview");
   const [activeCategory, setActiveCategory] = useState<SettingCategory>("notifications");
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
@@ -89,6 +91,14 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
   // Queries
   const stats = useQuery(api.settings.getSystemStats);
   const allSettings = useQuery(api.settings.getAllSettings);
+
+  // Donation, Waitlist, Raffle queries (only fetch when tab is active)
+  const donationStats = useQuery(activeTab === "donations" ? api.donations.getDonationStats : undefined as any);
+  const donations = useQuery(activeTab === "donations" ? api.donations.listAllDonations : undefined as any);
+  const waitlistCount = useQuery(activeTab === "waitlist" ? api.waitlist.getWaitlistCount : undefined as any);
+  const waitlistSignups = useQuery(activeTab === "waitlist" ? api.waitlist.listAllWaitlistSignups : undefined as any);
+  const raffleStats = useQuery(activeTab === "raffle" ? api.raffle.getRaffleStats : undefined as any);
+  const raffleEntries = useQuery(activeTab === "raffle" ? api.raffle.listAllRaffleEntries : undefined as any);
 
   // Mutations
   const updateSetting = useMutation(api.settings.updateSetting);
@@ -211,6 +221,39 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
             >
               <Megaphone className="w-4 h-4" />
               Announcements
+            </button>
+            <button
+              onClick={() => setActiveTab("donations")}
+              className={`pb-2 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+                activeTab === "donations"
+                  ? "border-captain-600 text-captain-600"
+                  : `border-transparent ${mode === 'dark' ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"}`
+              }`}
+            >
+              <Heart className="w-4 h-4" />
+              Donations
+            </button>
+            <button
+              onClick={() => setActiveTab("waitlist")}
+              className={`pb-2 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+                activeTab === "waitlist"
+                  ? "border-captain-600 text-captain-600"
+                  : `border-transparent ${mode === 'dark' ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"}`
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Waitlist
+            </button>
+            <button
+              onClick={() => setActiveTab("raffle")}
+              className={`pb-2 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
+                activeTab === "raffle"
+                  ? "border-captain-600 text-captain-600"
+                  : `border-transparent ${mode === 'dark' ? "text-gray-400 hover:text-gray-200" : "text-gray-500 hover:text-gray-700"}`
+              }`}
+            >
+              <Ticket className="w-4 h-4" />
+              Raffle
             </button>
           </div>
         </div>
@@ -405,6 +448,187 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
           {/* Announcements Tab */}
           {activeTab === "announcements" && (
             <AnnouncementManager />
+          )}
+
+          {/* Donations Tab */}
+          {activeTab === "donations" && (
+            <div className="space-y-6">
+              {!donationStats ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-2 border-captain-600 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <h3 className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"} mb-4 flex items-center gap-2`}>
+                      <Heart className="w-5 h-5 text-captain-600" />
+                      Donation Summary
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <StatCard label="Total Raised" value={donationStats.totalRaised} color={mode === 'dark' ? "bg-emerald-500/10" : "bg-emerald-100"} icon={<span className={`text-sm font-bold ${mode === 'dark' ? "text-emerald-400" : "text-emerald-600"}`}>$</span>} mode={mode} />
+                      <StatCard label="Donors" value={donationStats.donorCount} color={mode === 'dark' ? "bg-captain-500/10" : "bg-captain-100"} icon={<Heart className="w-4 h-4 text-captain-600" />} mode={mode} />
+                      <StatCard label="Avg Donation" value={donationStats.donorCount > 0 ? Math.round(donationStats.totalRaised / donationStats.donorCount) : 0} color={mode === 'dark' ? "bg-white/5" : "bg-gray-100"} mode={mode} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"} mb-4`}>All Donations</h3>
+                    {!donations || donations.length === 0 ? (
+                      <p className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>No donations yet.</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className={mode === 'dark' ? "text-gray-400 border-b border-white/10" : "text-gray-500 border-b border-gray-200"}>
+                              <th className="text-left py-2 pr-4">Date</th>
+                              <th className="text-left py-2 pr-4">Name</th>
+                              <th className="text-left py-2 pr-4">Email</th>
+                              <th className="text-right py-2 pr-4">Amount</th>
+                              <th className="text-center py-2">Email Sent</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {donations.map((d) => (
+                              <tr key={d._id} className={mode === 'dark' ? "border-b border-white/5" : "border-b border-gray-100"}>
+                                <td className={`py-2 pr-4 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>{new Date(d.createdAt).toLocaleDateString()}</td>
+                                <td className={`py-2 pr-4 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{d.name}</td>
+                                <td className={`py-2 pr-4 ${mode === 'dark' ? "text-gray-300" : "text-gray-600"}`}>{d.email}</td>
+                                <td className={`py-2 pr-4 text-right font-medium ${mode === 'dark' ? "text-emerald-400" : "text-emerald-600"}`}>${d.amount}</td>
+                                <td className="py-2 text-center">{d.confirmationEmailSent ? <Check className="w-4 h-4 text-green-500 mx-auto" /> : <Clock className="w-4 h-4 text-yellow-500 mx-auto" />}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Waitlist Tab */}
+          {activeTab === "waitlist" && (
+            <div className="space-y-6">
+              {waitlistCount === undefined ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-2 border-captain-600 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <h3 className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"} mb-4 flex items-center gap-2`}>
+                      <Users className="w-5 h-5 text-captain-600" />
+                      Waitlist Summary
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <StatCard label="Total Signups" value={waitlistCount} color={mode === 'dark' ? "bg-captain-500/10" : "bg-captain-100"} icon={<Users className="w-4 h-4 text-captain-600" />} mode={mode} />
+                      <StatCard label="Owners" value={waitlistSignups?.filter((s) => s.roleInterest === "owner").length ?? 0} color={mode === 'dark' ? "bg-blue-500/10" : "bg-blue-100"} icon={<Ship className="w-4 h-4 text-blue-600" />} mode={mode} />
+                      <StatCard label="Mechanics" value={waitlistSignups?.filter((s) => s.roleInterest === "mechanic").length ?? 0} color={mode === 'dark' ? "bg-orange-500/10" : "bg-orange-100"} icon={<Wrench className="w-4 h-4 text-orange-600" />} mode={mode} />
+                      <StatCard label="Both" value={waitlistSignups?.filter((s) => s.roleInterest === "both").length ?? 0} color={mode === 'dark' ? "bg-purple-500/10" : "bg-purple-100"} mode={mode} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"} mb-4`}>All Signups</h3>
+                    {!waitlistSignups || waitlistSignups.length === 0 ? (
+                      <p className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>No signups yet.</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className={mode === 'dark' ? "text-gray-400 border-b border-white/10" : "text-gray-500 border-b border-gray-200"}>
+                              <th className="text-left py-2 pr-4">Date</th>
+                              <th className="text-left py-2 pr-4">Name</th>
+                              <th className="text-left py-2 pr-4">Email</th>
+                              <th className="text-left py-2 pr-4">Role</th>
+                              <th className="text-left py-2">Source</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {waitlistSignups.map((s) => (
+                              <tr key={s._id} className={mode === 'dark' ? "border-b border-white/5" : "border-b border-gray-100"}>
+                                <td className={`py-2 pr-4 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>{new Date(s.createdAt).toLocaleDateString()}</td>
+                                <td className={`py-2 pr-4 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{s.name}</td>
+                                <td className={`py-2 pr-4 ${mode === 'dark' ? "text-gray-300" : "text-gray-600"}`}>{s.email}</td>
+                                <td className="py-2 pr-4">
+                                  <GlassBadge color={s.roleInterest === "owner" ? "blue" : s.roleInterest === "mechanic" ? "yellow" : "green"}>
+                                    {s.roleInterest === "both" ? "Both" : s.roleInterest === "owner" ? "Owner" : "Mechanic"}
+                                  </GlassBadge>
+                                </td>
+                                <td className={`py-2 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>{s.source ?? "—"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Raffle Tab */}
+          {activeTab === "raffle" && (
+            <div className="space-y-6">
+              {!raffleStats ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-2 border-captain-600 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <h3 className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"} mb-4 flex items-center gap-2`}>
+                      <Ticket className="w-5 h-5 text-captain-600" />
+                      Raffle Summary
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <StatCard label="Pot Total" value={raffleStats.potTotal} color={mode === 'dark' ? "bg-emerald-500/10" : "bg-emerald-100"} icon={<span className={`text-sm font-bold ${mode === 'dark' ? "text-emerald-400" : "text-emerald-600"}`}>$</span>} mode={mode} />
+                      <StatCard label="Entries" value={raffleStats.totalEntries} color={mode === 'dark' ? "bg-captain-500/10" : "bg-captain-100"} mode={mode} />
+                      <StatCard label="Tickets Sold" value={raffleStats.totalTickets} color={mode === 'dark' ? "bg-blue-500/10" : "bg-blue-100"} icon={<Ticket className="w-4 h-4 text-blue-600" />} mode={mode} />
+                      <StatCard label="Winner Pot" value={raffleStats.winnerPot} color={mode === 'dark' ? "bg-yellow-500/10" : "bg-yellow-100"} icon={<span className={`text-sm font-bold ${mode === 'dark' ? "text-yellow-400" : "text-yellow-600"}`}>$</span>} mode={mode} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className={`text-lg font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"} mb-4`}>All Entries</h3>
+                    {!raffleEntries || raffleEntries.length === 0 ? (
+                      <p className={`text-sm ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>No raffle entries.</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className={mode === 'dark' ? "text-gray-400 border-b border-white/10" : "text-gray-500 border-b border-gray-200"}>
+                              <th className="text-left py-2 pr-4">Date</th>
+                              <th className="text-left py-2 pr-4">Name</th>
+                              <th className="text-left py-2 pr-4">Email</th>
+                              <th className="text-left py-2 pr-4">Tier</th>
+                              <th className="text-right py-2 pr-4">Tickets</th>
+                              <th className="text-right py-2 pr-4">Amount</th>
+                              <th className="text-center py-2">Email Sent</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {raffleEntries.map((e) => (
+                              <tr key={e._id} className={mode === 'dark' ? "border-b border-white/5" : "border-b border-gray-100"}>
+                                <td className={`py-2 pr-4 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>{new Date(e.createdAt).toLocaleDateString()}</td>
+                                <td className={`py-2 pr-4 ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{e.name}</td>
+                                <td className={`py-2 pr-4 ${mode === 'dark' ? "text-gray-300" : "text-gray-600"}`}>{e.email}</td>
+                                <td className="py-2 pr-4"><GlassBadge color="blue">{e.ticketTier}</GlassBadge></td>
+                                <td className={`py-2 pr-4 text-right ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>{e.ticketCount}</td>
+                                <td className={`py-2 pr-4 text-right font-medium ${mode === 'dark' ? "text-emerald-400" : "text-emerald-600"}`}>${e.amount}</td>
+                                <td className="py-2 text-center">{e.confirmationEmailSent ? <Check className="w-4 h-4 text-green-500 mx-auto" /> : <Clock className="w-4 h-4 text-yellow-500 mx-auto" />}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
     </GlassModal>

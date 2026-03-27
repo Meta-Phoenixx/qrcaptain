@@ -42,7 +42,7 @@ export const seedAdmin = mutation({
     // Check if admin already exists
     const existingAdmin = await ctx.db
       .query("users")
-      .filter((q) => q.eq(q.field("email"), "admin@qrcaptain.com"))
+      .filter((q) => q.eq(q.field("email"), "admin@meta-phoenix.io"))
       .first();
     
     if (existingAdmin) {
@@ -55,7 +55,7 @@ export const seedAdmin = mutation({
 
     // Create new admin user
     const userId = await ctx.db.insert("users", {
-      email: "admin@qrcaptain.com",
+      email: "admin@meta-phoenix.io",
       name: "Admin",
       firstName: "System",
       lastName: "Administrator",
@@ -64,7 +64,7 @@ export const seedAdmin = mutation({
     });
 
     return { 
-      message: "Admin user created. Sign up with email: admin@qrcaptain.com to set password", 
+      message: "Admin user created. Sign up with email: admin@meta-phoenix.io to set password", 
       userId 
     };
   },

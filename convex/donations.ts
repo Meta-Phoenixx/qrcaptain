@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 export const submitDonation = mutation({
   args: {
@@ -35,6 +36,19 @@ export const submitDonation = mutation({
     });
 
     return { success: true, id, amount: args.amount };
+  },
+});
+
+export const listAllDonations = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const user = await ctx.db.get(userId);
+    if (!user || user.role !== "admin") throw new Error("Admin access required");
+
+    const entries = await ctx.db.query("donationEntries").collect();
+    return entries.sort((a, b) => b.createdAt - a.createdAt);
   },
 });
 
