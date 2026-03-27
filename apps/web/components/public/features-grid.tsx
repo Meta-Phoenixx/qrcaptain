@@ -63,7 +63,7 @@ export function FeaturesGrid() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px">
           {FEATURES.map((feature, i) => (
             <div key={i} className="relative group">
               {/* Vertical divider */}
@@ -71,12 +71,12 @@ export function FeaturesGrid() {
                 <div className="hidden lg:block absolute left-0 top-[10%] bottom-[10%] w-px bg-gradient-to-b from-transparent via-white/[0.08] to-transparent" />
               )}
 
-              <div className="p-8 rounded-2xl transition-all duration-300 hover:bg-white/[0.02] group-hover:border-white/[0.06]">
-                <div className="text-captain-400 mb-5">{feature.icon}</div>
-                <h3 className="font-heading font-medium text-white text-lg mb-2">
+              <div className="p-4 sm:p-8 rounded-xl sm:rounded-2xl transition-all duration-300 hover:bg-white/[0.02] group-hover:border-white/[0.06]">
+                <div className="text-captain-400 mb-3 sm:mb-5">{feature.icon}</div>
+                <h3 className="font-heading font-medium text-white text-sm sm:text-lg mb-1 sm:mb-2">
                   {feature.title}
                 </h3>
-                <p className="text-white/40 text-base" style={{ lineHeight: 1.7 }}>
+                <p className="text-white/40 text-xs sm:text-base" style={{ lineHeight: 1.7 }}>
                   {feature.description}
                 </p>
               </div>

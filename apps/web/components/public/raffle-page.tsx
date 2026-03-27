@@ -36,25 +36,25 @@ function LivePotCard({ stats }: { stats: { potTotal: number; totalEntries: numbe
       className="p-5 sm:p-6 rounded-2xl border border-white/[0.08] bg-white/[0.02] text-center"
       style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)" }}
     >
-      <p className="text-[10px] sm:text-xs text-white/40 uppercase tracking-wider mb-1.5 sm:mb-2">Live Pot Total</p>
+      <p className="text-xs sm:text-sm text-white/70 uppercase tracking-wider mb-1.5 sm:mb-2">Live Pot Total</p>
       <p className="font-heading font-bold text-3xl sm:text-4xl text-white mb-1">
         ${stats?.potTotal?.toLocaleString() ?? "0"}
       </p>
-      <div className="flex items-center justify-center gap-4 mt-2 sm:mt-3 text-[10px] sm:text-xs text-white/30">
+      <div className="flex items-center justify-center gap-4 mt-2 sm:mt-3 text-xs sm:text-sm text-white/60">
         <span>{stats?.totalEntries ?? 0} entries</span>
-        <span className="w-px h-3 bg-white/10" />
+        <span className="w-px h-3 bg-white/20" />
         <span>{stats?.totalTickets ?? 0} tickets</span>
       </div>
-      <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/[0.06] grid grid-cols-2 gap-4">
+      <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/[0.08] grid grid-cols-2 gap-4">
         <div>
-          <p className="text-[10px] sm:text-xs text-white/30 mb-0.5 sm:mb-1">Winner Gets</p>
-          <p className="font-heading font-bold text-captain-400 text-base sm:text-lg">
+          <p className="text-xs sm:text-sm text-white/70 mb-0.5 sm:mb-1">Winner Gets</p>
+          <p className="font-heading font-bold text-captain-300 text-lg sm:text-xl">
             ${stats?.winnerPot?.toLocaleString() ?? "0"}
           </p>
         </div>
         <div>
-          <p className="text-[10px] sm:text-xs text-white/30 mb-0.5 sm:mb-1">Goes to Cause</p>
-          <p className="font-heading font-bold text-emerald-400 text-base sm:text-lg">
+          <p className="text-xs sm:text-sm text-white/70 mb-0.5 sm:mb-1">Goes to Cause</p>
+          <p className="font-heading font-bold text-emerald-300 text-lg sm:text-xl">
             ${stats?.causePot?.toLocaleString() ?? "0"}
           </p>
         </div>
@@ -180,7 +180,7 @@ export function RafflePage() {
 
   return (
     <div
-      className="min-h-screen font-inter text-white text-base"
+      className="min-h-screen font-inter text-white text-lg sm:text-base"
       style={{
         background: "linear-gradient(180deg, #030014 0%, #07192b 40%, #0a2540 70%, #030014 100%)",
       }}
@@ -361,8 +361,8 @@ export function RafflePage() {
             </div>
           </div>
 
-          {/* Flyer + Footer — centered below both columns */}
-          <div className="mt-12 flex flex-col items-center">
+          {/* Flyer + Footer — desktop only, centered below both columns */}
+          <div className="hidden lg:flex mt-12 flex-col items-center">
             <div className="w-full max-w-[520px] rounded-2xl overflow-hidden border border-white/[0.08]">
               <img
                 src="/raffle/Water2WorthyCause-Flyer_v2.png"
