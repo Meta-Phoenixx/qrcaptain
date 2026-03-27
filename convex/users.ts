@@ -75,17 +75,21 @@ export const seedAdmin = mutation({
 export const promoteToAdmin = mutation({
   args: { email: v.string() },
   handler: async (ctx, args) => {
-    const user = await ctx.db
+    const users = await ctx.db
       .query("users")
       .filter((q) => q.eq(q.field("email"), args.email))
-      .first();
-    
-    if (!user) {
+      .collect();
+
+    if (users.length === 0) {
       throw new Error(`User with email ${args.email} not found`);
     }
 
-    await ctx.db.patch(user._id, { role: "admin" });
-    return { message: `User ${args.email} promoted to admin`, userId: user._id };
+    const updated = [];
+    for (const user of users) {
+      await ctx.db.patch(user._id, { role: "admin" });
+      updated.push(user._id);
+    }
+    return { message: `Promoted ${updated.length} user(s) with email ${args.email} to admin`, userIds: updated };
   },
 });
 

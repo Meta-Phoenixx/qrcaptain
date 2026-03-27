@@ -92,13 +92,13 @@ export function AdminControlPanel({ onClose }: AdminControlPanelProps) {
   const stats = useQuery(api.settings.getSystemStats);
   const allSettings = useQuery(api.settings.getAllSettings);
 
-  // Donation, Waitlist, Raffle queries (only fetch when tab is active)
-  const donationStats = useQuery(activeTab === "donations" ? api.donations.getDonationStats : undefined as any);
-  const donations = useQuery(activeTab === "donations" ? api.donations.listAllDonations : undefined as any);
-  const waitlistCount = useQuery(activeTab === "waitlist" ? api.waitlist.getWaitlistCount : undefined as any);
-  const waitlistSignups = useQuery(activeTab === "waitlist" ? api.waitlist.listAllWaitlistSignups : undefined as any);
-  const raffleStats = useQuery(activeTab === "raffle" ? api.raffle.getRaffleStats : undefined as any);
-  const raffleEntries = useQuery(activeTab === "raffle" ? api.raffle.listAllRaffleEntries : undefined as any);
+  // Donation, Waitlist, Raffle queries
+  const donationStats = useQuery(api.donations.getDonationStats);
+  const donations = useQuery(api.donations.listAllDonations);
+  const waitlistCount = useQuery(api.waitlist.getWaitlistCount);
+  const waitlistSignups = useQuery(api.waitlist.listAllWaitlistSignups);
+  const raffleStats = useQuery(api.raffle.getRaffleStats);
+  const raffleEntries = useQuery(api.raffle.listAllRaffleEntries);
 
   // Mutations
   const updateSetting = useMutation(api.settings.updateSetting);
