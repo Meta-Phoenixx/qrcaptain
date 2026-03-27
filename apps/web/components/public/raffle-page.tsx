@@ -303,7 +303,7 @@ export function RafflePage() {
             {/* Flyer */}
             <div className="rounded-2xl overflow-hidden border border-white/[0.08]">
               <img
-                src="/raffle/Water2WorthyCause-Flyer_v2.png"
+                src="/raffle/Water2WorthyCause-Flyer_v3.png"
                 alt="Biggest Trout 50/50 Raffle Flyer"
                 className="w-full h-auto"
               />
@@ -365,7 +365,7 @@ export function RafflePage() {
           <div className="hidden lg:flex mt-12 flex-col items-center">
             <div className="w-full max-w-[520px] rounded-2xl overflow-hidden border border-white/[0.08]">
               <img
-                src="/raffle/Water2WorthyCause-Flyer_v2.png"
+                src="/raffle/Water2WorthyCause-Flyer_v3.png"
                 alt="Biggest Trout 50/50 Raffle Flyer"
                 className="w-full h-auto"
               />
