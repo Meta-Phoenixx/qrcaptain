@@ -52,6 +52,63 @@ export const listAllDonations = query({
   },
 });
 
+export const updateDonation = mutation({
+  args: {
+    entryId: v.id("donationEntries"),
+    amount: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const user = await ctx.db.get(userId);
+    if (!user || user.role !== "admin") throw new Error("Admin access required");
+
+    if (args.amount <= 0) throw new Error("Amount must be greater than 0");
+
+    const entry = await ctx.db.get(args.entryId);
+    if (!entry) throw new Error("Donation not found");
+
+    const oldAmount = entry.amount;
+    await ctx.db.patch(args.entryId, { amount: args.amount });
+
+    // Send update notification email
+    await ctx.scheduler.runAfter(0, internal.emails.sendDonationUpdateNotification, {
+      name: entry.name,
+      email: entry.email,
+      oldAmount,
+      newAmount: args.amount,
+    });
+
+    return { success: true };
+  },
+});
+
+export const deleteDonation = mutation({
+  args: {
+    entryId: v.id("donationEntries"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const user = await ctx.db.get(userId);
+    if (!user || user.role !== "admin") throw new Error("Admin access required");
+
+    const entry = await ctx.db.get(args.entryId);
+    if (!entry) throw new Error("Donation not found");
+
+    await ctx.db.delete(args.entryId);
+
+    // Send deletion notification email
+    await ctx.scheduler.runAfter(0, internal.emails.sendDonationDeleteNotification, {
+      name: entry.name,
+      email: entry.email,
+      amount: entry.amount,
+    });
+
+    return { success: true };
+  },
+});
+
 export const getDonationStats = query({
   args: {},
   handler: async (ctx) => {

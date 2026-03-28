@@ -63,6 +63,65 @@ export const listAllRaffleEntries = query({
   },
 });
 
+export const updateRaffleTickets = mutation({
+  args: {
+    entryId: v.id("raffleEntries"),
+    ticketCount: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const user = await ctx.db.get(userId);
+    if (!user || user.role !== "admin") throw new Error("Admin access required");
+
+    if (args.ticketCount < 1) throw new Error("Ticket count must be at least 1");
+
+    const entry = await ctx.db.get(args.entryId);
+    if (!entry) throw new Error("Raffle entry not found");
+
+    const oldTicketCount = entry.ticketCount;
+    await ctx.db.patch(args.entryId, { ticketCount: args.ticketCount });
+
+    // Send update notification email
+    await ctx.scheduler.runAfter(0, internal.emails.sendRaffleUpdateNotification, {
+      name: entry.name,
+      email: entry.email,
+      oldTicketCount,
+      newTicketCount: args.ticketCount,
+      ticketTier: entry.ticketTier,
+    });
+
+    return { success: true };
+  },
+});
+
+export const deleteRaffleEntry = mutation({
+  args: {
+    entryId: v.id("raffleEntries"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const user = await ctx.db.get(userId);
+    if (!user || user.role !== "admin") throw new Error("Admin access required");
+
+    const entry = await ctx.db.get(args.entryId);
+    if (!entry) throw new Error("Raffle entry not found");
+
+    await ctx.db.delete(args.entryId);
+
+    // Send deletion notification email
+    await ctx.scheduler.runAfter(0, internal.emails.sendRaffleDeleteNotification, {
+      name: entry.name,
+      email: entry.email,
+      ticketCount: entry.ticketCount,
+      ticketTier: entry.ticketTier,
+    });
+
+    return { success: true };
+  },
+});
+
 export const getRaffleStats = query({
   args: {},
   handler: async (ctx) => {

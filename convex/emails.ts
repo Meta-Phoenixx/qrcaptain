@@ -256,3 +256,235 @@ export const markDonationEmailSent = internalMutation({
     await ctx.db.patch(args.entryId, { confirmationEmailSent: true });
   },
 });
+
+// ─── Admin Update Notification Emails ──────────────────────────
+
+export const sendDonationUpdateNotification = internalAction({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    oldAmount: v.number(),
+    newAmount: v.number(),
+  },
+  handler: async (_ctx, args) => {
+    const apiKey = process.env.AUTH_RESEND_KEY;
+    if (!apiKey) {
+      console.error("AUTH_RESEND_KEY not set, skipping donation update email");
+      return;
+    }
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: process.env.AUTH_EMAIL ?? "The QR Captain <noreply@theqrcaptain.com>",
+        to: [args.email],
+        subject: "Donation Update | Walden Marine x The QR Captain",
+        html: `
+          <div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background: #f8f9fa;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h1 style="font-size: 24px; font-weight: bold; margin: 0 0 4px; color: #0c4a6e;">Donation Update</h1>
+              <p style="color: #666; margin: 8px 0 0; font-size: 13px;">Walden Marine & The QR Captain</p>
+            </div>
+            <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e5e7eb;">
+              <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Hi ${args.name},</p>
+              <p style="margin: 0 0 16px; color: #333;">
+                Your donation record has been updated by our team.
+              </p>
+              <div style="background: #f0f9ff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border-left: 4px solid #0ea5e9;">
+                <p style="margin: 0 0 8px; color: #666; font-size: 14px;">Previous amount: <strong>$${args.oldAmount}</strong></p>
+                <p style="margin: 0; color: #075985; font-size: 18px; font-weight: bold;">Updated amount: $${args.newAmount}</p>
+              </div>
+              <p style="margin: 0; color: #666; font-size: 14px;">
+                If you have any questions about this change, please contact us at waldenmarine@gmail.com or 813-965-8711.
+              </p>
+            </div>
+            <div style="text-align: center; color: #999; font-size: 12px;">
+              <p style="margin: 0;">Walden Marine & The QR Captain — Forged in Saltwater</p>
+            </div>
+          </div>
+        `,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`Failed to send donation update email: ${errorData}`);
+    }
+  },
+});
+
+export const sendDonationDeleteNotification = internalAction({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    amount: v.number(),
+  },
+  handler: async (_ctx, args) => {
+    const apiKey = process.env.AUTH_RESEND_KEY;
+    if (!apiKey) {
+      console.error("AUTH_RESEND_KEY not set, skipping donation delete email");
+      return;
+    }
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: process.env.AUTH_EMAIL ?? "The QR Captain <noreply@theqrcaptain.com>",
+        to: [args.email],
+        subject: "Donation Record Removed | Walden Marine x The QR Captain",
+        html: `
+          <div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background: #f8f9fa;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h1 style="font-size: 24px; font-weight: bold; margin: 0 0 4px; color: #0c4a6e;">Donation Record Update</h1>
+              <p style="color: #666; margin: 8px 0 0; font-size: 13px;">Walden Marine & The QR Captain</p>
+            </div>
+            <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e5e7eb;">
+              <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Hi ${args.name},</p>
+              <p style="margin: 0 0 16px; color: #333;">
+                Your donation record of <strong>$${args.amount}</strong> has been removed from our system by our team.
+              </p>
+              <p style="margin: 0; color: #666; font-size: 14px;">
+                If you believe this was done in error or have any questions, please contact us at waldenmarine@gmail.com or 813-965-8711.
+              </p>
+            </div>
+            <div style="text-align: center; color: #999; font-size: 12px;">
+              <p style="margin: 0;">Walden Marine & The QR Captain — Forged in Saltwater</p>
+            </div>
+          </div>
+        `,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`Failed to send donation delete email: ${errorData}`);
+    }
+  },
+});
+
+export const sendRaffleUpdateNotification = internalAction({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    oldTicketCount: v.number(),
+    newTicketCount: v.number(),
+    ticketTier: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const apiKey = process.env.AUTH_RESEND_KEY;
+    if (!apiKey) {
+      console.error("AUTH_RESEND_KEY not set, skipping raffle update email");
+      return;
+    }
+
+    const tierLabel = TIER_LABELS[args.ticketTier] ?? args.ticketTier;
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: process.env.AUTH_EMAIL ?? "The QR Captain <noreply@theqrcaptain.com>",
+        to: [args.email],
+        subject: "Raffle Ticket Update | Walden Marine x The QR Captain",
+        html: `
+          <div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background: #f8f9fa;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h1 style="font-size: 24px; font-weight: bold; margin: 0 0 4px; color: #0c4a6e;">Raffle Ticket Update</h1>
+              <p style="color: #0284c7; margin: 0; font-size: 16px; font-weight: 600;">Biggest Trout — 50/50 Raffle</p>
+              <p style="color: #666; margin: 8px 0 0; font-size: 13px;">Walden Marine & The QR Captain</p>
+            </div>
+            <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e5e7eb;">
+              <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Hi ${args.name},</p>
+              <p style="margin: 0 0 16px; color: #333;">
+                Your raffle ticket count has been updated by our team.
+              </p>
+              <div style="background: #f0f9ff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border-left: 4px solid #0ea5e9;">
+                <p style="margin: 0 0 4px; font-weight: 600; color: #075985;">Tier: ${tierLabel}</p>
+                <p style="margin: 0 0 8px; color: #666; font-size: 14px;">Previous tickets: <strong>${args.oldTicketCount}</strong></p>
+                <p style="margin: 0; color: #075985; font-size: 18px; font-weight: bold;">Updated tickets: ${args.newTicketCount}</p>
+              </div>
+              <p style="margin: 0; color: #666; font-size: 14px;">
+                If you have any questions, please contact us at waldenmarine@gmail.com or 813-965-8711.
+              </p>
+            </div>
+            <div style="text-align: center; color: #999; font-size: 12px;">
+              <p style="margin: 0;">Walden Marine & The QR Captain — Forged in Saltwater</p>
+            </div>
+          </div>
+        `,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`Failed to send raffle update email: ${errorData}`);
+    }
+  },
+});
+
+export const sendRaffleDeleteNotification = internalAction({
+  args: {
+    name: v.string(),
+    email: v.string(),
+    ticketCount: v.number(),
+    ticketTier: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const apiKey = process.env.AUTH_RESEND_KEY;
+    if (!apiKey) {
+      console.error("AUTH_RESEND_KEY not set, skipping raffle delete email");
+      return;
+    }
+
+    const tierLabel = TIER_LABELS[args.ticketTier] ?? args.ticketTier;
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: process.env.AUTH_EMAIL ?? "The QR Captain <noreply@theqrcaptain.com>",
+        to: [args.email],
+        subject: "Raffle Entry Removed | Walden Marine x The QR Captain",
+        html: `
+          <div style="font-family: system-ui, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; background: #f8f9fa;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h1 style="font-size: 24px; font-weight: bold; margin: 0 0 4px; color: #0c4a6e;">Raffle Entry Update</h1>
+              <p style="color: #666; margin: 8px 0 0; font-size: 13px;">Walden Marine & The QR Captain</p>
+            </div>
+            <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e5e7eb;">
+              <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Hi ${args.name},</p>
+              <p style="margin: 0 0 16px; color: #333;">
+                Your raffle entry (${tierLabel}, ${args.ticketCount} ticket${args.ticketCount !== 1 ? "s" : ""}) has been removed from our system by our team.
+              </p>
+              <p style="margin: 0; color: #666; font-size: 14px;">
+                If you believe this was done in error or have any questions, please contact us at waldenmarine@gmail.com or 813-965-8711.
+              </p>
+            </div>
+            <div style="text-align: center; color: #999; font-size: 12px;">
+              <p style="margin: 0;">Walden Marine & The QR Captain — Forged in Saltwater</p>
+            </div>
+          </div>
+        `,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`Failed to send raffle delete email: ${errorData}`);
+    }
+  },
+});
