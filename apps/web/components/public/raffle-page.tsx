@@ -96,9 +96,9 @@ function GiveBackCard() {
         Give Back
       </h3>
       <p className="text-white/50 text-sm sm:text-base mb-2 sm:mb-3" style={{ lineHeight: 1.7 }}>
-        Proceeds from this raffle support <strong className="text-white/70">Cass Walden</strong>,
-        a student in the <strong className="text-white/70">Moody Aviation Program</strong>,
-        training to become a missionary pilot serving remote and hard-to-reach regions around the world.
+        Proceeds from this raffle support <strong className="text-white/70">Cass Walden's</strong>
+        missionary aviation training program, preparing to become a pilot serving
+        remote and hard-to-reach regions around the world.
       </p>
       <p className="text-white/40 text-xs sm:text-sm" style={{ lineHeight: 1.6 }}>
         Through this 5-year program, Cass is being equipped to deliver disaster relief,

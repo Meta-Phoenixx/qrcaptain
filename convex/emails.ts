@@ -67,8 +67,8 @@ export const sendRaffleConfirmation = internalAction({
 
               <p style="margin: 0; color: #666; font-size: 14px;">
                 Half the pot goes to the biggest trout winner. The other half supports
-                <strong>Cass Walden</strong>, a student in the Moody Aviation Program training
-                to become a missionary pilot serving remote communities worldwide.
+                <strong>Cass Walden's</strong> missionary aviation training program, preparing
+                pilots to serve remote communities worldwide.
               </p>
             </div>
 
@@ -210,7 +210,7 @@ export const sendDonationConfirmation = internalAction({
               <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Thank you, ${args.name}!</p>
               <p style="margin: 0 0 16px; color: #333;">
                 Your generous donation of <strong>$${args.amount}</strong> is helping support
-                <strong>Cass Walden's</strong> missionary aviation training at the Moody Aviation Institute.
+                <strong>Cass Walden's</strong> missionary aviation training program.
               </p>
 
               <div style="background: #f0f9ff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border-left: 4px solid #0ea5e9;">

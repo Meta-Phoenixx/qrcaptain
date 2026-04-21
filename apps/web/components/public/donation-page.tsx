@@ -53,8 +53,7 @@ function AboutCauseCard() {
         About the Cause
       </h3>
       <p className="text-white/50 text-sm sm:text-base mb-2 sm:mb-3" style={{ lineHeight: 1.7 }}>
-        Your donation supports <strong className="text-white/70">Cass Walden</strong>, a student at the
-        <strong className="text-white/70"> Moody Aviation Institute</strong>, training to become a missionary
+        Your donation supports <strong className="text-white/70">Cass Walden</strong>, who is training to become a missionary
         pilot serving remote and hard-to-reach regions around the world.
       </p>
       <p className="text-white/40 text-xs sm:text-sm" style={{ lineHeight: 1.6 }}>

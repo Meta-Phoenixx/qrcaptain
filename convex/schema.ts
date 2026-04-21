@@ -631,7 +631,7 @@ export default defineSchema({
     .index("by_created", ["createdAt"]),
 
   // ============================================
-  // DONATION ENTRIES (Cass Walden / Moody Aviation)
+  // DONATION ENTRIES (Cass Walden Missionary Aviation)
   // ============================================
   donationEntries: defineTable({
     name: v.string(),
