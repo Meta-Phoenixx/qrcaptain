@@ -1,0 +1,11 @@
+# Global owner — all PRs require review
+* @Meta-Phoenixx
+
+# Architecture rules — extra care
+/02_architecture/ @Meta-Phoenixx
+
+# Convex backend — security-sensitive
+/convex/ @Meta-Phoenixx
+
+# CI/CD pipeline
+/.github/ @Meta-Phoenixx

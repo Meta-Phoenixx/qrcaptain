@@ -6,6 +6,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 QR Captain is a vessel maintenance tracking platform for boat owners and marine mechanics. Users scan QR codes on boats to access service history and document maintenance work with photos, parts, and warranty info.
 
+## Architecture Framework
+
+The active architecture standard lives at:
+
+```
+02_architecture/project-architecture-rules.md
+```
+
+Supporting reference material (Mike's system frameworks):
+
+```
+02_architecture/reference/mike-systems-beginner-guide.md
+02_architecture/reference/mike-systems-breakdown.md
+02_architecture/reference/mike-systems-extraction.md
+```
+
+**Before reviewing, planning, or building:** read `02_architecture/project-architecture-rules.md` as the source of truth for layer placement, service layer rules, security rules, and deployment standards.
+
 ## Architecture
 
 Turborepo monorepo with three workspaces:
@@ -84,6 +102,13 @@ pnpm clean            # Remove turbo cache and node_modules
 - **Images:** Add gradient overlay and color treatment layer with `mix-blend-multiply`.
 - **Spacing:** Use intentional, consistent spacing tokens.
 - **Depth:** Use a layering system (base → elevated → floating).
+
+## GitHub & Deployment Rules
+- **GitHub repo:** `https://github.com/Meta-Phoenixx/qrcaptain`
+- **Branch protection:** Never push directly to `main`. All changes go through a PR.
+- **Branch naming:** `feature/`, `fix/`, `refactor/`, `chore/` prefixes.
+- **Convex deployments:** Always develop and test against the **dev** Convex deployment first. Never run `npx convex deploy` against production without explicit confirmation.
+- **Secrets:** Never commit `.env`, `.env.local`, or any file containing API keys. All secrets live in GitHub repository secrets or Vercel environment variables.
 
 ## Hard Rules
 - Do a full analysis of the directory to understand the project and update `version_history.md` every session.
