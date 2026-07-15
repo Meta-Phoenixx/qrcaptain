@@ -4,6 +4,8 @@ import { Id } from "./_generated/dataModel";
 import { getAuthenticatedUser, requireRole, requireAuth } from "./lib/auth";
 import { logAudit } from "./lib/audit";
 import { Errors } from "./lib/errors";
+import { getFileUrl } from "./lib/fileStorage";
+import { notify, accessRequestNotification, accessApproved, accessDenied } from "./lib/notify";
 
 export const requestAccess = mutation({
   args: {
@@ -53,15 +55,11 @@ export const requestAccess = mutation({
       requestedAt: Date.now(),
     });
 
-    await ctx.db.insert("notifications", {
-      userId: vessel.ownerId,
-      type: "access_request",
-      title: "New Access Request",
-      message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.name || "A mechanic"} is requesting access to ${vessel.name}`,
-      relatedId: requestId,
-      relatedType: "accessRequest",
-      isRead: false,
-      createdAt: Date.now(),
+    await accessRequestNotification(ctx, {
+      ownerId: vessel.ownerId,
+      mechanicName: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.name || "A mechanic",
+      vesselName: vessel.name,
+      requestId,
     });
 
     await logAudit(ctx, {
@@ -124,15 +122,11 @@ export const respondToRequest = mutation({
         });
       }
 
-      await ctx.db.insert("notifications", {
-        userId: request.mechanicId,
-        type: "access_approved",
-        title: "Access Approved",
-        message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner"} has approved your access to ${vessel?.name || "the vessel"}${args.message ? `: "${args.message}"` : ""}`,
-        relatedId: request.vesselId,
-        relatedType: "vessel",
-        isRead: false,
-        createdAt: Date.now(),
+      await accessApproved(ctx, {
+        mechanicId: request.mechanicId,
+        ownerName: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner",
+        vesselName: vessel?.name || "the vessel",
+        requestId: args.requestId,
       });
 
       await logAudit(ctx, {
@@ -143,15 +137,11 @@ export const respondToRequest = mutation({
         metadata: { mechanicId: request.mechanicId, vesselId: request.vesselId },
       });
     } else {
-      await ctx.db.insert("notifications", {
-        userId: request.mechanicId,
-        type: "access_denied",
-        title: "Access Denied",
-        message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner"} has denied your access to ${vessel?.name || "the vessel"}${args.message ? `: "${args.message}"` : ""}`,
-        relatedId: args.requestId,
-        relatedType: "accessRequest",
-        isRead: false,
-        createdAt: Date.now(),
+      await accessDenied(ctx, {
+        mechanicId: request.mechanicId,
+        ownerName: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner",
+        vesselName: vessel?.name || "the vessel",
+        requestId: args.requestId,
       });
 
       await logAudit(ctx, {
@@ -417,10 +407,7 @@ export const getMechanicsForOwner = query({
         const mechanic = await ctx.db.get(mechData.mechanicId);
         if (!mechanic) return null;
 
-        let profilePhotoUrl: string | null = null;
-        if (mechanic.profilePhotoStorageId) {
-          profilePhotoUrl = await ctx.storage.getUrl(mechanic.profilePhotoStorageId);
-        }
+        const profilePhotoUrl = await getFileUrl(ctx, mechanic.profilePhotoStorageId);
 
         return {
           _id: mechanic._id,
@@ -485,7 +472,7 @@ export const toggleMechanicAccess = mutation({
       });
     }
 
-    await ctx.db.insert("notifications", {
+    await notify(ctx, {
       userId: args.mechanicId,
       type: args.isActive ? "access_approved" : "access_revoked",
       title: args.isActive ? "Access Restored" : "Access Revoked",
@@ -494,8 +481,6 @@ export const toggleMechanicAccess = mutation({
         : `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner"} has revoked your access to ${vessel.name}`,
       relatedId: args.vesselId,
       relatedType: "vessel",
-      isRead: false,
-      createdAt: Date.now(),
     });
 
     return { success: true };
@@ -525,15 +510,13 @@ export const revokeAllMechanicAccess = mutation({
       }
     }
 
-    await ctx.db.insert("notifications", {
+    await notify(ctx, {
       userId: args.mechanicId,
       type: "access_revoked",
       title: "Access Revoked",
       message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner"} has revoked your access to all their vessels`,
       relatedId: userId,
       relatedType: "user",
-      isRead: false,
-      createdAt: Date.now(),
     });
 
     return { success: true };

@@ -3,6 +3,8 @@ import { query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { getAuthenticatedUser, requireRole } from "./lib/auth";
 import { Errors } from "./lib/errors";
+import { getUserImageUrl } from "./lib/fileStorage";
+import { addedToPreferredList } from "./lib/notify";
 
 export const getPreferredMechanics = query({
   args: {},
@@ -36,12 +38,7 @@ export const getPreferredMechanics = query({
           .first();
 
         // Get image URL
-        let imageUrl = null;
-        if (mechanic.companyLogoStorageId) {
-          imageUrl = await ctx.storage.getUrl(mechanic.companyLogoStorageId);
-        } else if (mechanic.profilePhotoStorageId) {
-          imageUrl = await ctx.storage.getUrl(mechanic.profilePhotoStorageId);
-        }
+        const imageUrl = await getUserImageUrl(ctx, mechanic);
 
         // Get vessel authorizations for this mechanic
         const authorizations = await Promise.all(
@@ -193,15 +190,11 @@ export const addToPreferredList = mutation({
       .map(v => v!.name)
       .join(", ");
 
-    await ctx.db.insert("notifications", {
-      userId: args.mechanicId,
-      type: "added_to_preferred_list",
-      title: "Added to Preferred Mechanics",
-      message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "An owner"} has added you to their preferred mechanics list${vesselNames ? ` and authorized you for: ${vesselNames}` : ""}`,
-      relatedId: preferredId,
-      relatedType: "preferredMechanic",
-      isRead: false,
-      createdAt: Date.now(),
+    await addedToPreferredList(ctx, {
+      mechanicId: args.mechanicId,
+      ownerName: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "An owner",
+      vesselNames: vesselNames || undefined,
+      preferredId,
     });
 
     return { preferredId };
@@ -402,12 +395,7 @@ export const getMechanicsWithAccess = query({
           )
           .first();
 
-        let imageUrl = null;
-        if (mechanic.companyLogoStorageId) {
-          imageUrl = await ctx.storage.getUrl(mechanic.companyLogoStorageId);
-        } else if (mechanic.profilePhotoStorageId) {
-          imageUrl = await ctx.storage.getUrl(mechanic.profilePhotoStorageId);
-        }
+        const imageUrl = await getUserImageUrl(ctx, mechanic);
 
         const metrics = await ctx.db
           .query("mechanicMetrics")

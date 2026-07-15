@@ -4,6 +4,7 @@ import { internal } from "./_generated/api";
 import { getAuthenticatedUser, requireRole, requireAuth } from "./lib/auth";
 import { logAudit } from "./lib/audit";
 import { Errors } from "./lib/errors";
+import { newRatingReceived } from "./lib/notify";
 
 // ============ LEGACY RATINGS (backward compatibility) ============
 
@@ -277,16 +278,11 @@ export const createMechanicRating = mutation({
     });
 
     // Notify mechanic of new rating
-    const mechanic = await ctx.db.get(workOrder.mechanicId);
-    await ctx.db.insert("notifications", {
-      userId: workOrder.mechanicId,
-      type: "new_rating_received",
-      title: "New Rating Received",
-      message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "An owner"} has rated you ${overallRating.toFixed(1)} wrenches for work on ${vessel.name}`,
-      relatedId: ratingId,
-      relatedType: "mechanicRating",
-      isRead: false,
-      createdAt: Date.now(),
+    await newRatingReceived(ctx, {
+      recipientId: workOrder.mechanicId,
+      raterName: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "An owner",
+      overallRating,
+      workOrderId: args.workOrderId,
     });
 
     // Update mechanic metrics (would be better as scheduled function)
@@ -431,15 +427,11 @@ export const createOwnerRating = mutation({
     });
 
     // Notify owner of new rating
-    await ctx.db.insert("notifications", {
-      userId: ownerId,
-      type: "new_rating_received",
-      title: "New Rating Received",
-      message: `${user.companyName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "A mechanic")} has rated you ${overallRating.toFixed(1)} stars`,
-      relatedId: ratingId,
-      relatedType: "ownerRating",
-      isRead: false,
-      createdAt: Date.now(),
+    await newRatingReceived(ctx, {
+      recipientId: ownerId,
+      raterName: user.companyName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "A mechanic"),
+      overallRating,
+      workOrderId: args.workOrderId,
     });
 
     return { ratingId };

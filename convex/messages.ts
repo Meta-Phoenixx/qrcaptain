@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getAuthenticatedUser, requireAuth } from "./lib/auth";
 import { Errors } from "./lib/errors";
+import { newMessage } from "./lib/notify";
 
 export const sendMessage = mutation({
   args: {
@@ -33,15 +34,12 @@ export const sendMessage = mutation({
       vesselName = vessel?.name || "";
     }
 
-    await ctx.db.insert("notifications", {
-      userId: args.receiverId,
-      type: "new_message",
-      title: "New Message",
-      message: `${sender.firstName && sender.lastName ? `${sender.firstName} ${sender.lastName}` : sender.name || "Someone"} sent you a message${vesselName ? ` about ${vesselName}` : ""}`,
+    await newMessage(ctx, {
+      recipientId: args.receiverId,
+      senderName: sender.firstName && sender.lastName ? `${sender.firstName} ${sender.lastName}` : sender.name || "Someone",
+      preview: args.content,
       relatedId: messageId,
       relatedType: "message",
-      isRead: false,
-      createdAt: Date.now(),
     });
 
     return { messageId };

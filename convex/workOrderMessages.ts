@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getAuthenticatedUser, requireAuth } from "./lib/auth";
 import { Errors } from "./lib/errors";
+import { newMessage } from "./lib/notify";
 
 export const getWorkOrderMessages = query({
   args: {
@@ -90,14 +91,12 @@ export const sendWorkOrderMessage = mutation({
     });
 
     // Create a notification for the receiver
-    await ctx.db.insert("notifications", {
-      userId: receiverId,
-      type: "new_message",
-      title: "New Message",
-      message: `New message regarding work order: ${args.content.substring(0, 50)}${args.content.length > 50 ? "..." : ""}`,
-      isRead: false,
-      createdAt: Date.now(),
+    await newMessage(ctx, {
+      recipientId: receiverId,
+      senderName: "Work Order Update",
+      preview: args.content,
       relatedId: args.workOrderId,
+      relatedType: "workOrder",
     });
 
     return { messageId };

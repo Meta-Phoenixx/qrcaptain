@@ -8,6 +8,20 @@ import {
 } from "./lib/auth";
 import { logAudit } from "./lib/audit";
 import { Errors } from "./lib/errors";
+import {
+  workOrderStarted,
+  workOrderRequested,
+  quoteSubmitted,
+  quoteAccepted,
+  quoteDeclined,
+  requestDeclined,
+  workOrderCompleted,
+  workOrderCancelled,
+  rateMechanicReminder,
+  rateOwnerReminder,
+  notify,
+} from "./lib/notify";
+import { getFileUrl } from "./lib/fileStorage";
 
 async function getSettingValue(
   ctx: MutationCtx,
@@ -107,7 +121,7 @@ export const getWorkOrder = query({
     const photosWithUrls = await Promise.all(
       photos.map(async (photo) => ({
         ...photo,
-        url: await ctx.storage.getUrl(photo.storageId),
+        url: await getFileUrl(ctx, photo.storageId) ?? "",
       }))
     );
 
@@ -316,15 +330,11 @@ export const createWorkOrder = mutation({
       startedAt: Date.now(),
     });
 
-    await ctx.db.insert("notifications", {
-      userId: vessel.ownerId,
-      type: "work_order_started",
-      title: "Work Order Started",
-      message: `${user.companyName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "A mechanic")} has started work on ${vessel.name}`,
-      relatedId: workOrderId,
-      relatedType: "workOrder",
-      isRead: false,
-      createdAt: Date.now(),
+    await workOrderStarted(ctx, {
+      ownerId: vessel.ownerId,
+      mechanicName: user.companyName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "A mechanic"),
+      vesselName: vessel.name,
+      workOrderId,
     });
 
     await logAudit(ctx, {
@@ -402,15 +412,12 @@ export const requestWorkOrder = mutation({
       startedAt: Date.now(),
     });
 
-    await ctx.db.insert("notifications", {
-      userId: args.mechanicId,
-      type: "work_order_requested",
-      title: "New Work Order Request",
-      message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "An owner"} has requested work on ${vessel.name}: ${args.description.substring(0, 100)}${args.description.length > 100 ? "..." : ""}`,
-      relatedId: workOrderId,
-      relatedType: "workOrder",
-      isRead: false,
-      createdAt: Date.now(),
+    await workOrderRequested(ctx, {
+      mechanicId: args.mechanicId,
+      ownerName: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "An owner",
+      vesselName: vessel.name,
+      description: args.description,
+      workOrderId,
     });
 
     await logAudit(ctx, {
@@ -468,15 +475,12 @@ export const submitQuote = mutation({
     const ownerId = workOrder.requestedByOwnerId || vessel?.ownerId;
 
     if (ownerId) {
-      await ctx.db.insert("notifications", {
-        userId: ownerId,
-        type: "quote_submitted",
-        title: "Quote Received",
-        message: `${user.companyName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "A mechanic")} has submitted a quote for $${quotedTotalEstimate.toFixed(2)}`,
-        relatedId: args.workOrderId,
-        relatedType: "workOrder",
-        isRead: false,
-        createdAt: Date.now(),
+      await quoteSubmitted(ctx, {
+        ownerId,
+        mechanicName: user.companyName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "A mechanic"),
+        vesselName: vessel?.name ?? "your vessel",
+        totalQuote: quotedTotalEstimate,
+        workOrderId: args.workOrderId,
       });
     }
 
@@ -517,15 +521,11 @@ export const declineWorkOrderRequest = mutation({
     const ownerId = workOrder.requestedByOwnerId || vessel?.ownerId;
 
     if (ownerId) {
-      await ctx.db.insert("notifications", {
-        userId: ownerId,
-        type: "request_declined",
-        title: "Work Order Request Declined",
-        message: `${user.companyName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The mechanic")} has declined your work order request${args.declineReason ? `: ${args.declineReason}` : ""}`,
-        relatedId: args.workOrderId,
-        relatedType: "workOrder",
-        isRead: false,
-        createdAt: Date.now(),
+      await requestDeclined(ctx, {
+        ownerId,
+        mechanicName: user.companyName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The mechanic"),
+        vesselName: vessel?.name ?? "your vessel",
+        workOrderId: args.workOrderId,
       });
     }
 
@@ -569,15 +569,11 @@ export const acceptQuote = mutation({
 
     await ctx.db.patch(args.workOrderId, { status: "in_progress" });
 
-    await ctx.db.insert("notifications", {
-      userId: workOrder.mechanicId,
-      type: "quote_accepted",
-      title: "Quote Accepted",
-      message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner"} has accepted your quote for ${vessel.name}. You can now begin work.`,
-      relatedId: args.workOrderId,
-      relatedType: "workOrder",
-      isRead: false,
-      createdAt: Date.now(),
+    await quoteAccepted(ctx, {
+      mechanicId: workOrder.mechanicId,
+      ownerName: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner",
+      vesselName: vessel.name,
+      workOrderId: args.workOrderId,
     });
 
     await logAudit(ctx, {
@@ -620,15 +616,11 @@ export const declineQuote = mutation({
       completedAt: Date.now(),
     });
 
-    await ctx.db.insert("notifications", {
-      userId: workOrder.mechanicId,
-      type: "quote_declined",
-      title: "Quote Declined",
-      message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner"} has declined your quote for ${vessel.name}${args.reason ? `: ${args.reason}` : ""}`,
-      relatedId: args.workOrderId,
-      relatedType: "workOrder",
-      isRead: false,
-      createdAt: Date.now(),
+    await quoteDeclined(ctx, {
+      mechanicId: workOrder.mechanicId,
+      ownerName: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner",
+      vesselName: vessel.name,
+      workOrderId: args.workOrderId,
     });
 
     await logAudit(ctx, {
@@ -691,15 +683,13 @@ export const updateWorkOrder = mutation({
       if (now - lastNotified >= throttleMs) {
         const vessel = await ctx.db.get(workOrder.vesselId);
         if (vessel) {
-          await ctx.db.insert("notifications", {
+          await notify(ctx, {
             userId: vessel.ownerId,
             type: "work_order_updated",
             title: "Work Order Updated",
             message: `${user.companyName || user.name || "Your mechanic"} has made progress on the work order for ${vessel.name}`,
             relatedId: workOrderId,
             relatedType: "workOrder",
-            isRead: false,
-            createdAt: now,
           });
           await ctx.db.patch(workOrderId, { lastUpdateNotifiedAt: now });
         }
@@ -746,37 +736,24 @@ export const completeWorkOrder = mutation({
           ? `${user.firstName} ${user.lastName}`
           : "The mechanic");
 
-      await ctx.db.insert("notifications", {
-        userId: vessel.ownerId,
-        type: "work_order_completed",
-        title: "Work Order Completed",
-        message: `${mechanicName} has completed work on ${vessel.name}`,
-        relatedId: args.workOrderId,
-        relatedType: "workOrder",
-        isRead: false,
-        createdAt: Date.now(),
+      await workOrderCompleted(ctx, {
+        ownerId: vessel.ownerId,
+        mechanicName,
+        vesselName: vessel.name,
+        workOrderId: args.workOrderId,
       });
 
-      await ctx.db.insert("notifications", {
-        userId: vessel.ownerId,
-        type: "rate_mechanic_reminder",
-        title: "Rate Your Mechanic",
-        message: `How was your experience with ${mechanicName}? Leave a review to help other boat owners.`,
-        relatedId: args.workOrderId,
-        relatedType: "workOrder",
-        isRead: false,
-        createdAt: Date.now(),
+      await rateMechanicReminder(ctx, {
+        ownerId: vessel.ownerId,
+        mechanicName,
+        vesselName: vessel.name,
+        workOrderId: args.workOrderId,
       });
 
-      await ctx.db.insert("notifications", {
-        userId: workOrder.mechanicId,
-        type: "rate_owner_reminder",
-        title: "Rate the Owner",
-        message: `How was your experience working with ${vessel.name}'s owner? Your feedback helps build trust in the community.`,
-        relatedId: args.workOrderId,
-        relatedType: "workOrder",
-        isRead: false,
-        createdAt: Date.now(),
+      await rateOwnerReminder(ctx, {
+        mechanicId: workOrder.mechanicId,
+        vesselName: vessel.name,
+        workOrderId: args.workOrderId,
       });
     }
 
@@ -828,29 +805,17 @@ export const cancelWorkOrder = mutation({
     const isOwnerCancelling =
       user.role === "owner" || workOrder.requestedByOwnerId === userId;
 
-    if (isOwnerCancelling) {
-      await ctx.db.insert("notifications", {
-        userId: workOrder.mechanicId,
-        type: "work_order_completed",
-        title: "Work Order Cancelled",
-        message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner"} has cancelled the work order for ${vessel.name}${args.reason ? `: ${args.reason}` : ""}`,
-        relatedId: args.workOrderId,
-        relatedType: "workOrder",
-        isRead: false,
-        createdAt: Date.now(),
-      });
-    } else {
-      await ctx.db.insert("notifications", {
-        userId: vessel.ownerId,
-        type: "work_order_completed",
-        title: "Work Order Cancelled",
-        message: `${user.companyName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The mechanic")} has cancelled the work order for ${vessel.name}${args.reason ? `: ${args.reason}` : ""}`,
-        relatedId: args.workOrderId,
-        relatedType: "workOrder",
-        isRead: false,
-        createdAt: Date.now(),
-      });
-    }
+    const cancellerName = isOwnerCancelling
+      ? (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner")
+      : (user.companyName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The mechanic"));
+    const recipientId = isOwnerCancelling ? workOrder.mechanicId : vessel.ownerId;
+
+    await workOrderCancelled(ctx, {
+      recipientId,
+      cancellerName,
+      vesselName: vessel.name,
+      workOrderId: args.workOrderId,
+    });
 
     await logAudit(ctx, {
       action: "work_order.cancelled",

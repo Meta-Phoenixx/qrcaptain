@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { getAuthenticatedUser, requireAuth } from "./lib/auth";
 import { Errors } from "./lib/errors";
+import { getFileUrl } from "./lib/fileStorage";
 
 // Equipment category type for validation
 const equipmentCategoryValidator = v.union(
@@ -72,9 +73,7 @@ export const listByVessel = query({
     const equipmentWithImages = await Promise.all(
       equipment.map(async (item) => ({
         ...item,
-        imageUrl: item.imageStorageId
-          ? await ctx.storage.getUrl(item.imageStorageId)
-          : null,
+        imageUrl: await getFileUrl(ctx, item.imageStorageId),
       }))
     );
 
@@ -107,9 +106,7 @@ export const listByCategory = query({
     const equipmentWithImages = await Promise.all(
       equipment.map(async (item) => ({
         ...item,
-        imageUrl: item.imageStorageId
-          ? await ctx.storage.getUrl(item.imageStorageId)
-          : null,
+        imageUrl: await getFileUrl(ctx, item.imageStorageId),
       }))
     );
 
@@ -159,9 +156,7 @@ export const getEquipment = query({
 
     return {
       ...equipment,
-      imageUrl: equipment.imageStorageId
-        ? await ctx.storage.getUrl(equipment.imageStorageId)
-        : null,
+      imageUrl: await getFileUrl(ctx, equipment.imageStorageId),
     };
   },
 });
@@ -404,9 +399,7 @@ export const searchEquipment = query({
     const filteredWithImages = await Promise.all(
       filtered.map(async (item) => ({
         ...item,
-        imageUrl: item.imageStorageId
-          ? await ctx.storage.getUrl(item.imageStorageId)
-          : null,
+        imageUrl: await getFileUrl(ctx, item.imageStorageId),
       }))
     );
 

@@ -8,6 +8,7 @@ import {
 } from "./lib/auth";
 import { logAudit } from "./lib/audit";
 import { Errors } from "./lib/errors";
+import { getFileUrl } from "./lib/fileStorage";
 
 function generateQRCodeData(): string {
   const timestamp = Date.now().toString(36);
@@ -73,9 +74,7 @@ export const listMyVessels = query({
 
         return {
           ...vessel,
-          imageUrl: vessel.imageStorageId
-            ? await ctx.storage.getUrl(vessel.imageStorageId)
-            : null,
+          imageUrl: await getFileUrl(ctx, vessel.imageStorageId),
           activeWorkOrderCount: activeWorkOrders.length,
           activeWorkOrder: activeWorkOrderInfo,
           totalWorkOrders: workOrders.length,
@@ -158,9 +157,7 @@ export const getAuthorizedVessels = query({
           year: vessel.year,
           vesselType: vessel.vesselType,
           qrCodeData: vessel.qrCodeData,
-          imageUrl: vessel.imageStorageId
-            ? await ctx.storage.getUrl(vessel.imageStorageId)
-            : null,
+          imageUrl: await getFileUrl(ctx, vessel.imageStorageId),
           owner: owner
             ? {
                 _id: owner._id,
@@ -170,9 +167,7 @@ export const getAuthorizedVessels = query({
                     : owner.name ?? "Unknown",
                 email: owner.email,
                 phone: owner.phone,
-                profilePhotoUrl: owner.profilePhotoStorageId
-                  ? await ctx.storage.getUrl(owner.profilePhotoStorageId)
-                  : null,
+                profilePhotoUrl: await getFileUrl(ctx, owner.profilePhotoStorageId),
               }
             : null,
           authorization: { authorizedAt: auth.authorizedAt },

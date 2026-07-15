@@ -3,6 +3,7 @@ import { query, mutation } from "./_generated/server";
 import { getAuthenticatedUser, requireAuth, requireAdmin } from "./lib/auth";
 import { logAudit } from "./lib/audit";
 import { Errors } from "./lib/errors";
+import { notifyMany } from "./lib/notify";
 
 // Announcement type validator
 const announcementTypeValidator = v.union(
@@ -149,18 +150,13 @@ export const createAnnouncement = mutation({
       ? args.content.substring(0, 120) + "..." 
       : args.content;
 
-    for (const targetUser of targetUsers) {
-      await ctx.db.insert("notifications", {
-        userId: targetUser._id,
-        type: "new_announcement",
-        title: args.title,
-        message: truncatedContent,
-        relatedId: announcementId,
-        relatedType: "announcement",
-        isRead: false,
-        createdAt: now,
-      });
-    }
+    await notifyMany(ctx, targetUsers.map(u => u._id), {
+      type: "new_announcement",
+      title: args.title,
+      message: truncatedContent,
+      relatedId: announcementId,
+      relatedType: "announcement",
+    });
 
     return { announcementId };
   },
@@ -209,18 +205,13 @@ export const updateAnnouncement = mutation({
         ? announcement.content.substring(0, 120) + "..."
         : announcement.content;
 
-      for (const targetUser of targetUsers) {
-        await ctx.db.insert("notifications", {
-          userId: targetUser._id,
-          type: "new_announcement",
-          title: `Updated: ${announcement.title}`,
-          message: truncatedContent,
-          relatedId: announcementId,
-          relatedType: "announcement",
-          isRead: false,
-          createdAt: now,
-        });
-      }
+      await notifyMany(ctx, targetUsers.map(u => u._id), {
+        type: "new_announcement",
+        title: `Updated: ${announcement.title}`,
+        message: truncatedContent,
+        relatedId: announcementId,
+        relatedType: "announcement",
+      });
     }
 
     return { success: true };
