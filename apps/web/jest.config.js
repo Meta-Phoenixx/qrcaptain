@@ -11,6 +11,7 @@ const config = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
     "^@qrcaptain/shared$": "<rootDir>/../../packages/shared/src",
+    "^convex-lib/(.*)$": "<rootDir>/../../convex/lib/$1",
   },
   testPathIgnorePatterns: [
     "<rootDir>/node_modules/",
