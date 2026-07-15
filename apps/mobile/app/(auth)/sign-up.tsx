@@ -12,8 +12,6 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { Picker } from "@react-native-picker/picker";
-
 export default function SignUp() {
   const { signIn } = useAuthActions();
   const router = useRouter();
