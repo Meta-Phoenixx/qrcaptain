@@ -1,14 +1,12 @@
 import { Authenticated, Unauthenticated } from "convex/react";
-import { Redirect } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
   Image,
 } from "react-native";
-import { useRouter } from "expo-router";
 
 export default function Index() {
   const router = useRouter();

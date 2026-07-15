@@ -8,11 +8,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { useRouter } from "expo-router";
-
 export default function Vessels() {
   const vessels = useQuery(api.vessels.listMyVessels);
-  const router = useRouter();
 
   if (vessels === undefined) {
     return (

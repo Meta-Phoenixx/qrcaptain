@@ -170,7 +170,7 @@ export function WorkOrderRequestForm({
             {!preferredMechanics || preferredMechanics.length === 0 ? (
               <div className={`p-4 rounded-lg text-center ${mode === 'dark' ? "bg-white/5" : "bg-gray-50"}`}>
                 <p className={`text-sm mb-2 ${mode === 'dark' ? "text-gray-400" : "text-gray-600"}`}>
-                  You don't have any preferred mechanics yet.
+                  You don&apos;t have any preferred mechanics yet.
                 </p>
                 <a
                   href="/mechanics"
@@ -273,7 +273,7 @@ export function WorkOrderRequestForm({
             <h4 className={`text-sm font-medium mb-2 ${mode === 'dark' ? "text-blue-300" : "text-blue-900"}`}>What happens next?</h4>
             <ol className={`text-sm space-y-1 list-decimal list-inside ${mode === 'dark' ? "text-blue-200" : "text-blue-700"}`}>
               <li>The mechanic will be authorized for this vessel automatically</li>
-              <li>They'll receive your request and provide a quote</li>
+              <li>They&apos;ll receive your request and provide a quote</li>
               <li>You can accept or decline the quote</li>
               <li>Once accepted, work begins!</li>
             </ol>

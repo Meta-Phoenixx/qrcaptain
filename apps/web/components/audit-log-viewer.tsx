@@ -66,8 +66,7 @@ export function AuditLogViewer() {
   const [actionFilter, setActionFilter] = useState("");
   const [limit, setLimit] = useState(50);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const auditLogsApi = (api as any).auditLogs;
+  const auditLogsApi = (api as any).auditLogs; // types regenerate after npx convex dev
   const logs = useQuery(auditLogsApi?.list, {
     limit,
     action: actionFilter || undefined,
