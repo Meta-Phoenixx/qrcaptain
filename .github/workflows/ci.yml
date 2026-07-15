@@ -92,8 +92,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm lint
+      - name: Lint (web + shared)
+        run: pnpm turbo lint --filter=web --filter="@qrcaptain/shared"
 
       - name: Type check (web + shared)
         run: pnpm turbo type-check --filter=web --filter="@qrcaptain/shared"
