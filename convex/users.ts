@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { requireAdmin } from "./lib/auth";
+import { logAudit } from "./lib/audit";
 
 // Check if an email is already registered (used during sign-up to prevent silent sign-in)
 export const emailExists = query({
@@ -70,26 +72,38 @@ export const seedAdmin = mutation({
   },
 });
 
-// Update a user's role to admin (for promoting existing users)
-// Run from CLI: npx convex run --prod users:promoteToAdmin '{"email":"you@example.com"}'
+// Update a user's role to admin — requires the caller to already be an admin.
 export const promoteToAdmin = mutation({
   args: { email: v.string() },
   handler: async (ctx, args) => {
-    const users = await ctx.db
+    const { userId: actorId } = await requireAdmin(ctx);
+
+    const targets = await ctx.db
       .query("users")
       .filter((q) => q.eq(q.field("email"), args.email))
       .collect();
 
-    if (users.length === 0) {
-      throw new Error(`User with email ${args.email} not found`);
+    if (targets.length === 0) {
+      throw new Error("User not found");
     }
 
     const updated = [];
-    for (const user of users) {
-      await ctx.db.patch(user._id, { role: "admin" });
-      updated.push(user._id);
+    for (const target of targets) {
+      const before = { role: target.role };
+      await ctx.db.patch(target._id, { role: "admin" });
+      updated.push(target._id);
+
+      await logAudit(ctx, {
+        action: "admin.user_promoted",
+        actorId,
+        targetId: target._id,
+        targetType: "users",
+        before,
+        after: { role: "admin" },
+      });
     }
-    return { message: `Promoted ${updated.length} user(s) with email ${args.email} to admin`, userIds: updated };
+
+    return { message: `Promoted ${updated.length} user(s) to admin`, userIds: updated };
   },
 });
 

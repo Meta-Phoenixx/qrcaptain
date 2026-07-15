@@ -645,4 +645,22 @@ export default defineSchema({
   })
     .index("by_email", ["email"])
     .index("by_created", ["createdAt"]),
+
+  // ============================================
+  // AUDIT LOGS (immutable record of important actions)
+  // ============================================
+  auditLogs: defineTable({
+    action: v.string(),                         // AuditAction string
+    actorId: v.id("users"),                     // Who performed the action
+    targetId: v.optional(v.string()),           // ID of affected record
+    targetType: v.optional(v.string()),         // Table/entity type
+    before: v.optional(v.string()),             // JSON snapshot before change
+    after: v.optional(v.string()),              // JSON snapshot after change
+    metadata: v.optional(v.string()),           // JSON extra context
+    createdAt: v.number(),
+  })
+    .index("by_actor", ["actorId"])
+    .index("by_action", ["action"])
+    .index("by_created", ["createdAt"])
+    .index("by_target", ["targetType", "targetId"]),
 });

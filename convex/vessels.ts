@@ -1,35 +1,35 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { Doc } from "./_generated/dataModel";
+import {
+  getAuthenticatedUser,
+  requireRole,
+  requireVesselOwnerOrAdmin,
+} from "./lib/auth";
+import { logAudit } from "./lib/audit";
+import { Errors } from "./lib/errors";
 
-// Generate a unique QR code data string
 function generateQRCodeData(): string {
   const timestamp = Date.now().toString(36);
   const random = Math.random().toString(36).substring(2, 10);
   return `QRC-${timestamp}-${random}`.toUpperCase();
 }
 
-// List vessels for the current owner
 export const listMyVessels = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user) return [];
 
-    let vessels: any[] = [];
+    const userId = user._id;
+    let vessels: Doc<"vessels">[] = [];
 
-    // Owners see their own vessels
     if (user.role === "owner") {
       vessels = await ctx.db
         .query("vessels")
         .withIndex("by_owner", (q) => q.eq("ownerId", userId))
         .collect();
-    }
-    // Mechanics see authorized vessels
-    else if (user.role === "mechanic") {
+    } else if (user.role === "mechanic") {
       const authorizations = await ctx.db
         .query("mechanicAuthorizations")
         .withIndex("by_mechanic", (q) => q.eq("mechanicId", userId))
@@ -39,37 +39,34 @@ export const listMyVessels = query({
       const vesselResults = await Promise.all(
         authorizations.map((auth) => ctx.db.get(auth.vesselId))
       );
-
-      vessels = vesselResults.filter(Boolean);
-    }
-    // Admins see all vessels
-    else if (user.role === "admin") {
+      vessels = vesselResults.filter(Boolean) as Doc<"vessels">[];
+    } else if (user.role === "admin") {
       vessels = await ctx.db.query("vessels").collect();
     }
 
-    // Add image URLs and work order stats
-    const vesselsWithData = await Promise.all(
+    return Promise.all(
       vessels.map(async (vessel) => {
-        // Get work orders for this vessel
         const workOrders = await ctx.db
           .query("workOrders")
           .withIndex("by_vessel", (q) => q.eq("vesselId", vessel._id))
           .collect();
 
-        const activeWorkOrders = workOrders.filter((wo) => wo.status === "in_progress");
-        
-        // Get mechanic info for active work order if exists
+        const activeWorkOrders = workOrders.filter(
+          (wo) => wo.status === "in_progress"
+        );
+
         let activeWorkOrderInfo = null;
         if (activeWorkOrders.length > 0) {
-          const latestActive = activeWorkOrders[0];
-          const mechanic = await ctx.db.get(latestActive.mechanicId);
+          const latest = activeWorkOrders[0];
+          const mechanic = await ctx.db.get(latest.mechanicId);
           activeWorkOrderInfo = {
-            _id: latestActive._id,
-            description: latestActive.description,
-            startedAt: latestActive.startedAt,
-            mechanicName: mechanic?.firstName && mechanic?.lastName 
-              ? `${mechanic.firstName} ${mechanic.lastName}` 
-              : mechanic?.name || "Unknown",
+            _id: latest._id,
+            description: latest.description,
+            startedAt: latest.startedAt,
+            mechanicName:
+              mechanic?.firstName && mechanic?.lastName
+                ? `${mechanic.firstName} ${mechanic.lastName}`
+                : mechanic?.name ?? "Unknown",
             mechanicCompany: mechanic?.companyName,
           };
         }
@@ -82,98 +79,76 @@ export const listMyVessels = query({
           activeWorkOrderCount: activeWorkOrders.length,
           activeWorkOrder: activeWorkOrderInfo,
           totalWorkOrders: workOrders.length,
-          completedWorkOrders: workOrders.filter((wo) => wo.status === "completed").length,
+          completedWorkOrders: workOrders.filter(
+            (wo) => wo.status === "completed"
+          ).length,
         };
       })
     );
-
-    return vesselsWithData;
   },
 });
 
-// Get a single vessel by ID
 export const getVessel = query({
   args: { vesselId: v.id("vessels") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user) return null;
 
     const vessel = await ctx.db.get(args.vesselId);
     if (!vessel) return null;
 
-    // Check access
-    if (user.role === "owner" && vessel.ownerId !== userId) {
-      return null;
-    }
+    if (user.role === "owner" && vessel.ownerId !== user._id) return null;
 
     if (user.role === "mechanic") {
       const auth = await ctx.db
         .query("mechanicAuthorizations")
         .withIndex("by_vessel_mechanic", (q) =>
-          q.eq("vesselId", args.vesselId).eq("mechanicId", userId)
+          q.eq("vesselId", args.vesselId).eq("mechanicId", user._id)
         )
         .filter((q) => q.eq(q.field("isActive"), true))
         .first();
-
       if (!auth) return null;
     }
 
-    // Get owner info
     const owner = await ctx.db.get(vessel.ownerId);
 
     return {
       ...vessel,
-      ownerName: owner?.firstName && owner?.lastName 
-        ? `${owner.firstName} ${owner.lastName}` 
-        : owner?.name,
+      ownerName:
+        owner?.firstName && owner?.lastName
+          ? `${owner.firstName} ${owner.lastName}`
+          : owner?.name,
       ownerEmail: owner?.email,
     };
   },
 });
 
-// Get authorized vessels for a mechanic with owner info
 export const getAuthorizedVessels = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user || user.role !== "mechanic") return [];
 
-    // Get all active authorizations
+    const userId = user._id;
+
     const authorizations = await ctx.db
       .query("mechanicAuthorizations")
       .withIndex("by_mechanic", (q) => q.eq("mechanicId", userId))
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
 
-    // Get vessels with owner info
-    const vesselsWithOwnerInfo = await Promise.all(
+    const results = await Promise.all(
       authorizations.map(async (auth) => {
         const vessel = await ctx.db.get(auth.vesselId);
         if (!vessel) return null;
 
         const owner = await ctx.db.get(vessel.ownerId);
-        
-        // Get work order count for this vessel by this mechanic
+
         const workOrders = await ctx.db
           .query("workOrders")
           .withIndex("by_vessel", (q) => q.eq("vesselId", vessel._id))
           .filter((q) => q.eq(q.field("mechanicId"), userId))
           .collect();
-
-        const activeWorkOrders = workOrders.filter(wo => wo.status === "in_progress");
-        const completedWorkOrders = workOrders.filter(wo => wo.status === "completed");
-
-        // Get owner profile photo URL if available
-        let ownerProfilePhotoUrl: string | null = null;
-        if (owner?.profilePhotoStorageId) {
-          ownerProfilePhotoUrl = await ctx.storage.getUrl(owner.profilePhotoStorageId);
-        }
 
         return {
           _id: vessel._id,
@@ -186,37 +161,43 @@ export const getAuthorizedVessels = query({
           imageUrl: vessel.imageStorageId
             ? await ctx.storage.getUrl(vessel.imageStorageId)
             : null,
-          owner: owner ? {
-            _id: owner._id,
-            name: owner.firstName && owner.lastName 
-              ? `${owner.firstName} ${owner.lastName}` 
-              : owner.name || "Unknown",
-            email: owner.email,
-            phone: owner.phone,
-            profilePhotoUrl: ownerProfilePhotoUrl,
-          } : null,
-          authorization: {
-            authorizedAt: auth.authorizedAt,
-          },
+          owner: owner
+            ? {
+                _id: owner._id,
+                name:
+                  owner.firstName && owner.lastName
+                    ? `${owner.firstName} ${owner.lastName}`
+                    : owner.name ?? "Unknown",
+                email: owner.email,
+                phone: owner.phone,
+                profilePhotoUrl: owner.profilePhotoStorageId
+                  ? await ctx.storage.getUrl(owner.profilePhotoStorageId)
+                  : null,
+              }
+            : null,
+          authorization: { authorizedAt: auth.authorizedAt },
           stats: {
-            activeWorkOrders: activeWorkOrders.length,
-            completedWorkOrders: completedWorkOrders.length,
+            activeWorkOrders: workOrders.filter(
+              (wo) => wo.status === "in_progress"
+            ).length,
+            completedWorkOrders: workOrders.filter(
+              (wo) => wo.status === "completed"
+            ).length,
             totalWorkOrders: workOrders.length,
           },
         };
       })
     );
 
-    return vesselsWithOwnerInfo.filter(Boolean);
+    return results.filter(Boolean);
   },
 });
 
-// Get vessel by QR code (for mechanics scanning)
 export const getVesselByQRCode = query({
   args: { qrCodeData: v.string() },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return null;
 
     const vessel = await ctx.db
       .query("vessels")
@@ -225,10 +206,7 @@ export const getVesselByQRCode = query({
 
     if (!vessel) return null;
 
-    // Get owner info
     const owner = await ctx.db.get(vessel.ownerId);
-
-    // Get work history count
     const workOrders = await ctx.db
       .query("workOrders")
       .withIndex("by_vessel", (q) => q.eq("vesselId", vessel._id))
@@ -236,16 +214,16 @@ export const getVesselByQRCode = query({
 
     return {
       ...vessel,
-      ownerName: owner?.firstName && owner?.lastName 
-        ? `${owner.firstName} ${owner.lastName}` 
-        : owner?.name,
+      ownerName:
+        owner?.firstName && owner?.lastName
+          ? `${owner.firstName} ${owner.lastName}`
+          : owner?.name,
       ownerEmail: owner?.email,
       workOrderCount: workOrders.length,
     };
   },
 });
 
-// Create a new vessel
 export const createVessel = mutation({
   args: {
     name: v.string(),
@@ -258,34 +236,28 @@ export const createVessel = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "owner") {
-      throw new Error("Only owners can create vessels");
-    }
+    const { userId } = await requireRole(ctx, "owner");
 
     const qrCodeData = generateQRCodeData();
 
     const vesselId = await ctx.db.insert("vessels", {
       ownerId: userId,
-      name: args.name,
-      registrationNumber: args.registrationNumber,
-      hullId: args.hullId,
-      make: args.make,
-      model: args.model,
-      year: args.year,
-      vesselType: args.vesselType,
-      notes: args.notes,
+      ...args,
       qrCodeData,
+    });
+
+    await logAudit(ctx, {
+      action: "vessel.created",
+      actorId: userId,
+      targetId: vesselId,
+      targetType: "vessels",
+      after: { name: args.name, make: args.make, model: args.model, year: args.year },
     });
 
     return { vesselId, qrCodeData };
   },
 });
 
-// Update a vessel
 export const updateVessel = mutation({
   args: {
     vesselId: v.id("vessels"),
@@ -299,81 +271,60 @@ export const updateVessel = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId, vessel } = await requireVesselOwnerOrAdmin(ctx, args.vesselId);
 
-    const vessel = await ctx.db.get(args.vesselId);
-    if (!vessel) throw new Error("Vessel not found");
-
-    const user = await ctx.db.get(userId);
-    if (!user) throw new Error("User not found");
-
-    // Only owner or admin can update
-    if (user.role !== "admin" && vessel.ownerId !== userId) {
-      throw new Error("Not authorized to update this vessel");
-    }
-
-    const { vesselId, ...updates } = args;
-    const filteredUpdates = Object.fromEntries(
-      Object.entries(updates).filter(([_, v]) => v !== undefined)
+    const { vesselId, ...fields } = args;
+    const updates = Object.fromEntries(
+      Object.entries(fields).filter(([, v]) => v !== undefined)
     );
 
-    await ctx.db.patch(vesselId, filteredUpdates);
+    await ctx.db.patch(vesselId, updates);
+
+    await logAudit(ctx, {
+      action: "vessel.updated",
+      actorId: userId,
+      targetId: vesselId,
+      targetType: "vessels",
+      before: { name: vessel.name, make: vessel.make, model: vessel.model },
+      after: updates,
+    });
+
     return { success: true };
   },
 });
 
-// Delete a vessel
 export const deleteVessel = mutation({
   args: { vesselId: v.id("vessels") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const vessel = await ctx.db.get(args.vesselId);
-    if (!vessel) throw new Error("Vessel not found");
-
-    const user = await ctx.db.get(userId);
-    if (!user) throw new Error("User not found");
-
-    // Only owner or admin can delete
-    if (user.role !== "admin" && vessel.ownerId !== userId) {
-      throw new Error("Not authorized to delete this vessel");
-    }
+    const { userId, vessel } = await requireVesselOwnerOrAdmin(ctx, args.vesselId);
 
     await ctx.db.delete(args.vesselId);
+
+    await logAudit(ctx, {
+      action: "vessel.deleted",
+      actorId: userId,
+      targetId: args.vesselId,
+      targetType: "vessels",
+      before: { name: vessel.name, make: vessel.make, model: vessel.model },
+    });
+
     return { success: true };
   },
 });
 
-// Authorize a mechanic to work on a vessel
 export const authorizeMechanic = mutation({
   args: {
     vesselId: v.id("vessels"),
     mechanicId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireVesselOwnerOrAdmin(ctx, args.vesselId);
 
-    const vessel = await ctx.db.get(args.vesselId);
-    if (!vessel) throw new Error("Vessel not found");
-
-    const user = await ctx.db.get(userId);
-    if (!user) throw new Error("User not found");
-
-    // Only owner or admin can authorize
-    if (user.role !== "admin" && vessel.ownerId !== userId) {
-      throw new Error("Not authorized");
-    }
-
-    // Check if mechanic exists and is actually a mechanic
     const mechanic = await ctx.db.get(args.mechanicId);
     if (!mechanic || mechanic.role !== "mechanic") {
-      throw new Error("Invalid mechanic");
+      throw Errors.validation("Invalid mechanic");
     }
 
-    // Check if already authorized
     const existing = await ctx.db
       .query("mechanicAuthorizations")
       .withIndex("by_vessel_mechanic", (q) =>
@@ -381,69 +332,39 @@ export const authorizeMechanic = mutation({
       )
       .first();
 
+    let authorizationId;
     if (existing) {
       await ctx.db.patch(existing._id, { isActive: true });
-      return { authorizationId: existing._id };
+      authorizationId = existing._id;
+    } else {
+      authorizationId = await ctx.db.insert("mechanicAuthorizations", {
+        vesselId: args.vesselId,
+        mechanicId: args.mechanicId,
+        authorizedAt: Date.now(),
+        authorizedBy: userId,
+        isActive: true,
+      });
     }
 
-    const authId = await ctx.db.insert("mechanicAuthorizations", {
-      vesselId: args.vesselId,
-      mechanicId: args.mechanicId,
-      authorizedAt: Date.now(),
-      authorizedBy: userId,
-      isActive: true,
+    await logAudit(ctx, {
+      action: "vessel.mechanic_authorized",
+      actorId: userId,
+      targetId: args.vesselId,
+      targetType: "vessels",
+      metadata: { mechanicId: args.mechanicId },
     });
 
-    return { authorizationId: authId };
+    return { authorizationId };
   },
 });
 
-// Get admin statistics
-export const getAdminStats = query({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") return null;
-
-    const users = await ctx.db.query("users").collect();
-    const vessels = await ctx.db.query("vessels").collect();
-    const workOrders = await ctx.db.query("workOrders").collect();
-
-    return {
-      userCount: users.length,
-      vesselCount: vessels.length,
-      workOrderCount: workOrders.length,
-      ownerCount: users.filter((u) => u.role === "owner").length,
-      mechanicCount: users.filter((u) => u.role === "mechanic").length,
-      activeWorkOrders: workOrders.filter((wo) => wo.status === "in_progress").length,
-      completedWorkOrders: workOrders.filter((wo) => wo.status === "completed").length,
-    };
-  },
-});
-
-// Revoke mechanic authorization
 export const revokeMechanicAuthorization = mutation({
   args: {
     vesselId: v.id("vessels"),
     mechanicId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const vessel = await ctx.db.get(args.vesselId);
-    if (!vessel) throw new Error("Vessel not found");
-
-    const user = await ctx.db.get(userId);
-    if (!user) throw new Error("User not found");
-
-    // Only owner or admin can revoke
-    if (user.role !== "admin" && vessel.ownerId !== userId) {
-      throw new Error("Not authorized");
-    }
+    const { userId } = await requireVesselOwnerOrAdmin(ctx, args.vesselId);
 
     const auth = await ctx.db
       .query("mechanicAuthorizations")
@@ -456,6 +377,40 @@ export const revokeMechanicAuthorization = mutation({
       await ctx.db.patch(auth._id, { isActive: false });
     }
 
+    await logAudit(ctx, {
+      action: "vessel.mechanic_authorization_revoked",
+      actorId: userId,
+      targetId: args.vesselId,
+      targetType: "vessels",
+      metadata: { mechanicId: args.mechanicId },
+    });
+
     return { success: true };
+  },
+});
+
+export const getAdminStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user || user.role !== "admin") return null;
+
+    const [users, vessels, workOrders] = await Promise.all([
+      ctx.db.query("users").collect(),
+      ctx.db.query("vessels").collect(),
+      ctx.db.query("workOrders").collect(),
+    ]);
+
+    return {
+      userCount: users.length,
+      vesselCount: vessels.length,
+      workOrderCount: workOrders.length,
+      ownerCount: users.filter((u) => u.role === "owner").length,
+      mechanicCount: users.filter((u) => u.role === "mechanic").length,
+      activeWorkOrders: workOrders.filter((wo) => wo.status === "in_progress")
+        .length,
+      completedWorkOrders: workOrders.filter((wo) => wo.status === "completed")
+        .length,
+    };
   },
 });
