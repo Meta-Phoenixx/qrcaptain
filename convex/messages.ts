@@ -3,6 +3,7 @@ import { query, mutation } from "./_generated/server";
 import { getAuthenticatedUser, requireAuth } from "./lib/auth";
 import { Errors } from "./lib/errors";
 import { newMessage } from "./lib/notify";
+import { requireMaxLength, clampLimit } from "./lib/validate";
 
 export const sendMessage = mutation({
   args: {
@@ -13,6 +14,8 @@ export const sendMessage = mutation({
   },
   handler: async (ctx, args) => {
     const { userId, user: sender } = await requireAuth(ctx);
+
+    requireMaxLength(args.content, "Message content", 5000);
 
     const receiver = await ctx.db.get(args.receiverId);
     if (!receiver) throw Errors.notFound("Receiver");
@@ -89,7 +92,7 @@ export const getConversation = query({
     if (!user) return [];
     const userId = user._id;
 
-    const limit = args.limit || 100;
+    const limit = clampLimit(args.limit, 100, 500);
 
     // Get messages where current user is sender or receiver
     const sentMessages = await ctx.db

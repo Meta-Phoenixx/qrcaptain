@@ -4,6 +4,7 @@ import { getAuthenticatedUser, requireAuth, requireAdmin } from "./lib/auth";
 import { logAudit } from "./lib/audit";
 import { Errors } from "./lib/errors";
 import { notifyMany } from "./lib/notify";
+import { requireMaxLength } from "./lib/validate";
 
 // Announcement type validator
 const announcementTypeValidator = v.union(
@@ -121,6 +122,9 @@ export const createAnnouncement = mutation({
   handler: async (ctx, args) => {
     const { userId } = await requireAdmin(ctx);
 
+    requireMaxLength(args.title, "Title", 200);
+    requireMaxLength(args.content, "Content", 5000);
+
     const announcementId = await ctx.db.insert("announcements", {
       title: args.title,
       content: args.content,
@@ -175,6 +179,9 @@ export const updateAnnouncement = mutation({
   },
   handler: async (ctx, args) => {
     const { userId } = await requireAdmin(ctx);
+
+    if (args.title !== undefined) requireMaxLength(args.title, "Title", 200);
+    if (args.content !== undefined) requireMaxLength(args.content, "Content", 5000);
 
     const { announcementId, ...updates } = args;
     const filteredUpdates = Object.fromEntries(

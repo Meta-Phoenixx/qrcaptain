@@ -22,6 +22,7 @@ import {
   notify,
 } from "./lib/notify";
 import { getFileUrl } from "./lib/fileStorage";
+import { requireMaxLength, requirePositive, requireNonNegative, requireRange } from "./lib/validate";
 
 async function getSettingValue(
   ctx: MutationCtx,
@@ -309,6 +310,8 @@ export const createWorkOrder = mutation({
   handler: async (ctx, args) => {
     const { userId, user } = await requireRole(ctx, "mechanic");
 
+    requireMaxLength(args.description, "Description", 2000);
+
     const vessel = await ctx.db.get(args.vesselId);
     if (!vessel) throw Errors.notFound("Vessel");
 
@@ -361,6 +364,8 @@ export const requestWorkOrder = mutation({
   },
   handler: async (ctx, args) => {
     const { userId, user } = await requireRole(ctx, "owner");
+
+    requireMaxLength(args.description, "Description", 2000);
 
     const vessel = await ctx.db.get(args.vesselId);
     if (!vessel) throw Errors.notFound("Vessel");
@@ -445,6 +450,17 @@ export const submitQuote = mutation({
   handler: async (ctx, args) => {
     const { userId, user } = await requireRole(ctx, "mechanic");
 
+    requirePositive(args.quotedLaborHours, "Labor hours");
+    requireRange(args.quotedLaborHours, "Labor hours", 0.1, 9999);
+    requireNonNegative(args.quotedLaborRate, "Labor rate");
+    requireRange(args.quotedLaborRate, "Labor rate", 0, 99999);
+    if (args.quotedPartsEstimate !== undefined) {
+      requireNonNegative(args.quotedPartsEstimate, "Parts estimate");
+    }
+    if (args.quoteNotes !== undefined) {
+      requireMaxLength(args.quoteNotes, "Quote notes", 1000);
+    }
+
     const workOrder = await ctx.db.get(args.workOrderId);
     if (!workOrder) throw Errors.notFound("Work order");
     if (workOrder.mechanicId !== userId) throw Errors.accessDenied();
@@ -503,6 +519,8 @@ export const declineWorkOrderRequest = mutation({
   },
   handler: async (ctx, args) => {
     const { userId, user } = await requireRole(ctx, "mechanic");
+
+    if (args.declineReason !== undefined) requireMaxLength(args.declineReason, "Decline reason", 500);
 
     const workOrder = await ctx.db.get(args.workOrderId);
     if (!workOrder) throw Errors.notFound("Work order");
@@ -652,6 +670,13 @@ export const updateWorkOrder = mutation({
   handler: async (ctx, args) => {
     const { userId, user } = await requireAuth(ctx);
 
+    if (args.description !== undefined) requireMaxLength(args.description, "Description", 2000);
+    if (args.diagnosis !== undefined) requireMaxLength(args.diagnosis, "Diagnosis", 2000);
+    if (args.workPerformed !== undefined) requireMaxLength(args.workPerformed, "Work performed", 5000);
+    if (args.laborHours !== undefined) { requirePositive(args.laborHours, "Labor hours"); requireRange(args.laborHours, "Labor hours", 0.1, 9999); }
+    if (args.laborRate !== undefined) { requireNonNegative(args.laborRate, "Labor rate"); requireRange(args.laborRate, "Labor rate", 0, 99999); }
+    if (args.totalCost !== undefined) { requireNonNegative(args.totalCost, "Total cost"); requireRange(args.totalCost, "Total cost", 0, 9999999); }
+
     const workOrder = await ctx.db.get(args.workOrderId);
     if (!workOrder) throw Errors.notFound("Work order");
 
@@ -710,6 +735,11 @@ export const completeWorkOrder = mutation({
   },
   handler: async (ctx, args) => {
     const { userId, user } = await requireAuth(ctx);
+
+    requireMaxLength(args.workPerformed, "Work performed", 5000);
+    if (args.laborHours !== undefined) { requirePositive(args.laborHours, "Labor hours"); requireRange(args.laborHours, "Labor hours", 0.1, 9999); }
+    if (args.laborRate !== undefined) { requireNonNegative(args.laborRate, "Labor rate"); requireRange(args.laborRate, "Labor rate", 0, 99999); }
+    if (args.totalCost !== undefined) { requireNonNegative(args.totalCost, "Total cost"); requireRange(args.totalCost, "Total cost", 0, 9999999); }
 
     const workOrder = await ctx.db.get(args.workOrderId);
     if (!workOrder) throw Errors.notFound("Work order");
@@ -777,6 +807,8 @@ export const cancelWorkOrder = mutation({
   },
   handler: async (ctx, args) => {
     const { userId, user } = await requireAuth(ctx);
+
+    if (args.reason !== undefined) requireMaxLength(args.reason, "Cancellation reason", 500);
 
     const workOrder = await ctx.db.get(args.workOrderId);
     if (!workOrder) throw Errors.notFound("Work order");
@@ -846,6 +878,19 @@ export const addPart = mutation({
   },
   handler: async (ctx, args) => {
     const { userId } = await requireRole(ctx, "mechanic");
+
+    requireMaxLength(args.name, "Part name", 200);
+    if (args.partNumber !== undefined) requireMaxLength(args.partNumber, "Part number", 100);
+    if (args.serialNumber !== undefined) requireMaxLength(args.serialNumber, "Serial number", 100);
+    if (args.manufacturer !== undefined) requireMaxLength(args.manufacturer, "Manufacturer", 100);
+    if (args.category !== undefined) requireMaxLength(args.category, "Category", 100);
+    if (args.warrantyTerms !== undefined) requireMaxLength(args.warrantyTerms, "Warranty terms", 1000);
+    requirePositive(args.quantity, "Quantity");
+    requireRange(args.quantity, "Quantity", 1, 99999);
+    if (args.unitCost !== undefined) {
+      requireNonNegative(args.unitCost, "Unit cost");
+      requireRange(args.unitCost, "Unit cost", 0, 999999);
+    }
 
     const workOrder = await ctx.db.get(args.workOrderId);
     if (!workOrder) throw Errors.notFound("Work order");

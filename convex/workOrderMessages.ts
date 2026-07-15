@@ -3,6 +3,7 @@ import { query, mutation } from "./_generated/server";
 import { getAuthenticatedUser, requireAuth } from "./lib/auth";
 import { Errors } from "./lib/errors";
 import { newMessage } from "./lib/notify";
+import { requireMaxLength } from "./lib/validate";
 
 export const getWorkOrderMessages = query({
   args: {
@@ -64,6 +65,7 @@ export const sendWorkOrderMessage = mutation({
     if (!args.content.trim()) {
       throw Errors.validation("Message cannot be empty");
     }
+    requireMaxLength(args.content, "Message content", 5000);
 
     const workOrder = await ctx.db.get(args.workOrderId);
     if (!workOrder) throw Errors.notFound("Work order");
