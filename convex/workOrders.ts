@@ -1,34 +1,52 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { query, mutation, MutationCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
+import {
+  getAuthenticatedUser,
+  requireRole,
+  requireAuth,
+} from "./lib/auth";
+import { logAudit } from "./lib/audit";
+import { Errors } from "./lib/errors";
 
-// Get work orders for a vessel
+async function getSettingValue(
+  ctx: MutationCtx,
+  key: string,
+  defaultValue: number
+): Promise<number> {
+  const setting = await ctx.db
+    .query("appSettings")
+    .withIndex("by_key", (q) => q.eq("key", key))
+    .first();
+  if (setting) {
+    try {
+      return JSON.parse(setting.value);
+    } catch {
+      return defaultValue;
+    }
+  }
+  return defaultValue;
+}
+
 export const getVesselWorkOrders = query({
   args: { vesselId: v.id("vessels") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user) return [];
 
     const vessel = await ctx.db.get(args.vesselId);
     if (!vessel) return [];
 
-    // Check access
-    if (user.role === "owner" && vessel.ownerId !== userId) {
-      return [];
-    }
+    if (user.role === "owner" && vessel.ownerId !== user._id) return [];
 
     if (user.role === "mechanic") {
       const auth = await ctx.db
         .query("mechanicAuthorizations")
         .withIndex("by_vessel_mechanic", (q) =>
-          q.eq("vesselId", args.vesselId).eq("mechanicId", userId)
+          q.eq("vesselId", args.vesselId).eq("mechanicId", user._id)
         )
         .filter((q) => q.eq(q.field("isActive"), true))
         .first();
-
       if (!auth) return [];
     }
 
@@ -38,32 +56,26 @@ export const getVesselWorkOrders = query({
       .order("desc")
       .collect();
 
-    // Enrich with mechanic info
-    const enriched = await Promise.all(
+    return Promise.all(
       workOrders.map(async (wo) => {
         const mechanic = await ctx.db.get(wo.mechanicId);
         return {
           ...wo,
-          mechanicName: mechanic?.firstName && mechanic?.lastName 
-            ? `${mechanic.firstName} ${mechanic.lastName}` 
-            : mechanic?.name,
+          mechanicName:
+            mechanic?.firstName && mechanic?.lastName
+              ? `${mechanic.firstName} ${mechanic.lastName}`
+              : mechanic?.name,
           mechanicCompany: mechanic?.companyName,
         };
       })
     );
-
-    return enriched;
   },
 });
 
-// Get a single work order with all details
 export const getWorkOrder = query({
   args: { workOrderId: v.id("workOrders") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user) return null;
 
     const workOrder = await ctx.db.get(args.workOrderId);
@@ -72,42 +84,32 @@ export const getWorkOrder = query({
     const vessel = await ctx.db.get(workOrder.vesselId);
     if (!vessel) return null;
 
-    // Check access
-    if (user.role === "owner" && vessel.ownerId !== userId) {
-      return null;
-    }
+    if (user.role === "owner" && vessel.ownerId !== user._id) return null;
+    if (user.role === "mechanic" && workOrder.mechanicId !== user._id) return null;
 
-    if (user.role === "mechanic" && workOrder.mechanicId !== userId) {
-      return null;
-    }
+    const [mechanic, parts, photos, rating, owner] = await Promise.all([
+      ctx.db.get(workOrder.mechanicId),
+      ctx.db
+        .query("workOrderParts")
+        .withIndex("by_work_order", (q) => q.eq("workOrderId", args.workOrderId))
+        .collect(),
+      ctx.db
+        .query("workOrderPhotos")
+        .withIndex("by_work_order", (q) => q.eq("workOrderId", args.workOrderId))
+        .collect(),
+      ctx.db
+        .query("ratings")
+        .withIndex("by_work_order", (q) => q.eq("workOrderId", args.workOrderId))
+        .first(),
+      ctx.db.get(vessel.ownerId),
+    ]);
 
-    // Get related data
-    const mechanic = await ctx.db.get(workOrder.mechanicId);
-    const parts = await ctx.db
-      .query("workOrderParts")
-      .withIndex("by_work_order", (q) => q.eq("workOrderId", args.workOrderId))
-      .collect();
-
-    const photos = await ctx.db
-      .query("workOrderPhotos")
-      .withIndex("by_work_order", (q) => q.eq("workOrderId", args.workOrderId))
-      .collect();
-
-    const rating = await ctx.db
-      .query("ratings")
-      .withIndex("by_work_order", (q) => q.eq("workOrderId", args.workOrderId))
-      .first();
-
-    // Get photo URLs
     const photosWithUrls = await Promise.all(
       photos.map(async (photo) => ({
         ...photo,
         url: await ctx.storage.getUrl(photo.storageId),
       }))
     );
-
-    // Get owner info for chat
-    const owner = await ctx.db.get(vessel.ownerId);
 
     return {
       ...workOrder,
@@ -116,14 +118,16 @@ export const getWorkOrder = query({
         make: vessel.make,
         model: vessel.model,
         year: vessel.year,
-        ownerName: owner?.firstName && owner?.lastName 
-          ? `${owner.firstName} ${owner.lastName}` 
-          : owner?.name,
+        ownerName:
+          owner?.firstName && owner?.lastName
+            ? `${owner.firstName} ${owner.lastName}`
+            : owner?.name,
       },
       mechanic: {
-        name: mechanic?.firstName && mechanic?.lastName 
-          ? `${mechanic.firstName} ${mechanic.lastName}` 
-          : mechanic?.name,
+        name:
+          mechanic?.firstName && mechanic?.lastName
+            ? `${mechanic.firstName} ${mechanic.lastName}`
+            : mechanic?.name,
         company: mechanic?.companyName,
         phone: mechanic?.phone,
       },
@@ -134,7 +138,6 @@ export const getWorkOrder = query({
   },
 });
 
-// Get work orders for the current mechanic
 export const getMyWorkOrders = query({
   args: {
     status: v.optional(
@@ -149,100 +152,88 @@ export const getMyWorkOrders = query({
     ),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user || user.role !== "mechanic") return [];
 
-    let query = ctx.db
+    let q = ctx.db
       .query("workOrders")
-      .withIndex("by_mechanic", (q) => q.eq("mechanicId", userId));
+      .withIndex("by_mechanic", (q) => q.eq("mechanicId", user._id));
 
     if (args.status) {
-      query = query.filter((q) => q.eq(q.field("status"), args.status));
+      q = q.filter((f) => f.eq(f.field("status"), args.status));
     }
 
-    const workOrders = await query.order("desc").collect();
+    const workOrders = await q.order("desc").collect();
 
-    // Enrich with vessel and owner info
-    const enriched = await Promise.all(
+    return Promise.all(
       workOrders.map(async (wo) => {
         const vessel = await ctx.db.get(wo.vesselId);
         const owner = vessel ? await ctx.db.get(vessel.ownerId) : null;
-        const requestingOwner = wo.requestedByOwnerId 
-          ? await ctx.db.get(wo.requestedByOwnerId) 
+        const requestingOwner = wo.requestedByOwnerId
+          ? await ctx.db.get(wo.requestedByOwnerId)
           : null;
         return {
           ...wo,
           vesselName: vessel?.name,
           vesselMake: vessel?.make,
           vesselModel: vessel?.model,
-          ownerName: owner?.firstName && owner?.lastName 
-            ? `${owner.firstName} ${owner.lastName}` 
-            : owner?.name,
-          requestingOwnerName: requestingOwner?.firstName && requestingOwner?.lastName 
-            ? `${requestingOwner.firstName} ${requestingOwner.lastName}` 
-            : requestingOwner?.name,
+          ownerName:
+            owner?.firstName && owner?.lastName
+              ? `${owner.firstName} ${owner.lastName}`
+              : owner?.name,
+          requestingOwnerName:
+            requestingOwner?.firstName && requestingOwner?.lastName
+              ? `${requestingOwner.firstName} ${requestingOwner.lastName}`
+              : requestingOwner?.name,
         };
       })
     );
-
-    return enriched;
   },
 });
 
-// Get pending quote requests for the current mechanic
 export const getPendingQuoteRequests = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user || user.role !== "mechanic") return [];
 
     const requests = await ctx.db
       .query("workOrders")
-      .withIndex("by_mechanic", (q) => q.eq("mechanicId", userId))
+      .withIndex("by_mechanic", (q) => q.eq("mechanicId", user._id))
       .filter((q) => q.eq(q.field("status"), "quote_requested"))
       .order("desc")
       .collect();
 
-    // Enrich with vessel and owner info
-    const enriched = await Promise.all(
+    return Promise.all(
       requests.map(async (wo) => {
         const vessel = await ctx.db.get(wo.vesselId);
         const owner = vessel ? await ctx.db.get(vessel.ownerId) : null;
-        const requestingOwner = wo.requestedByOwnerId 
-          ? await ctx.db.get(wo.requestedByOwnerId) 
+        const requestingOwner = wo.requestedByOwnerId
+          ? await ctx.db.get(wo.requestedByOwnerId)
           : null;
-        const equipment = wo.equipmentId 
-          ? await ctx.db.get(wo.equipmentId) 
-          : null;
+        const equipment = wo.equipmentId ? await ctx.db.get(wo.equipmentId) : null;
         return {
           ...wo,
           vesselName: vessel?.name,
           vesselMake: vessel?.make,
           vesselModel: vessel?.model,
-          ownerName: owner?.firstName && owner?.lastName 
-            ? `${owner.firstName} ${owner.lastName}` 
-            : owner?.name,
+          ownerName:
+            owner?.firstName && owner?.lastName
+              ? `${owner.firstName} ${owner.lastName}`
+              : owner?.name,
           ownerPhone: owner?.phone,
-          requestingOwnerName: requestingOwner?.firstName && requestingOwner?.lastName 
-            ? `${requestingOwner.firstName} ${requestingOwner.lastName}` 
-            : requestingOwner?.name,
+          requestingOwnerName:
+            requestingOwner?.firstName && requestingOwner?.lastName
+              ? `${requestingOwner.firstName} ${requestingOwner.lastName}`
+              : requestingOwner?.name,
           equipmentName: equipment?.name,
           equipmentCategory: equipment?.category,
         };
       })
     );
-
-    return enriched;
   },
 });
 
-// Get work order requests created by the current owner
 export const getMyWorkOrderRequests = query({
   args: {
     status: v.optional(
@@ -257,38 +248,35 @@ export const getMyWorkOrderRequests = query({
     ),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user || user.role !== "owner") return [];
 
-    let query = ctx.db
+    let q = ctx.db
       .query("workOrders")
-      .withIndex("by_requested_owner", (q) => q.eq("requestedByOwnerId", userId));
+      .withIndex("by_requested_owner", (q) =>
+        q.eq("requestedByOwnerId", user._id)
+      );
 
     if (args.status) {
-      query = query.filter((q) => q.eq(q.field("status"), args.status));
+      q = q.filter((f) => f.eq(f.field("status"), args.status));
     }
 
-    const workOrders = await query.order("desc").collect();
+    const workOrders = await q.order("desc").collect();
 
-    // Enrich with vessel and mechanic info
-    const enriched = await Promise.all(
+    return Promise.all(
       workOrders.map(async (wo) => {
         const vessel = await ctx.db.get(wo.vesselId);
         const mechanic = await ctx.db.get(wo.mechanicId);
-        const equipment = wo.equipmentId 
-          ? await ctx.db.get(wo.equipmentId) 
-          : null;
+        const equipment = wo.equipmentId ? await ctx.db.get(wo.equipmentId) : null;
         return {
           ...wo,
           vesselName: vessel?.name,
           vesselMake: vessel?.make,
           vesselModel: vessel?.model,
-          mechanicName: mechanic?.firstName && mechanic?.lastName 
-            ? `${mechanic.firstName} ${mechanic.lastName}` 
-            : mechanic?.name,
+          mechanicName:
+            mechanic?.firstName && mechanic?.lastName
+              ? `${mechanic.firstName} ${mechanic.lastName}`
+              : mechanic?.name,
           mechanicCompany: mechanic?.companyName,
           mechanicPhone: mechanic?.phone,
           equipmentName: equipment?.name,
@@ -296,30 +284,20 @@ export const getMyWorkOrderRequests = query({
         };
       })
     );
-
-    return enriched;
   },
 });
 
-// Create a new work order (mechanic-initiated)
 export const createWorkOrder = mutation({
   args: {
     vesselId: v.id("vessels"),
     description: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "mechanic") {
-      throw new Error("Only mechanics can create work orders");
-    }
+    const { userId, user } = await requireRole(ctx, "mechanic");
 
     const vessel = await ctx.db.get(args.vesselId);
-    if (!vessel) throw new Error("Vessel not found");
+    if (!vessel) throw Errors.notFound("Vessel");
 
-    // Check if mechanic is authorized for this vessel
     const auth = await ctx.db
       .query("mechanicAuthorizations")
       .withIndex("by_vessel_mechanic", (q) =>
@@ -328,9 +306,7 @@ export const createWorkOrder = mutation({
       .filter((q) => q.eq(q.field("isActive"), true))
       .first();
 
-    if (!auth) {
-      throw new Error("Not authorized to work on this vessel");
-    }
+    if (!auth) throw Errors.accessDenied();
 
     const workOrderId = await ctx.db.insert("workOrders", {
       vesselId: args.vesselId,
@@ -340,7 +316,6 @@ export const createWorkOrder = mutation({
       startedAt: Date.now(),
     });
 
-    // Notify owner that work has started
     await ctx.db.insert("notifications", {
       userId: vessel.ownerId,
       type: "work_order_started",
@@ -352,55 +327,47 @@ export const createWorkOrder = mutation({
       createdAt: Date.now(),
     });
 
+    await logAudit(ctx, {
+      action: "work_order.created",
+      actorId: userId,
+      targetId: workOrderId,
+      targetType: "workOrders",
+      after: { vesselId: args.vesselId, status: "in_progress" },
+    });
+
     return { workOrderId };
   },
 });
 
-// Request a work order (owner-initiated)
 export const requestWorkOrder = mutation({
   args: {
     vesselId: v.id("vessels"),
     mechanicId: v.id("users"),
     description: v.string(),
-    urgency: v.optional(v.union(
-      v.literal("routine"),
-      v.literal("soon"),
-      v.literal("urgent")
-    )),
+    urgency: v.optional(
+      v.union(v.literal("routine"), v.literal("soon"), v.literal("urgent"))
+    ),
     equipmentId: v.optional(v.id("vesselEquipment")),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "owner") {
-      throw new Error("Only owners can request work orders");
-    }
+    const { userId, user } = await requireRole(ctx, "owner");
 
     const vessel = await ctx.db.get(args.vesselId);
-    if (!vessel) throw new Error("Vessel not found");
+    if (!vessel) throw Errors.notFound("Vessel");
+    if (vessel.ownerId !== userId) throw Errors.accessDenied();
 
-    // Verify owner owns this vessel
-    if (vessel.ownerId !== userId) {
-      throw new Error("You do not own this vessel");
-    }
-
-    // Verify mechanic exists and is a mechanic
     const mechanic = await ctx.db.get(args.mechanicId);
     if (!mechanic || mechanic.role !== "mechanic") {
-      throw new Error("Invalid mechanic");
+      throw Errors.validation("Invalid mechanic");
     }
 
-    // Verify equipment belongs to vessel if specified
     if (args.equipmentId) {
       const equipment = await ctx.db.get(args.equipmentId);
       if (!equipment || equipment.vesselId !== args.vesselId) {
-        throw new Error("Equipment not found on this vessel");
+        throw Errors.validation("Equipment not found on this vessel");
       }
     }
 
-    // Auto-authorize mechanic for this vessel if not already authorized
     const existingAuth = await ctx.db
       .query("mechanicAuthorizations")
       .withIndex("by_vessel_mechanic", (q) =>
@@ -409,7 +376,6 @@ export const requestWorkOrder = mutation({
       .first();
 
     if (!existingAuth) {
-      // Create new authorization
       await ctx.db.insert("mechanicAuthorizations", {
         vesselId: args.vesselId,
         mechanicId: args.mechanicId,
@@ -418,7 +384,6 @@ export const requestWorkOrder = mutation({
         isActive: true,
       });
     } else if (!existingAuth.isActive) {
-      // Re-activate existing authorization
       await ctx.db.patch(existingAuth._id, {
         isActive: true,
         authorizedAt: Date.now(),
@@ -437,7 +402,6 @@ export const requestWorkOrder = mutation({
       startedAt: Date.now(),
     });
 
-    // Notify mechanic of the request
     await ctx.db.insert("notifications", {
       userId: args.mechanicId,
       type: "work_order_requested",
@@ -449,11 +413,18 @@ export const requestWorkOrder = mutation({
       createdAt: Date.now(),
     });
 
+    await logAudit(ctx, {
+      action: "work_order.created",
+      actorId: userId,
+      targetId: workOrderId,
+      targetType: "workOrders",
+      after: { vesselId: args.vesselId, mechanicId: args.mechanicId, status: "quote_requested" },
+    });
+
     return { workOrderId };
   },
 });
 
-// Submit a quote for a work order request
 export const submitQuote = mutation({
   args: {
     workOrderId: v.id("workOrders"),
@@ -461,27 +432,17 @@ export const submitQuote = mutation({
     quotedLaborRate: v.number(),
     quotedPartsEstimate: v.optional(v.number()),
     quoteNotes: v.optional(v.string()),
-    quoteValidDays: v.optional(v.number()), // How many days the quote is valid
-    estimatedCompletionDate: v.optional(v.number()), // Estimated completion timestamp
+    quoteValidDays: v.optional(v.number()),
+    estimatedCompletionDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "mechanic") {
-      throw new Error("Only mechanics can submit quotes");
-    }
+    const { userId, user } = await requireRole(ctx, "mechanic");
 
     const workOrder = await ctx.db.get(args.workOrderId);
-    if (!workOrder) throw new Error("Work order not found");
-
-    if (workOrder.mechanicId !== userId) {
-      throw new Error("Not authorized to quote this work order");
-    }
-
+    if (!workOrder) throw Errors.notFound("Work order");
+    if (workOrder.mechanicId !== userId) throw Errors.accessDenied();
     if (workOrder.status !== "quote_requested") {
-      throw new Error("Work order is not awaiting a quote");
+      throw Errors.validation("Work order is not awaiting a quote");
     }
 
     const laborTotal = args.quotedLaborHours * args.quotedLaborRate;
@@ -489,7 +450,7 @@ export const submitQuote = mutation({
     const quotedTotalEstimate = laborTotal + partsTotal;
 
     const quoteValidDays = args.quoteValidDays || 30;
-    const quoteExpiresAt = Date.now() + (quoteValidDays * 24 * 60 * 60 * 1000);
+    const quoteExpiresAt = Date.now() + quoteValidDays * 24 * 60 * 60 * 1000;
 
     await ctx.db.patch(args.workOrderId, {
       status: "quoted",
@@ -503,10 +464,9 @@ export const submitQuote = mutation({
       estimatedCompletionDate: args.estimatedCompletionDate,
     });
 
-    // Notify owner
     const vessel = await ctx.db.get(workOrder.vesselId);
     const ownerId = workOrder.requestedByOwnerId || vessel?.ownerId;
-    
+
     if (ownerId) {
       await ctx.db.insert("notifications", {
         userId: ownerId,
@@ -520,34 +480,31 @@ export const submitQuote = mutation({
       });
     }
 
+    await logAudit(ctx, {
+      action: "work_order.quote_submitted",
+      actorId: userId,
+      targetId: args.workOrderId,
+      targetType: "workOrders",
+      after: { quotedTotalEstimate, status: "quoted" },
+    });
+
     return { success: true };
   },
 });
 
-// Mechanic declines a work order request
 export const declineWorkOrderRequest = mutation({
   args: {
     workOrderId: v.id("workOrders"),
     declineReason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "mechanic") {
-      throw new Error("Only mechanics can decline work order requests");
-    }
+    const { userId, user } = await requireRole(ctx, "mechanic");
 
     const workOrder = await ctx.db.get(args.workOrderId);
-    if (!workOrder) throw new Error("Work order not found");
-
-    if (workOrder.mechanicId !== userId) {
-      throw new Error("Not authorized to decline this work order");
-    }
-
+    if (!workOrder) throw Errors.notFound("Work order");
+    if (workOrder.mechanicId !== userId) throw Errors.accessDenied();
     if (workOrder.status !== "quote_requested") {
-      throw new Error("Work order is not awaiting a quote");
+      throw Errors.validation("Work order is not awaiting a quote");
     }
 
     await ctx.db.patch(args.workOrderId, {
@@ -556,10 +513,9 @@ export const declineWorkOrderRequest = mutation({
       declinedAt: Date.now(),
     });
 
-    // Notify owner
     const vessel = await ctx.db.get(workOrder.vesselId);
     const ownerId = workOrder.requestedByOwnerId || vessel?.ownerId;
-    
+
     if (ownerId) {
       await ctx.db.insert("notifications", {
         userId: ownerId,
@@ -573,50 +529,46 @@ export const declineWorkOrderRequest = mutation({
       });
     }
 
+    await logAudit(ctx, {
+      action: "work_order.status_changed",
+      actorId: userId,
+      targetId: args.workOrderId,
+      targetType: "workOrders",
+      before: { status: "quote_requested" },
+      after: { status: "declined" },
+    });
+
     return { success: true };
   },
 });
 
-// Owner accepts a quote
 export const acceptQuote = mutation({
-  args: {
-    workOrderId: v.id("workOrders"),
-  },
+  args: { workOrderId: v.id("workOrders") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "owner") {
-      throw new Error("Only owners can accept quotes");
-    }
+    const { userId, user } = await requireRole(ctx, "owner");
 
     const workOrder = await ctx.db.get(args.workOrderId);
-    if (!workOrder) throw new Error("Work order not found");
+    if (!workOrder) throw Errors.notFound("Work order");
 
     const vessel = await ctx.db.get(workOrder.vesselId);
-    if (!vessel) throw new Error("Vessel not found");
+    if (!vessel) throw Errors.notFound("Vessel");
 
-    // Check if owner owns the vessel or requested the work order
     if (vessel.ownerId !== userId && workOrder.requestedByOwnerId !== userId) {
-      throw new Error("Not authorized to accept this quote");
+      throw Errors.accessDenied();
     }
 
     if (workOrder.status !== "quoted") {
-      throw new Error("Work order does not have a pending quote");
+      throw Errors.validation("Work order does not have a pending quote");
     }
 
-    // Check if quote has expired
     if (workOrder.quoteExpiresAt && workOrder.quoteExpiresAt < Date.now()) {
-      throw new Error("Quote has expired. Please request a new quote from the mechanic.");
+      throw Errors.validation(
+        "Quote has expired. Please request a new quote from the mechanic."
+      );
     }
 
-    await ctx.db.patch(args.workOrderId, {
-      status: "in_progress",
-    });
+    await ctx.db.patch(args.workOrderId, { status: "in_progress" });
 
-    // Notify mechanic
-    const mechanic = await ctx.db.get(workOrder.mechanicId);
     await ctx.db.insert("notifications", {
       userId: workOrder.mechanicId,
       type: "quote_accepted",
@@ -628,38 +580,39 @@ export const acceptQuote = mutation({
       createdAt: Date.now(),
     });
 
+    await logAudit(ctx, {
+      action: "work_order.quote_accepted",
+      actorId: userId,
+      targetId: args.workOrderId,
+      targetType: "workOrders",
+      before: { status: "quoted" },
+      after: { status: "in_progress" },
+    });
+
     return { success: true };
   },
 });
 
-// Owner declines a quote
 export const declineQuote = mutation({
   args: {
     workOrderId: v.id("workOrders"),
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "owner") {
-      throw new Error("Only owners can decline quotes");
-    }
+    const { userId, user } = await requireRole(ctx, "owner");
 
     const workOrder = await ctx.db.get(args.workOrderId);
-    if (!workOrder) throw new Error("Work order not found");
+    if (!workOrder) throw Errors.notFound("Work order");
 
     const vessel = await ctx.db.get(workOrder.vesselId);
-    if (!vessel) throw new Error("Vessel not found");
+    if (!vessel) throw Errors.notFound("Vessel");
 
-    // Check if owner owns the vessel or requested the work order
     if (vessel.ownerId !== userId && workOrder.requestedByOwnerId !== userId) {
-      throw new Error("Not authorized to decline this quote");
+      throw Errors.accessDenied();
     }
 
     if (workOrder.status !== "quoted") {
-      throw new Error("Work order does not have a pending quote");
+      throw Errors.validation("Work order does not have a pending quote");
     }
 
     await ctx.db.patch(args.workOrderId, {
@@ -667,7 +620,6 @@ export const declineQuote = mutation({
       completedAt: Date.now(),
     });
 
-    // Notify mechanic
     await ctx.db.insert("notifications", {
       userId: workOrder.mechanicId,
       type: "quote_declined",
@@ -679,31 +631,21 @@ export const declineQuote = mutation({
       createdAt: Date.now(),
     });
 
+    await logAudit(ctx, {
+      action: "work_order.quote_declined",
+      actorId: userId,
+      targetId: args.workOrderId,
+      targetType: "workOrders",
+      before: { status: "quoted" },
+      after: { status: "cancelled" },
+    });
+
     return { success: true };
   },
 });
 
-// Default throttle duration (30 minutes) - can be overridden in admin settings
 const DEFAULT_UPDATE_NOTIFICATION_THROTTLE_MINUTES = 30;
 
-// Helper to get setting from database
-async function getSettingValue(ctx: any, key: string, defaultValue: number): Promise<number> {
-  const setting = await ctx.db
-    .query("appSettings")
-    .withIndex("by_key", (q: any) => q.eq("key", key))
-    .first();
-  
-  if (setting) {
-    try {
-      return JSON.parse(setting.value);
-    } catch {
-      return defaultValue;
-    }
-  }
-  return defaultValue;
-}
-
-// Update a work order
 export const updateWorkOrder = mutation({
   args: {
     workOrderId: v.id("workOrders"),
@@ -716,79 +658,58 @@ export const updateWorkOrder = mutation({
     estimatedCompletionDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId, user } = await requireAuth(ctx);
 
     const workOrder = await ctx.db.get(args.workOrderId);
-    if (!workOrder) throw new Error("Work order not found");
+    if (!workOrder) throw Errors.notFound("Work order");
 
-    const user = await ctx.db.get(userId);
-    if (!user) throw new Error("User not found");
-
-    // Only the assigned mechanic or admin can update
     if (user.role !== "admin" && workOrder.mechanicId !== userId) {
-      throw new Error("Not authorized to update this work order");
+      throw Errors.accessDenied();
     }
 
     if (workOrder.status !== "in_progress") {
-      throw new Error("Cannot update a completed or cancelled work order");
+      throw Errors.validation("Cannot update a completed or cancelled work order");
     }
 
     const { workOrderId, ...updates } = args;
     const filteredUpdates = Object.fromEntries(
-      Object.entries(updates).filter(([_, v]) => v !== undefined)
+      Object.entries(updates).filter(([, v]) => v !== undefined)
     );
 
-    // Check if there are meaningful updates (not just empty fields)
-    const hasMeaningfulUpdates = Object.keys(filteredUpdates).length > 0;
-
     await ctx.db.patch(workOrderId, filteredUpdates);
-    
-    // Send throttled notification to owner when mechanic updates the work order
-    if (hasMeaningfulUpdates && user.role === "mechanic") {
+
+    if (Object.keys(filteredUpdates).length > 0 && user.role === "mechanic") {
       const now = Date.now();
       const lastNotified = workOrder.lastUpdateNotifiedAt || 0;
-      const timeSinceLastNotification = now - lastNotified;
-      
-      // Get throttle duration from admin settings
       const throttleMinutes = await getSettingValue(
-        ctx, 
-        "work_order_update_throttle_minutes", 
+        ctx,
+        "work_order_update_throttle_minutes",
         DEFAULT_UPDATE_NOTIFICATION_THROTTLE_MINUTES
       );
       const throttleMs = throttleMinutes * 60 * 1000;
-      
-      // Only send notification if enough time has passed
-      if (timeSinceLastNotification >= throttleMs) {
-        // Get vessel to find the owner
+
+      if (now - lastNotified >= throttleMs) {
         const vessel = await ctx.db.get(workOrder.vesselId);
-        if (vessel && vessel.ownerId) {
-          // Get mechanic name for the notification
-          const mechanicName = user.companyName || user.name || "Your mechanic";
-          
-          // Create notification for the owner
+        if (vessel) {
           await ctx.db.insert("notifications", {
             userId: vessel.ownerId,
             type: "work_order_updated",
             title: "Work Order Updated",
-            message: `${mechanicName} has made progress on the work order for ${vessel.name}`,
+            message: `${user.companyName || user.name || "Your mechanic"} has made progress on the work order for ${vessel.name}`,
             relatedId: workOrderId,
             relatedType: "workOrder",
             isRead: false,
             createdAt: now,
           });
-          
-          // Update the throttle timestamp
           await ctx.db.patch(workOrderId, { lastUpdateNotifiedAt: now });
         }
       }
     }
-    
+
     return { success: true };
   },
 });
 
-// Complete a work order
 export const completeWorkOrder = mutation({
   args: {
     workOrderId: v.id("workOrders"),
@@ -798,21 +719,15 @@ export const completeWorkOrder = mutation({
     totalCost: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId, user } = await requireAuth(ctx);
 
     const workOrder = await ctx.db.get(args.workOrderId);
-    if (!workOrder) throw new Error("Work order not found");
-
-    if (workOrder.mechanicId !== userId) {
-      throw new Error("Not authorized to complete this work order");
-    }
-
+    if (!workOrder) throw Errors.notFound("Work order");
+    if (workOrder.mechanicId !== userId) throw Errors.accessDenied();
     if (workOrder.status !== "in_progress") {
-      throw new Error("Work order is not in progress");
+      throw Errors.validation("Work order is not in progress");
     }
 
-    const user = await ctx.db.get(userId);
     const vessel = await ctx.db.get(workOrder.vesselId);
 
     await ctx.db.patch(args.workOrderId, {
@@ -824,32 +739,35 @@ export const completeWorkOrder = mutation({
       completedAt: Date.now(),
     });
 
-    // Notify owner that work is completed
     if (vessel) {
+      const mechanicName =
+        user.companyName ||
+        (user.firstName && user.lastName
+          ? `${user.firstName} ${user.lastName}`
+          : "The mechanic");
+
       await ctx.db.insert("notifications", {
         userId: vessel.ownerId,
         type: "work_order_completed",
         title: "Work Order Completed",
-        message: `${user?.companyName || (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : "The mechanic")} has completed work on ${vessel.name}`,
+        message: `${mechanicName} has completed work on ${vessel.name}`,
         relatedId: args.workOrderId,
         relatedType: "workOrder",
         isRead: false,
         createdAt: Date.now(),
       });
 
-      // Send rating reminder to owner (rate the mechanic with wrenches)
       await ctx.db.insert("notifications", {
         userId: vessel.ownerId,
         type: "rate_mechanic_reminder",
         title: "Rate Your Mechanic",
-        message: `How was your experience with ${user?.companyName || (user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : "the mechanic")}? Leave a review to help other boat owners.`,
+        message: `How was your experience with ${mechanicName}? Leave a review to help other boat owners.`,
         relatedId: args.workOrderId,
         relatedType: "workOrder",
         isRead: false,
         createdAt: Date.now(),
       });
 
-      // Send rating reminder to mechanic (rate the owner with stars)
       await ctx.db.insert("notifications", {
         userId: workOrder.mechanicId,
         type: "rate_owner_reminder",
@@ -862,29 +780,32 @@ export const completeWorkOrder = mutation({
       });
     }
 
+    await logAudit(ctx, {
+      action: "work_order.completed",
+      actorId: userId,
+      targetId: args.workOrderId,
+      targetType: "workOrders",
+      before: { status: "in_progress" },
+      after: { status: "completed" },
+    });
+
     return { success: true };
   },
 });
 
-// Cancel a work order
 export const cancelWorkOrder = mutation({
-  args: { 
+  args: {
     workOrderId: v.id("workOrders"),
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId, user } = await requireAuth(ctx);
 
     const workOrder = await ctx.db.get(args.workOrderId);
-    if (!workOrder) throw new Error("Work order not found");
+    if (!workOrder) throw Errors.notFound("Work order");
 
-    const user = await ctx.db.get(userId);
-    if (!user) throw new Error("User not found");
-
-    // Mechanic can cancel their own, owner can cancel for their vessel
     const vessel = await ctx.db.get(workOrder.vesselId);
-    if (!vessel) throw new Error("Vessel not found");
+    if (!vessel) throw Errors.notFound("Vessel");
 
     const canCancel =
       user.role === "admin" ||
@@ -892,14 +813,11 @@ export const cancelWorkOrder = mutation({
       vessel.ownerId === userId ||
       workOrder.requestedByOwnerId === userId;
 
-    if (!canCancel) {
-      throw new Error("Not authorized to cancel this work order");
-    }
+    if (!canCancel) throw Errors.accessDenied();
 
-    // Can cancel if in progress, quote_requested, or quoted
     const cancellableStatuses = ["in_progress", "quote_requested", "quoted"];
     if (!cancellableStatuses.includes(workOrder.status)) {
-      throw new Error("Work order cannot be cancelled in its current status");
+      throw Errors.validation("Work order cannot be cancelled in its current status");
     }
 
     await ctx.db.patch(args.workOrderId, {
@@ -907,12 +825,13 @@ export const cancelWorkOrder = mutation({
       completedAt: Date.now(),
     });
 
-    // Notify the other party
-    if (user.role === "owner" || workOrder.requestedByOwnerId === userId) {
-      // Owner cancelled, notify mechanic
+    const isOwnerCancelling =
+      user.role === "owner" || workOrder.requestedByOwnerId === userId;
+
+    if (isOwnerCancelling) {
       await ctx.db.insert("notifications", {
         userId: workOrder.mechanicId,
-        type: "work_order_completed", // Using existing type for cancellation notice
+        type: "work_order_completed",
         title: "Work Order Cancelled",
         message: `${user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner"} has cancelled the work order for ${vessel.name}${args.reason ? `: ${args.reason}` : ""}`,
         relatedId: args.workOrderId,
@@ -921,7 +840,6 @@ export const cancelWorkOrder = mutation({
         createdAt: Date.now(),
       });
     } else {
-      // Mechanic cancelled, notify owner
       await ctx.db.insert("notifications", {
         userId: vessel.ownerId,
         type: "work_order_completed",
@@ -934,11 +852,19 @@ export const cancelWorkOrder = mutation({
       });
     }
 
+    await logAudit(ctx, {
+      action: "work_order.cancelled",
+      actorId: userId,
+      targetId: args.workOrderId,
+      targetType: "workOrders",
+      before: { status: workOrder.status },
+      after: { status: "cancelled" },
+    });
+
     return { success: true };
   },
 });
 
-// Add a part to a work order (with auto-catalog feature)
 export const addPart = mutation({
   args: {
     workOrderId: v.id("workOrders"),
@@ -954,21 +880,15 @@ export const addPart = mutation({
     photoStorageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireRole(ctx, "mechanic");
 
     const workOrder = await ctx.db.get(args.workOrderId);
-    if (!workOrder) throw new Error("Work order not found");
-
-    if (workOrder.mechanicId !== userId) {
-      throw new Error("Not authorized to add parts to this work order");
-    }
-
+    if (!workOrder) throw Errors.notFound("Work order");
+    if (workOrder.mechanicId !== userId) throw Errors.accessDenied();
     if (workOrder.status !== "in_progress") {
-      throw new Error("Cannot add parts to a completed work order");
+      throw Errors.validation("Cannot add parts to a completed work order");
     }
 
-    // Auto-catalog: If part has a part number, add to/update the parts database
     if (args.partNumber && args.manufacturer) {
       const existingPart = await ctx.db
         .query("partsDatabase")
@@ -976,16 +896,20 @@ export const addPart = mutation({
         .first();
 
       if (existingPart) {
-        // Increment usage count
         await ctx.db.patch(existingPart._id, {
           usageCount: existingPart.usageCount + 1,
         });
       } else {
-        // Add new part to catalog
-        const validCategories = ["engine", "electrical", "plumbing", "fuel", "cooling", "steering", "hvac", "safety", "general"];
-        const category = args.category && validCategories.includes(args.category) 
-          ? args.category as "engine" | "electrical" | "plumbing" | "fuel" | "cooling" | "steering" | "hvac" | "safety" | "general"
-          : "general";
+        const validCategories = [
+          "engine","electrical","plumbing","fuel","cooling",
+          "steering","hvac","safety","general",
+        ];
+        const category =
+          args.category && validCategories.includes(args.category)
+            ? (args.category as
+                | "engine" | "electrical" | "plumbing" | "fuel" | "cooling"
+                | "steering" | "hvac" | "safety" | "general")
+            : "general";
 
         await ctx.db.insert("partsDatabase", {
           partNumber: args.partNumber,
@@ -1000,7 +924,6 @@ export const addPart = mutation({
       }
     }
 
-    // Add part to work order
     const partId = await ctx.db.insert("workOrderParts", {
       workOrderId: args.workOrderId,
       name: args.name,
@@ -1020,25 +943,19 @@ export const addPart = mutation({
   },
 });
 
-// Remove a part from a work order
 export const removePart = mutation({
   args: { partId: v.id("workOrderParts") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireRole(ctx, "mechanic");
 
     const part = await ctx.db.get(args.partId);
-    if (!part) throw new Error("Part not found");
+    if (!part) throw Errors.notFound("Part");
 
     const workOrder = await ctx.db.get(part.workOrderId);
-    if (!workOrder) throw new Error("Work order not found");
-
-    if (workOrder.mechanicId !== userId) {
-      throw new Error("Not authorized to remove parts from this work order");
-    }
-
+    if (!workOrder) throw Errors.notFound("Work order");
+    if (workOrder.mechanicId !== userId) throw Errors.accessDenied();
     if (workOrder.status !== "in_progress") {
-      throw new Error("Cannot remove parts from a completed work order");
+      throw Errors.validation("Cannot remove parts from a completed work order");
     }
 
     await ctx.db.delete(args.partId);

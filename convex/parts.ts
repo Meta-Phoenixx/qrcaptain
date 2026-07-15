@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { Id } from "./_generated/dataModel";
+import { getAuthenticatedUser, requireAuth } from "./lib/auth";
+import { Errors } from "./lib/errors";
 
 // Part categories for the parts database
 export const PART_CATEGORIES = [
@@ -67,8 +68,9 @@ export const getRecentParts = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return [];
+    const userId = user._id;
 
     const limit = args.limit || 20;
 
@@ -133,8 +135,9 @@ export const getVesselPartHistory = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return [];
+    const userId = user._id;
 
     const limit = args.limit || 20;
 
@@ -267,8 +270,7 @@ export const addPartToCatalog = mutation({
     averagePrice: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    await requireAuth(ctx);
 
     // Check if part already exists
     const existing = await ctx.db

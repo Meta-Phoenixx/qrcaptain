@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { getAuthenticatedUser, requireAuth } from "./lib/auth";
+import { Errors } from "./lib/errors";
 
-// Send a message
 export const sendMessage = mutation({
   args: {
     receiverId: v.id("users"),
@@ -11,15 +11,10 @@ export const sendMessage = mutation({
     accessRequestId: v.optional(v.id("accessRequests")),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId, user: sender } = await requireAuth(ctx);
 
-    const sender = await ctx.db.get(userId);
     const receiver = await ctx.db.get(args.receiverId);
-    
-    if (!sender || !receiver) {
-      throw new Error("Invalid sender or receiver");
-    }
+    if (!receiver) throw Errors.notFound("Receiver");
 
     // Create the message
     const messageId = await ctx.db.insert("messages", {
@@ -32,7 +27,6 @@ export const sendMessage = mutation({
       createdAt: Date.now(),
     });
 
-    // Create notification for the receiver
     let vesselName = "";
     if (args.vesselId) {
       const vessel = await ctx.db.get(args.vesselId);
@@ -54,14 +48,14 @@ export const sendMessage = mutation({
   },
 });
 
-// Get a single message by ID (for notification routing)
 export const getMessageById = query({
   args: {
     messageId: v.id("messages"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return null;
+    const userId = user._id;
 
     const message = await ctx.db.get(args.messageId);
     if (!message) return null;
@@ -86,7 +80,6 @@ export const getMessageById = query({
   },
 });
 
-// Get conversation between two users (optionally filtered by vessel)
 export const getConversation = query({
   args: {
     otherUserId: v.id("users"),
@@ -94,8 +87,9 @@ export const getConversation = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return [];
+    const userId = user._id;
 
     const limit = args.limit || 100;
 
@@ -144,14 +138,14 @@ export const getConversation = query({
   },
 });
 
-// Get messages related to an access request
 export const getAccessRequestMessages = query({
   args: {
     accessRequestId: v.id("accessRequests"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return [];
+    const userId = user._id;
 
     const request = await ctx.db.get(args.accessRequestId);
     if (!request) return [];
@@ -185,12 +179,12 @@ export const getAccessRequestMessages = query({
   },
 });
 
-// Get recent conversations list
 export const getRecentConversations = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return [];
+    const userId = user._id;
 
     // Get all messages involving this user
     const sentMessages = await ctx.db
@@ -230,7 +224,7 @@ export const getRecentConversations = query({
     // Get user details and sort by most recent
     const conversations = await Promise.all(
       Array.from(conversationMap.values()).map(async (conv) => {
-        const otherUser = await ctx.db.get(conv.otherUserId as any);
+        const otherUser = await ctx.db.get(conv.otherUserId as Parameters<typeof ctx.db.get>[0]);
         // Type guard to ensure we have a user document
         const isUserDoc = otherUser && 'role' in otherUser;
         return {
@@ -258,15 +252,13 @@ export const getRecentConversations = query({
   },
 });
 
-// Mark messages as read (with timestamp for response time calculation)
 export const markConversationAsRead = mutation({
   args: {
     otherUserId: v.id("users"),
     vesselId: v.optional(v.id("vessels")),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireAuth(ctx);
 
     const now = Date.now();
 
@@ -298,12 +290,12 @@ export const markConversationAsRead = mutation({
   },
 });
 
-// Get unread message count
 export const getUnreadMessageCount = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return 0;
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return 0;
+    const userId = user._id;
 
     const unreadMessages = await ctx.db
       .query("messages")
@@ -427,21 +419,15 @@ export const getResponseTimeDisplay = query({
   },
 });
 
-// Update mechanic's response time metrics (called after calculating)
 export const updateResponseTimeMetrics = mutation({
   args: {
     mechanicId: v.id("users"),
     avgResponseTimeMinutes: v.number(),
   },
   handler: async (ctx, args) => {
-    // This should only be called internally or by admin
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    // Allow mechanics to update their own metrics or admins
-    if (user?.role !== "admin" && userId !== args.mechanicId) {
-      throw new Error("Not authorized");
+    const { userId, user } = await requireAuth(ctx);
+    if (user.role !== "admin" && userId !== args.mechanicId) {
+      throw Errors.accessDenied();
     }
 
     const existingMetrics = await ctx.db

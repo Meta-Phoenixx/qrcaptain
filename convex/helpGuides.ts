@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { getAuthenticatedUser, requireAdmin } from "./lib/auth";
+import { Errors } from "./lib/errors";
 
 // Help guide category validator
 const guideCategoryValidator = v.union(
@@ -54,10 +55,7 @@ export const getGuidesByRole = query({
     category: v.optional(guideCategoryValidator),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user) return [];
 
     const userRole = user.role || "owner";
@@ -96,10 +94,7 @@ export const getGuide = query({
     guideId: v.id("helpGuides"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user) return null;
 
     const guide = await ctx.db.get(args.guideId);
@@ -117,10 +112,7 @@ export const getGuide = query({
 export const getGuidesByCategory = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return {};
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user) return {};
 
     const userRole = user.role || "owner";
@@ -157,10 +149,7 @@ export const getGuidesByBook = query({
     book: bookValidator,
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user) return [];
 
     // Get all active guides for the specified book
@@ -191,10 +180,7 @@ export const searchGuides = query({
     book: v.optional(bookValidator),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user) return [];
 
     if (!args.searchTerm.trim()) return [];
@@ -249,10 +235,7 @@ export const listAllGuides = query({
     includeInactive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user || user.role !== "admin") return [];
 
     let guides;
@@ -290,13 +273,7 @@ export const createGuide = mutation({
     isPlaceholder: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can create help guides");
-    }
+    await requireAdmin(ctx);
 
     // Auto-assign sortOrder if not provided
     let sortOrder = args.sortOrder;
@@ -344,13 +321,7 @@ export const updateGuide = mutation({
     isPlaceholder: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can update help guides");
-    }
+    await requireAdmin(ctx);
 
     const { guideId, ...updates } = args;
     const filteredUpdates = Object.fromEntries(
@@ -372,13 +343,7 @@ export const deleteGuide = mutation({
     guideId: v.id("helpGuides"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can delete help guides");
-    }
+    await requireAdmin(ctx);
 
     await ctx.db.delete(args.guideId);
     return { success: true };
@@ -391,13 +356,7 @@ export const reorderGuides = mutation({
     guideIds: v.array(v.id("helpGuides")),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can reorder help guides");
-    }
+    await requireAdmin(ctx);
 
     // Update sortOrder for each guide
     for (let i = 0; i < args.guideIds.length; i++) {
@@ -415,13 +374,7 @@ export const reorderGuides = mutation({
 export const seedHelpGuides = mutation({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can seed help guides");
-    }
+    await requireAdmin(ctx);
 
     // Check if guides already exist
     const existing = await ctx.db.query("helpGuides").first();
@@ -1779,13 +1732,7 @@ export const seedComprehensiveGuides = mutation({
     replace: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can seed help guides");
-    }
+    await requireAdmin(ctx);
 
     if (args.replace) {
       const existing = await ctx.db.query("helpGuides").collect();

@@ -1,5 +1,6 @@
 import { mutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { requireAuth } from "./lib/auth";
+import { Errors } from "./lib/errors";
 
 // Initial seed data for common marine parts (~25 parts)
 const SEED_PARTS = [
@@ -224,12 +225,8 @@ const SEED_PARTS = [
 export const seedInitialParts = mutation({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
+    const { user } = await requireAuth(ctx);
     // Check if user is admin (optional - can be removed for easier testing)
-    const user = await ctx.db.get(userId);
-    if (!user) throw new Error("User not found");
 
     // Check if already seeded
     const existingSeeded = await ctx.db

@@ -1,133 +1,105 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
-import { internal } from "./_generated/api";
+import { getAuthenticatedUser, requireAuth } from "./lib/auth";
+import { Errors } from "./lib/errors";
 
-// Get all notifications for the current user
 export const getMyNotifications = query({
-  args: {
-    limit: v.optional(v.number()),
-  },
+  args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return [];
 
-    const limit = args.limit || 50;
-
-    const notifications = await ctx.db
+    return ctx.db
       .query("notifications")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .order("desc")
-      .take(limit);
-
-    return notifications;
+      .take(args.limit || 50);
   },
 });
 
-// Get unread notification count
 export const getUnreadCount = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return 0;
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return 0;
 
-    const unreadNotifications = await ctx.db
+    const unread = await ctx.db
       .query("notifications")
-      .withIndex("by_user_unread", (q) => 
-        q.eq("userId", userId).eq("isRead", false)
+      .withIndex("by_user_unread", (q) =>
+        q.eq("userId", user._id).eq("isRead", false)
       )
       .collect();
 
-    return unreadNotifications.length;
+    return unread.length;
   },
 });
 
-// Mark a notification as read
 export const markAsRead = mutation({
-  args: {
-    notificationId: v.id("notifications"),
-  },
+  args: { notificationId: v.id("notifications") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireAuth(ctx);
 
     const notification = await ctx.db.get(args.notificationId);
-    if (!notification) throw new Error("Notification not found");
-
-    if (notification.userId !== userId) {
-      throw new Error("Not authorized");
-    }
+    if (!notification) throw Errors.notFound("Notification");
+    if (notification.userId !== userId) throw Errors.accessDenied();
 
     await ctx.db.patch(args.notificationId, { isRead: true });
     return { success: true };
   },
 });
 
-// Mark all notifications as read
 export const markAllAsRead = mutation({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireAuth(ctx);
 
-    const unreadNotifications = await ctx.db
+    const unread = await ctx.db
       .query("notifications")
-      .withIndex("by_user_unread", (q) => 
+      .withIndex("by_user_unread", (q) =>
         q.eq("userId", userId).eq("isRead", false)
       )
       .collect();
 
-    await Promise.all(
-      unreadNotifications.map((n) => ctx.db.patch(n._id, { isRead: true }))
-    );
+    await Promise.all(unread.map((n) => ctx.db.patch(n._id, { isRead: true })));
 
-    return { success: true, count: unreadNotifications.length };
+    return { success: true, count: unread.length };
   },
 });
 
-// Delete a notification
 export const deleteNotification = mutation({
-  args: {
-    notificationId: v.id("notifications"),
-  },
+  args: { notificationId: v.id("notifications") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireAuth(ctx);
 
     const notification = await ctx.db.get(args.notificationId);
-    if (!notification) throw new Error("Notification not found");
-
-    if (notification.userId !== userId) {
-      throw new Error("Not authorized");
-    }
+    if (!notification) throw Errors.notFound("Notification");
+    if (notification.userId !== userId) throw Errors.accessDenied();
 
     await ctx.db.delete(args.notificationId);
     return { success: true };
   },
 });
 
-// Clear all read notifications
 export const clearReadNotifications = mutation({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireAuth(ctx);
 
-    const readNotifications = await ctx.db
+    const read = await ctx.db
       .query("notifications")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .filter((q) => q.eq(q.field("isRead"), true))
       .collect();
 
-    await Promise.all(
-      readNotifications.map((n) => ctx.db.delete(n._id))
-    );
+    await Promise.all(read.map((n) => ctx.db.delete(n._id)));
 
-    return { success: true, count: readNotifications.length };
+    return { success: true, count: read.length };
   },
 });
 
-// Internal: Create a notification (used by other modules)
+// Public mutation kept for legacy client callers. New code should insert
+// notifications inline inside the relevant domain mutation instead of
+// calling this endpoint.
 export const createNotification = mutation({
   args: {
     userId: v.id("users"),
@@ -146,6 +118,8 @@ export const createNotification = mutation({
     relatedType: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAuth(ctx);
+
     const notificationId = await ctx.db.insert("notifications", {
       userId: args.userId,
       type: args.type,
@@ -161,12 +135,9 @@ export const createNotification = mutation({
   },
 });
 
-// Internal: Send onboarding reminder notifications to mechanics
-// This is called by a cron job twice daily
 export const sendOnboardingReminders = internalMutation({
   args: {},
   handler: async (ctx) => {
-    // Find all mechanics who haven't completed onboarding
     const incompleteMechanics = await ctx.db
       .query("users")
       .filter((q) =>
@@ -181,38 +152,35 @@ export const sendOnboardingReminders = internalMutation({
       .collect();
 
     const now = Date.now();
-    const TWELVE_HOURS = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+    const TWELVE_HOURS = 12 * 60 * 60 * 1000;
     let sentCount = 0;
 
     for (const mechanic of incompleteMechanics) {
-      // Skip if we sent a reminder in the last 12 hours
-      if (mechanic.lastOnboardingReminder && 
-          (now - mechanic.lastOnboardingReminder) < TWELVE_HOURS) {
+      if (
+        mechanic.lastOnboardingReminder &&
+        now - mechanic.lastOnboardingReminder < TWELVE_HOURS
+      ) {
         continue;
       }
 
-      // Create reminder notification
       await ctx.db.insert("notifications", {
         userId: mechanic._id,
         type: "onboarding_reminder",
         title: "Complete Your Profile",
-        message: "Complete your mechanic profile to unlock all features including QR scanning, vessel access requests, and work order creation.",
+        message:
+          "Complete your mechanic profile to unlock all features including QR scanning, vessel access requests, and work order creation.",
         isRead: false,
         createdAt: now,
       });
 
-      // Update last reminder timestamp
-      await ctx.db.patch(mechanic._id, {
-        lastOnboardingReminder: now,
-      });
-
+      await ctx.db.patch(mechanic._id, { lastOnboardingReminder: now });
       sentCount++;
     }
 
-    return { 
-      sentCount, 
+    return {
+      sentCount,
       totalIncomplete: incompleteMechanics.length,
-      message: `Sent ${sentCount} onboarding reminders` 
+      message: `Sent ${sentCount} onboarding reminders`,
     };
   },
 });

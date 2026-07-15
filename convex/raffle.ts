@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { requireAdmin } from "./lib/auth";
+import { Errors } from "./lib/errors";
 
 const TICKET_TIERS = {
   single: { count: 1, amount: 5 },
@@ -53,10 +54,7 @@ export const submitRaffleEntry = mutation({
 export const listAllRaffleEntries = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") throw new Error("Admin access required");
+    await requireAdmin(ctx);
 
     const entries = await ctx.db.query("raffleEntries").collect();
     return entries.sort((a, b) => b.createdAt - a.createdAt);
@@ -69,15 +67,12 @@ export const updateRaffleTickets = mutation({
     ticketCount: v.number(),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") throw new Error("Admin access required");
+    await requireAdmin(ctx);
 
-    if (args.ticketCount < 1) throw new Error("Ticket count must be at least 1");
+    if (args.ticketCount < 1) throw Errors.validation("Ticket count must be at least 1");
 
     const entry = await ctx.db.get(args.entryId);
-    if (!entry) throw new Error("Raffle entry not found");
+    if (!entry) throw Errors.notFound("Raffle entry");
 
     const oldTicketCount = entry.ticketCount;
     await ctx.db.patch(args.entryId, { ticketCount: args.ticketCount });
@@ -100,13 +95,10 @@ export const deleteRaffleEntry = mutation({
     entryId: v.id("raffleEntries"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") throw new Error("Admin access required");
+    await requireAdmin(ctx);
 
     const entry = await ctx.db.get(args.entryId);
-    if (!entry) throw new Error("Raffle entry not found");
+    if (!entry) throw Errors.notFound("Raffle entry");
 
     await ctx.db.delete(args.entryId);
 

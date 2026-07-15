@@ -1,7 +1,9 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
+import { getAuthenticatedUser, requireRole, requireAuth } from "./lib/auth";
+import { logAudit } from "./lib/audit";
+import { Errors } from "./lib/errors";
 
 // ============ LEGACY RATINGS (backward compatibility) ============
 
@@ -38,15 +40,12 @@ export const getMechanicRatings = query({
   },
 });
 
-// Get ratings given by the current owner (legacy)
 export const getMyRatings = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user || user.role !== "owner") return [];
+    const userId = user._id;
 
     const ratings = await ctx.db
       .query("ratings")
@@ -77,49 +76,35 @@ export const getMyRatings = query({
   },
 });
 
-// Create a rating for a completed work order (legacy)
 export const createRating = mutation({
   args: {
     workOrderId: v.id("workOrders"),
-    rating: v.number(), // 1-5
+    rating: v.number(),
     review: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireRole(ctx, "owner");
 
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "owner") {
-      throw new Error("Only owners can rate mechanics");
-    }
-
-    // Validate rating value
     if (args.rating < 1 || args.rating > 5) {
-      throw new Error("Rating must be between 1 and 5");
+      throw Errors.validation("Rating must be between 1 and 5");
     }
 
     const workOrder = await ctx.db.get(args.workOrderId);
-    if (!workOrder) throw new Error("Work order not found");
-
-    // Verify the work order is completed
+    if (!workOrder) throw Errors.notFound("Work order");
     if (workOrder.status !== "completed") {
-      throw new Error("Can only rate completed work orders");
+      throw Errors.validation("Can only rate completed work orders");
     }
 
-    // Verify the vessel belongs to this owner
     const vessel = await ctx.db.get(workOrder.vesselId);
-    if (!vessel || vessel.ownerId !== userId) {
-      throw new Error("Not authorized to rate this work order");
-    }
+    if (!vessel || vessel.ownerId !== userId) throw Errors.accessDenied();
 
-    // Check if already rated
     const existingRating = await ctx.db
       .query("ratings")
       .withIndex("by_work_order", (q) => q.eq("workOrderId", args.workOrderId))
       .first();
 
     if (existingRating) {
-      throw new Error("Work order already rated");
+      throw Errors.conflict("Work order already rated");
     }
 
     const ratingId = await ctx.db.insert("ratings", {
@@ -134,7 +119,6 @@ export const createRating = mutation({
   },
 });
 
-// Update an existing rating (legacy)
 export const updateRating = mutation({
   args: {
     ratingId: v.id("ratings"),
@@ -142,19 +126,14 @@ export const updateRating = mutation({
     review: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireAuth(ctx);
 
     const existingRating = await ctx.db.get(args.ratingId);
-    if (!existingRating) throw new Error("Rating not found");
+    if (!existingRating) throw Errors.notFound("Rating");
+    if (existingRating.ownerId !== userId) throw Errors.accessDenied();
 
-    if (existingRating.ownerId !== userId) {
-      throw new Error("Not authorized to update this rating");
-    }
-
-    // Validate rating value if provided
     if (args.rating !== undefined && (args.rating < 1 || args.rating > 5)) {
-      throw new Error("Rating must be between 1 and 5");
+      throw Errors.validation("Rating must be between 1 and 5");
     }
 
     const updates: { rating?: number; review?: string } = {};
@@ -168,15 +147,12 @@ export const updateRating = mutation({
 
 // ============ NEW DUAL RATING SYSTEM ============
 
-// Check if a work order can be rated and by whom
 export const canRateWorkOrder = query({
   args: { workOrderId: v.id("workOrders") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return { canRate: false, reason: "Not authenticated" };
-
-    const user = await ctx.db.get(userId);
-    if (!user) return { canRate: false, reason: "User not found" };
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return { canRate: false, reason: "Not authenticated" };
+    const userId = user._id;
 
     const workOrder = await ctx.db.get(args.workOrderId);
     if (!workOrder) return { canRate: false, reason: "Work order not found" };
@@ -238,68 +214,53 @@ export const canRateWorkOrder = query({
 
 // ============ MECHANIC RATINGS (Owner rates Mechanic - Wrench icons) ============
 
-// Create a mechanic rating (owner rates mechanic)
 export const createMechanicRating = mutation({
   args: {
     workOrderId: v.id("workOrders"),
-    qualityRating: v.number(),        // 1-5
-    communicationRating: v.number(),  // 1-5
-    professionalismRating: v.number(), // 1-5
-    valueRating: v.number(),          // 1-5
-    overallRating: v.optional(v.number()), // 1-5 (auto-calculated if not provided)
+    qualityRating: v.number(),
+    communicationRating: v.number(),
+    professionalismRating: v.number(),
+    valueRating: v.number(),
+    overallRating: v.optional(v.number()),
     review: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId, user } = await requireRole(ctx, "owner");
 
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "owner") {
-      throw new Error("Only owners can rate mechanics");
-    }
-
-    // Validate all ratings
-    const ratings = [args.qualityRating, args.communicationRating, args.professionalismRating, args.valueRating];
-    for (const rating of ratings) {
-      if (rating < 1 || rating > 5) {
-        throw new Error("All ratings must be between 1 and 5");
-      }
+    const subRatings = [args.qualityRating, args.communicationRating, args.professionalismRating, args.valueRating];
+    for (const r of subRatings) {
+      if (r < 1 || r > 5) throw Errors.validation("All ratings must be between 1 and 5");
     }
 
     const workOrder = await ctx.db.get(args.workOrderId);
-    if (!workOrder) throw new Error("Work order not found");
-
+    if (!workOrder) throw Errors.notFound("Work order");
     if (workOrder.status !== "completed") {
-      throw new Error("Can only rate completed work orders");
+      throw Errors.validation("Can only rate completed work orders");
     }
 
     const vessel = await ctx.db.get(workOrder.vesselId);
     if (!vessel || (vessel.ownerId !== userId && workOrder.requestedByOwnerId !== userId)) {
-      throw new Error("Not authorized to rate this work order");
+      throw Errors.accessDenied();
     }
 
-    // Check rating window
     const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
     if (workOrder.completedAt && Date.now() - workOrder.completedAt > thirtyDaysMs) {
-      throw new Error("Rating window has closed (30 days from completion)");
+      throw Errors.validation("Rating window has closed (30 days from completion)");
     }
 
-    // Check if already rated
     const existingRating = await ctx.db
       .query("mechanicRatings")
       .withIndex("by_work_order", (q) => q.eq("workOrderId", args.workOrderId))
       .first();
 
-    if (existingRating) {
-      throw new Error("Work order already rated");
-    }
+    if (existingRating) throw Errors.conflict("Work order already rated");
 
-    // Calculate overall rating if not provided
-    const overallRating = args.overallRating || 
+    const overallRating =
+      args.overallRating ||
       (args.qualityRating + args.communicationRating + args.professionalismRating + args.valueRating) / 4;
 
     if (overallRating < 1 || overallRating > 5) {
-      throw new Error("Overall rating must be between 1 and 5");
+      throw Errors.validation("Overall rating must be between 1 and 5");
     }
 
     const ratingId = await ctx.db.insert("mechanicRatings", {
@@ -418,60 +379,42 @@ export const createOwnerRating = mutation({
     review: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId, user } = await requireRole(ctx, "mechanic");
 
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "mechanic") {
-      throw new Error("Only mechanics can rate owners");
-    }
-
-    // Validate all ratings
-    const ratings = [args.communicationRating, args.preparednessRating, args.paymentRating, args.respectRating];
-    for (const rating of ratings) {
-      if (rating < 1 || rating > 5) {
-        throw new Error("All ratings must be between 1 and 5");
-      }
+    const subRatings = [args.communicationRating, args.preparednessRating, args.paymentRating, args.respectRating];
+    for (const r of subRatings) {
+      if (r < 1 || r > 5) throw Errors.validation("All ratings must be between 1 and 5");
     }
 
     const workOrder = await ctx.db.get(args.workOrderId);
-    if (!workOrder) throw new Error("Work order not found");
-
+    if (!workOrder) throw Errors.notFound("Work order");
     if (workOrder.status !== "completed") {
-      throw new Error("Can only rate completed work orders");
+      throw Errors.validation("Can only rate completed work orders");
     }
+    if (workOrder.mechanicId !== userId) throw Errors.accessDenied();
 
-    if (workOrder.mechanicId !== userId) {
-      throw new Error("Not authorized to rate this work order");
-    }
-
-    // Check rating window
     const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
     if (workOrder.completedAt && Date.now() - workOrder.completedAt > thirtyDaysMs) {
-      throw new Error("Rating window has closed (30 days from completion)");
+      throw Errors.validation("Rating window has closed (30 days from completion)");
     }
 
-    // Check if already rated
     const existingRating = await ctx.db
       .query("ownerRatings")
       .withIndex("by_work_order", (q) => q.eq("workOrderId", args.workOrderId))
       .first();
 
-    if (existingRating) {
-      throw new Error("Work order already rated");
-    }
+    if (existingRating) throw Errors.conflict("Work order already rated");
 
-    // Get the owner ID
     const vessel = await ctx.db.get(workOrder.vesselId);
-    if (!vessel) throw new Error("Vessel not found");
+    if (!vessel) throw Errors.notFound("Vessel");
     const ownerId = workOrder.requestedByOwnerId || vessel.ownerId;
 
-    // Calculate overall rating if not provided
-    const overallRating = args.overallRating || 
+    const overallRating =
+      args.overallRating ||
       (args.communicationRating + args.preparednessRating + args.paymentRating + args.respectRating) / 4;
 
     if (overallRating < 1 || overallRating > 5) {
-      throw new Error("Overall rating must be between 1 and 5");
+      throw Errors.validation("Overall rating must be between 1 and 5");
     }
 
     const ratingId = await ctx.db.insert("ownerRatings", {
@@ -571,15 +514,12 @@ export const getOwnerAverageRatings = query({
   },
 });
 
-// Get pending ratings for the current user (work orders they haven't rated yet)
 export const getPendingRatings = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user) return [];
+    const userId = user._id;
 
     const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
     const thirtyDaysAgo = Date.now() - thirtyDaysMs;

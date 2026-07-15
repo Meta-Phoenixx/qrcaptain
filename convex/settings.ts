@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { getAuthenticatedUser, requireAdmin } from "./lib/auth";
+import { logAudit } from "./lib/audit";
+import { Errors } from "./lib/errors";
 
 // ============================================
 // DEFAULT SETTINGS
@@ -40,17 +42,11 @@ export const DEFAULT_SETTINGS = {
 // QUERIES
 // ============================================
 
-// Get all settings (admin only)
 export const getAllSettings = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") {
-      throw new Error("Admin access required");
-    }
+    const user = await getAuthenticatedUser(ctx);
+    if (!user || user.role !== "admin") throw Errors.accessDenied();
 
     const settings = await ctx.db.query("appSettings").collect();
     
@@ -113,9 +109,8 @@ export const getSetting = query({
   },
 });
 
-// Get settings by category (admin only)
 export const getSettingsByCategory = query({
-  args: { 
+  args: {
     category: v.union(
       v.literal("notifications"),
       v.literal("system"),
@@ -125,21 +120,15 @@ export const getSettingsByCategory = query({
     )
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") {
-      throw new Error("Admin access required");
-    }
+    const user = await getAuthenticatedUser(ctx);
+    if (!user || user.role !== "admin") throw Errors.accessDenied();
 
     const settings = await ctx.db
       .query("appSettings")
       .withIndex("by_category", (q) => q.eq("category", args.category))
       .collect();
-    
-    // Merge with defaults for this category
-    const result: Record<string, any> = {};
+
+    const result: Record<string, { key: string; value: unknown; description: string; category: string; updatedAt?: number; isDefault: boolean }> = {};
     
     for (const [key, config] of Object.entries(DEFAULT_SETTINGS)) {
       if (config.category === args.category) {
@@ -172,25 +161,17 @@ export const getSettingsByCategory = query({
 // MUTATIONS
 // ============================================
 
-// Update a setting (admin only)
 export const updateSetting = mutation({
   args: {
     key: v.string(),
     value: v.any(),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireAdmin(ctx);
 
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") {
-      throw new Error("Admin access required");
-    }
-
-    // Validate the key exists in defaults
     const defaultSetting = DEFAULT_SETTINGS[args.key as keyof typeof DEFAULT_SETTINGS];
     if (!defaultSetting) {
-      throw new Error(`Unknown setting: ${args.key}`);
+      throw Errors.validation(`Unknown setting: ${args.key}`);
     }
 
     // Check if setting already exists
@@ -227,13 +208,7 @@ export const updateSetting = mutation({
 export const resetSetting = mutation({
   args: { key: v.string() },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") {
-      throw new Error("Admin access required");
-    }
+    const { userId } = await requireAdmin(ctx);
 
     const existingSetting = await ctx.db
       .query("appSettings")
@@ -252,13 +227,7 @@ export const resetSetting = mutation({
 export const initializeDefaults = mutation({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") {
-      throw new Error("Admin access required");
-    }
+    const { userId } = await requireAdmin(ctx);
 
     const now = Date.now();
     let created = 0;
@@ -294,13 +263,7 @@ export const initializeDefaults = mutation({
 export const getSystemStats = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") {
-      throw new Error("Admin access required");
-    }
+    const { userId } = await requireAdmin(ctx);
 
     // Count users by role
     const allUsers = await ctx.db.query("users").collect();
@@ -351,13 +314,7 @@ export const getSystemStats = query({
 export const getRecentActivity = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") {
-      throw new Error("Admin access required");
-    }
+    const { userId } = await requireAdmin(ctx);
 
     const limit = args.limit || 20;
     const activities: {
@@ -366,7 +323,7 @@ export const getRecentActivity = query({
       title: string;
       description: string;
       timestamp: number;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
     }[] = [];
 
     // Get recent users (signups)

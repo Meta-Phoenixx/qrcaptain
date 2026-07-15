@@ -1,17 +1,15 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { Id } from "./_generated/dataModel";
+import { getAuthenticatedUser, requireRole } from "./lib/auth";
+import { Errors } from "./lib/errors";
 
-// Get owner's preferred mechanics list
 export const getPreferredMechanics = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user || user.role !== "owner") return [];
+    const userId = user._id;
 
     // Get preferred mechanics
     const preferredList = await ctx.db
@@ -85,14 +83,14 @@ export const getPreferredMechanics = query({
   },
 });
 
-// Get preferred mechanic record by ID (for notification routing)
 export const getPreferredMechanicById = query({
   args: {
     preferredId: v.id("preferredMechanics"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return null;
+    const userId = user._id;
 
     const record = await ctx.db.get(args.preferredId);
     if (!record) return null;
@@ -125,21 +123,13 @@ export const addToPreferredList = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId, user } = await requireRole(ctx, "owner");
 
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "owner") {
-      throw new Error("Only owners can add preferred mechanics");
-    }
-
-    // Verify mechanic exists
     const mechanic = await ctx.db.get(args.mechanicId);
     if (!mechanic || mechanic.role !== "mechanic") {
-      throw new Error("Invalid mechanic");
+      throw Errors.validation("Invalid mechanic");
     }
 
-    // Check if already in preferred list
     const existing = await ctx.db
       .query("preferredMechanics")
       .withIndex("by_owner_mechanic", (q) =>
@@ -148,7 +138,7 @@ export const addToPreferredList = mutation({
       .first();
 
     if (existing) {
-      throw new Error("Mechanic is already in your preferred list");
+      throw Errors.conflict("Mechanic is already in your preferred list");
     }
 
     // Add to preferred list
@@ -225,15 +215,8 @@ export const removeFromPreferredList = mutation({
     revokeVesselAccess: v.optional(v.boolean()), // Also revoke vessel authorizations
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId, user } = await requireRole(ctx, "owner");
 
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "owner") {
-      throw new Error("Only owners can manage their preferred list");
-    }
-
-    // Find the preferred record
     const preferred = await ctx.db
       .query("preferredMechanics")
       .withIndex("by_owner_mechanic", (q) =>
@@ -242,7 +225,7 @@ export const removeFromPreferredList = mutation({
       .first();
 
     if (!preferred) {
-      throw new Error("Mechanic is not in your preferred list");
+      throw Errors.notFound("Preferred mechanic record");
     }
 
     // Delete the preferred record
@@ -280,13 +263,7 @@ export const updatePreferredMechanicNotes = mutation({
     notes: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "owner") {
-      throw new Error("Only owners can update notes");
-    }
+    const { userId, user } = await requireRole(ctx, "owner");
 
     const preferred = await ctx.db
       .query("preferredMechanics")
@@ -296,7 +273,7 @@ export const updatePreferredMechanicNotes = mutation({
       .first();
 
     if (!preferred) {
-      throw new Error("Mechanic is not in your preferred list");
+      throw Errors.notFound("Preferred mechanic record");
     }
 
     await ctx.db.patch(preferred._id, { notes: args.notes });
@@ -311,13 +288,7 @@ export const updatePreferredMechanicVessels = mutation({
     vesselIds: v.array(v.id("vessels")), // New list of authorized vessels
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "owner") {
-      throw new Error("Only owners can update vessel authorizations");
-    }
+    const { userId, user } = await requireRole(ctx, "owner");
 
     // Verify mechanic is in preferred list
     const preferred = await ctx.db
@@ -328,7 +299,7 @@ export const updatePreferredMechanicVessels = mutation({
       .first();
 
     if (!preferred) {
-      throw new Error("Mechanic is not in your preferred list");
+      throw Errors.notFound("Preferred mechanic record");
     }
 
     // Get all owner's vessels
@@ -371,15 +342,12 @@ export const updatePreferredMechanicVessels = mutation({
   },
 });
 
-// Check if a mechanic is in the owner's preferred list
 export const isPreferredMechanic = query({
   args: { mechanicId: v.id("users") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return false;
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user || user.role !== "owner") return false;
+    const userId = user._id;
 
     const preferred = await ctx.db
       .query("preferredMechanics")
@@ -392,15 +360,12 @@ export const isPreferredMechanic = query({
   },
 });
 
-// Get mechanics who have this owner in their customer list (reverse lookup)
 export const getMechanicsWithAccess = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user || user.role !== "owner") return [];
+    const userId = user._id;
 
     // Get all vessels owned by this user
     const vessels = await ctx.db
