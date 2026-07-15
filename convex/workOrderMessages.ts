@@ -1,16 +1,18 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
-import { Id } from "./_generated/dataModel";
+import { getAuthenticatedUser, requireAuth } from "./lib/auth";
+import { Errors } from "./lib/errors";
+import { newMessage } from "./lib/notify";
+import { requireMaxLength } from "./lib/validate";
 
-// Get messages for a specific work order
 export const getWorkOrderMessages = query({
   args: {
     workOrderId: v.id("workOrders"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return [];
+    const userId = user._id;
 
     // Get the work order to verify access
     const workOrder = await ctx.db.get(args.workOrderId);
@@ -52,35 +54,29 @@ export const getWorkOrderMessages = query({
   },
 });
 
-// Send a message in a work order chat
 export const sendWorkOrderMessage = mutation({
   args: {
     workOrderId: v.id("workOrders"),
     content: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireAuth(ctx);
 
     if (!args.content.trim()) {
-      throw new Error("Message cannot be empty");
+      throw Errors.validation("Message cannot be empty");
     }
+    requireMaxLength(args.content, "Message content", 5000);
 
-    // Get the work order
     const workOrder = await ctx.db.get(args.workOrderId);
-    if (!workOrder) throw new Error("Work order not found");
+    if (!workOrder) throw Errors.notFound("Work order");
 
-    // Get the vessel
     const vessel = await ctx.db.get(workOrder.vesselId);
-    if (!vessel) throw new Error("Vessel not found");
+    if (!vessel) throw Errors.notFound("Vessel");
 
-    // User must be either the owner or the mechanic
     const isOwner = vessel.ownerId === userId;
     const isMechanic = workOrder.mechanicId === userId;
-    
-    if (!isOwner && !isMechanic) {
-      throw new Error("Not authorized to send messages on this work order");
-    }
+
+    if (!isOwner && !isMechanic) throw Errors.accessDenied();
 
     // Determine the receiver (the other party)
     const receiverId = isOwner ? workOrder.mechanicId : vessel.ownerId;
@@ -97,28 +93,24 @@ export const sendWorkOrderMessage = mutation({
     });
 
     // Create a notification for the receiver
-    await ctx.db.insert("notifications", {
-      userId: receiverId,
-      type: "new_message",
-      title: "New Message",
-      message: `New message regarding work order: ${args.content.substring(0, 50)}${args.content.length > 50 ? "..." : ""}`,
-      isRead: false,
-      createdAt: Date.now(),
+    await newMessage(ctx, {
+      recipientId: receiverId,
+      senderName: "Work Order Update",
+      preview: args.content,
       relatedId: args.workOrderId,
+      relatedType: "workOrder",
     });
 
     return { messageId };
   },
 });
 
-// Mark messages as read
 export const markWorkOrderMessagesRead = mutation({
   args: {
     workOrderId: v.id("workOrders"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireAuth(ctx);
 
     // Get unread messages for this work order where user is the receiver
     const messages = await ctx.db
@@ -137,14 +129,14 @@ export const markWorkOrderMessagesRead = mutation({
   },
 });
 
-// Get unread message count for a work order
 export const getUnreadCount = query({
   args: {
     workOrderId: v.id("workOrders"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return 0;
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return 0;
+    const userId = user._id;
 
     const messages = await ctx.db
       .query("messages")

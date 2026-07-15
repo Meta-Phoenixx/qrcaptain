@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import { GlassCard, GlassButton, GlassBadge, GlassInput, GlassSelect } from "./ui/glass";
 import { useTheme } from "./providers/theme-provider";
 import {
@@ -13,6 +13,7 @@ import {
   Bell,
   BarChart3,
   RefreshCw,
+  ShieldCheck,
   Check,
   AlertCircle,
   ChevronRight,
@@ -28,7 +29,8 @@ import {
 } from "lucide-react";
 import { AnnouncementManager } from "./announcement-manager";
 import { useRouter } from "next/navigation";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Id } from "@convex/_generated/dataModel";
+import { AuditLogViewer } from "./audit-log-viewer";
 
 type SettingCategory = "notifications" | "system" | "mechanics" | "owners" | "work_orders";
 
@@ -84,7 +86,7 @@ const CATEGORY_INFO: Record<SettingCategory, { label: string; icon: React.ReactN
 export function AdminControlPanel() {
   const router = useRouter();
   const { mode } = useTheme();
-  const [activeTab, setActiveTab] = useState<"overview" | "settings" | "announcements" | "donations" | "waitlist" | "raffle">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "settings" | "announcements" | "donations" | "waitlist" | "raffle" | "audit">("overview");
   const [activeCategory, setActiveCategory] = useState<SettingCategory>("notifications");
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
@@ -239,6 +241,7 @@ export function AdminControlPanel() {
     { id: "donations" as const, label: "Donations", icon: Heart },
     { id: "waitlist" as const, label: "Waitlist", icon: Users },
     { id: "raffle" as const, label: "Raffle", icon: Ticket },
+    { id: "audit" as const, label: "Audit Log", icon: ShieldCheck },
   ];
 
   return (
@@ -737,6 +740,13 @@ export function AdminControlPanel() {
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {/* Audit Log Tab */}
+        {activeTab === "audit" && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <AuditLogViewer />
           </div>
         )}
       </div>

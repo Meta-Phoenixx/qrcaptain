@@ -1,5 +1,5 @@
 import { useQuery } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import {
   View,
   Text,
@@ -8,11 +8,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { useRouter } from "expo-router";
-
 export default function Vessels() {
   const vessels = useQuery(api.vessels.listMyVessels);
-  const router = useRouter();
 
   if (vessels === undefined) {
     return (

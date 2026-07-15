@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { requireAdmin } from "./lib/auth";
+import { Errors } from "./lib/errors";
 
 export const submitDonation = mutation({
   args: {
@@ -42,10 +43,7 @@ export const submitDonation = mutation({
 export const listAllDonations = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") throw new Error("Admin access required");
+    await requireAdmin(ctx);
 
     const entries = await ctx.db.query("donationEntries").collect();
     return entries.sort((a, b) => b.createdAt - a.createdAt);
@@ -58,15 +56,12 @@ export const updateDonation = mutation({
     amount: v.number(),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") throw new Error("Admin access required");
+    await requireAdmin(ctx);
 
-    if (args.amount <= 0) throw new Error("Amount must be greater than 0");
+    if (args.amount <= 0) throw Errors.validation("Amount must be greater than 0");
 
     const entry = await ctx.db.get(args.entryId);
-    if (!entry) throw new Error("Donation not found");
+    if (!entry) throw Errors.notFound("Donation");
 
     const oldAmount = entry.amount;
     await ctx.db.patch(args.entryId, { amount: args.amount });
@@ -88,13 +83,10 @@ export const deleteDonation = mutation({
     entryId: v.id("donationEntries"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") throw new Error("Admin access required");
+    await requireAdmin(ctx);
 
     const entry = await ctx.db.get(args.entryId);
-    if (!entry) throw new Error("Donation not found");
+    if (!entry) throw Errors.notFound("Donation");
 
     await ctx.db.delete(args.entryId);
 

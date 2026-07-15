@@ -4,7 +4,7 @@ import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import { Dashboard } from "@/components/dashboard";
 import { PublicLandingPage } from "@/components/public/public-landing-page";
 

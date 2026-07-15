@@ -5,11 +5,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   Modal,
 } from "react-native";
 import { useQuery } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 
 export default function ScanQR() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -120,7 +119,7 @@ export default function ScanQR() {
           ) : scannedCode ? (
             <View style={styles.notFound}>
               <Text style={styles.notFoundText}>
-                Vessel not found or you don't have access
+                {"Vessel not found or you don't have access"}
               </Text>
               <TouchableOpacity
                 style={styles.requestButton}

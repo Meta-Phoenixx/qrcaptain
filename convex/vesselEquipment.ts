@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { getAuthenticatedUser, requireAuth } from "./lib/auth";
+import { Errors } from "./lib/errors";
+import { getFileUrl } from "./lib/fileStorage";
 
 // Equipment category type for validation
 const equipmentCategoryValidator = v.union(
@@ -55,8 +57,9 @@ async function checkVesselAccess(ctx: any, vesselId: any, userId: any) {
 export const listByVessel = query({
   args: { vesselId: v.id("vessels") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return [];
+    const userId = user._id;
 
     const vessel = await checkVesselAccess(ctx, args.vesselId, userId);
     if (!vessel) return [];
@@ -70,9 +73,7 @@ export const listByVessel = query({
     const equipmentWithImages = await Promise.all(
       equipment.map(async (item) => ({
         ...item,
-        imageUrl: item.imageStorageId
-          ? await ctx.storage.getUrl(item.imageStorageId)
-          : null,
+        imageUrl: await getFileUrl(ctx, item.imageStorageId),
       }))
     );
 
@@ -87,8 +88,9 @@ export const listByCategory = query({
     category: equipmentCategoryValidator,
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return [];
+    const userId = user._id;
 
     const vessel = await checkVesselAccess(ctx, args.vesselId, userId);
     if (!vessel) return [];
@@ -104,9 +106,7 @@ export const listByCategory = query({
     const equipmentWithImages = await Promise.all(
       equipment.map(async (item) => ({
         ...item,
-        imageUrl: item.imageStorageId
-          ? await ctx.storage.getUrl(item.imageStorageId)
-          : null,
+        imageUrl: await getFileUrl(ctx, item.imageStorageId),
       }))
     );
 
@@ -118,8 +118,9 @@ export const listByCategory = query({
 export const getCategoryCounts = query({
   args: { vesselId: v.id("vessels") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return {};
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return {};
+    const userId = user._id;
 
     const vessel = await checkVesselAccess(ctx, args.vesselId, userId);
     if (!vessel) return {};
@@ -143,8 +144,9 @@ export const getCategoryCounts = query({
 export const getEquipment = query({
   args: { equipmentId: v.id("vesselEquipment") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return null;
+    const userId = user._id;
 
     const equipment = await ctx.db.get(args.equipmentId);
     if (!equipment) return null;
@@ -154,9 +156,7 @@ export const getEquipment = query({
 
     return {
       ...equipment,
-      imageUrl: equipment.imageStorageId
-        ? await ctx.storage.getUrl(equipment.imageStorageId)
-        : null,
+      imageUrl: await getFileUrl(ctx, equipment.imageStorageId),
     };
   },
 });
@@ -221,16 +221,14 @@ export const createEquipment = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId, user } = await requireAuth(ctx);
 
     const vessel = await checkVesselAccess(ctx, args.vesselId, userId);
-    if (!vessel) throw new Error("Vessel not found or access denied");
+    if (!vessel) throw Errors.notFound("Vessel");
 
-    const user = await ctx.db.get(userId);
     // Only owners and admins can add equipment
-    if (user?.role !== "owner" && user?.role !== "admin") {
-      throw new Error("Only vessel owners can add equipment");
+    if (user.role !== "owner" && user.role !== "admin") {
+      throw Errors.accessDenied();
     }
 
     const equipmentId = await ctx.db.insert("vesselEquipment", {
@@ -299,19 +297,17 @@ export const updateEquipment = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId, user } = await requireAuth(ctx);
 
     const equipment = await ctx.db.get(args.equipmentId);
-    if (!equipment) throw new Error("Equipment not found");
+    if (!equipment) throw Errors.notFound("Equipment");
 
     const vessel = await checkVesselAccess(ctx, equipment.vesselId, userId);
-    if (!vessel) throw new Error("Access denied");
+    if (!vessel) throw Errors.accessDenied();
 
-    const user = await ctx.db.get(userId);
     // Only owners and admins can update equipment
-    if (user?.role !== "owner" && user?.role !== "admin") {
-      throw new Error("Only vessel owners can update equipment");
+    if (user.role !== "owner" && user.role !== "admin") {
+      throw Errors.accessDenied();
     }
 
     const { equipmentId, ...updates } = args;
@@ -328,19 +324,17 @@ export const updateEquipment = mutation({
 export const deleteEquipment = mutation({
   args: { equipmentId: v.id("vesselEquipment") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId, user } = await requireAuth(ctx);
 
     const equipment = await ctx.db.get(args.equipmentId);
-    if (!equipment) throw new Error("Equipment not found");
+    if (!equipment) throw Errors.notFound("Equipment");
 
     const vessel = await checkVesselAccess(ctx, equipment.vesselId, userId);
-    if (!vessel) throw new Error("Access denied");
+    if (!vessel) throw Errors.accessDenied();
 
-    const user = await ctx.db.get(userId);
     // Only owners and admins can delete equipment
-    if (user?.role !== "owner" && user?.role !== "admin") {
-      throw new Error("Only vessel owners can delete equipment");
+    if (user.role !== "owner" && user.role !== "admin") {
+      throw Errors.accessDenied();
     }
 
     await ctx.db.delete(args.equipmentId);
@@ -355,14 +349,13 @@ export const saveEquipmentImage = mutation({
     storageId: v.id("_storage"),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireAuth(ctx);
 
     const equipment = await ctx.db.get(args.equipmentId);
-    if (!equipment) throw new Error("Equipment not found");
+    if (!equipment) throw Errors.notFound("Equipment");
 
     const vessel = await checkVesselAccess(ctx, equipment.vesselId, userId);
-    if (!vessel) throw new Error("Access denied");
+    if (!vessel) throw Errors.accessDenied();
 
     await ctx.db.patch(args.equipmentId, {
       imageStorageId: args.storageId,
@@ -379,8 +372,9 @@ export const searchEquipment = query({
     searchQuery: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return [];
+    const userId = user._id;
 
     const vessel = await checkVesselAccess(ctx, args.vesselId, userId);
     if (!vessel) return [];
@@ -405,9 +399,7 @@ export const searchEquipment = query({
     const filteredWithImages = await Promise.all(
       filtered.map(async (item) => ({
         ...item,
-        imageUrl: item.imageStorageId
-          ? await ctx.storage.getUrl(item.imageStorageId)
-          : null,
+        imageUrl: await getFileUrl(ctx, item.imageStorageId),
       }))
     );
 
@@ -419,8 +411,9 @@ export const searchEquipment = query({
 export const getMaintenanceDue = query({
   args: { vesselId: v.id("vessels") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return [];
+    const userId = user._id;
 
     const vessel = await checkVesselAccess(ctx, args.vesselId, userId);
     if (!vessel) return [];
@@ -454,11 +447,9 @@ export const getUpcomingServiceItems = query({
     daysAhead: v.optional(v.number()), // Default 30 days
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user || user.role !== "owner") return [];
+    const userId = user._id;
 
     const daysAhead = args.daysAhead || 30;
     const now = Date.now();

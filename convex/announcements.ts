@@ -1,6 +1,10 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { getAuthenticatedUser, requireAuth, requireAdmin } from "./lib/auth";
+import { logAudit } from "./lib/audit";
+import { Errors } from "./lib/errors";
+import { notifyMany } from "./lib/notify";
+import { requireMaxLength } from "./lib/validate";
 
 // Announcement type validator
 const announcementTypeValidator = v.union(
@@ -19,14 +23,10 @@ const targetRoleValidator = v.union(
   v.literal("all")
 );
 
-// Get active announcements for the current user's role
 export const getActiveAnnouncements = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user) return [];
 
     const userRole = user.role || "owner";
@@ -44,13 +44,13 @@ export const getActiveAnnouncements = query({
       if (a.expiresAt && a.expiresAt < now) return false;
 
       // Check if announcement targets user's role
-      return a.targetRoles.includes(userRole) || a.targetRoles.includes("all");
+      return (a.targetRoles as string[]).includes(userRole) || (a.targetRoles as string[]).includes("all");
     });
 
     // Get user's dismissed announcements
     const dismissals = await ctx.db
       .query("announcementDismissals")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
     const dismissedIds = new Set(dismissals.map((d) => d.announcementId));
@@ -71,16 +71,12 @@ export const getActiveAnnouncements = query({
   },
 });
 
-// Get all announcements (admin only)
 export const listAllAnnouncements = query({
   args: {
     includeInactive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user || user.role !== "admin") return [];
 
     let announcements;
@@ -114,7 +110,6 @@ export const listAllAnnouncements = query({
   },
 });
 
-// Create announcement (admin only)
 export const createAnnouncement = mutation({
   args: {
     title: v.string(),
@@ -125,13 +120,10 @@ export const createAnnouncement = mutation({
     expiresAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireAdmin(ctx);
 
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can create announcements");
-    }
+    requireMaxLength(args.title, "Title", 200);
+    requireMaxLength(args.content, "Content", 5000);
 
     const announcementId = await ctx.db.insert("announcements", {
       title: args.title,
@@ -162,24 +154,18 @@ export const createAnnouncement = mutation({
       ? args.content.substring(0, 120) + "..." 
       : args.content;
 
-    for (const targetUser of targetUsers) {
-      await ctx.db.insert("notifications", {
-        userId: targetUser._id,
-        type: "new_announcement",
-        title: args.title,
-        message: truncatedContent,
-        relatedId: announcementId,
-        relatedType: "announcement",
-        isRead: false,
-        createdAt: now,
-      });
-    }
+    await notifyMany(ctx, targetUsers.map(u => u._id), {
+      type: "new_announcement",
+      title: args.title,
+      message: truncatedContent,
+      relatedId: announcementId,
+      relatedType: "announcement",
+    });
 
     return { announcementId };
   },
 });
 
-// Update announcement (admin only)
 export const updateAnnouncement = mutation({
   args: {
     announcementId: v.id("announcements"),
@@ -192,13 +178,10 @@ export const updateAnnouncement = mutation({
     expiresAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireAdmin(ctx);
 
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can update announcements");
-    }
+    if (args.title !== undefined) requireMaxLength(args.title, "Title", 200);
+    if (args.content !== undefined) requireMaxLength(args.content, "Content", 5000);
 
     const { announcementId, ...updates } = args;
     const filteredUpdates = Object.fromEntries(
@@ -229,39 +212,24 @@ export const updateAnnouncement = mutation({
         ? announcement.content.substring(0, 120) + "..."
         : announcement.content;
 
-      for (const targetUser of targetUsers) {
-        await ctx.db.insert("notifications", {
-          userId: targetUser._id,
-          type: "new_announcement",
-          title: `Updated: ${announcement.title}`,
-          message: truncatedContent,
-          relatedId: announcementId,
-          relatedType: "announcement",
-          isRead: false,
-          createdAt: now,
-        });
-      }
+      await notifyMany(ctx, targetUsers.map(u => u._id), {
+        type: "new_announcement",
+        title: `Updated: ${announcement.title}`,
+        message: truncatedContent,
+        relatedId: announcementId,
+        relatedType: "announcement",
+      });
     }
 
     return { success: true };
   },
 });
 
-// Delete announcement (admin only)
 export const deleteAnnouncement = mutation({
-  args: {
-    announcementId: v.id("announcements"),
-  },
+  args: { announcementId: v.id("announcements") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    await requireAdmin(ctx);
 
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can delete announcements");
-    }
-
-    // Delete all dismissals for this announcement
     const dismissals = await ctx.db
       .query("announcementDismissals")
       .filter((q) => q.eq(q.field("announcementId"), args.announcementId))
@@ -276,16 +244,11 @@ export const deleteAnnouncement = mutation({
   },
 });
 
-// Dismiss announcement for current user
 export const dismissAnnouncement = mutation({
-  args: {
-    announcementId: v.id("announcements"),
-  },
+  args: { announcementId: v.id("announcements") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireAuth(ctx);
 
-    // Check if already dismissed
     const existing = await ctx.db
       .query("announcementDismissals")
       .withIndex("by_user_announcement", (q) =>
@@ -305,17 +268,13 @@ export const dismissAnnouncement = mutation({
   },
 });
 
-// Get announcement count for badge display
 export const getAnnouncementCount = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return 0;
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user) return 0;
 
-    const userRole = user.role || "owner";
+    const userRole = (user.role as string) || "owner";
     const now = Date.now();
 
     // Get all active announcements
@@ -327,13 +286,13 @@ export const getAnnouncementCount = query({
     // Filter by role and expiration
     const filtered = announcements.filter((a) => {
       if (a.expiresAt && a.expiresAt < now) return false;
-      return a.targetRoles.includes(userRole) || a.targetRoles.includes("all");
+      return (a.targetRoles as string[]).includes(userRole) || (a.targetRoles as string[]).includes("all");
     });
 
     // Get user's dismissed announcements
     const dismissals = await ctx.db
       .query("announcementDismissals")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
       .collect();
 
     const dismissedIds = new Set(dismissals.map((d) => d.announcementId));

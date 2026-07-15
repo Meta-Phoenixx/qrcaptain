@@ -1,10 +1,16 @@
 import { Tabs } from "expo-router";
 import { useQuery } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
+
+// Expo Router requires ALL tab screens to be declared in the layout.
+// We use tabBarButton to hide role-specific tabs without removing them.
+const hidden = () => null;
 
 export default function TabLayout() {
   const user = useQuery(api.users.currentUser);
+  const isOwner = user?.role === "owner";
+  const isMechanic = user?.role === "mechanic";
 
   return (
     <Tabs
@@ -29,28 +35,26 @@ export default function TabLayout() {
           ),
         }}
       />
-      {user?.role === "owner" && (
-        <Tabs.Screen
-          name="vessels"
-          options={{
-            title: "My Vessels",
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="boat" size={size} color={color} />
-            ),
-          }}
-        />
-      )}
-      {user?.role === "mechanic" && (
-        <Tabs.Screen
-          name="scan"
-          options={{
-            title: "Scan QR",
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="qr-code" size={size} color={color} />
-            ),
-          }}
-        />
-      )}
+      <Tabs.Screen
+        name="vessels"
+        options={{
+          title: "My Vessels",
+          tabBarButton: isOwner ? undefined : hidden,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="boat" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="scan"
+        options={{
+          title: "Scan QR",
+          tabBarButton: isMechanic ? undefined : hidden,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="qr-code" size={size} color={color} />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="work-orders"
         options={{

@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { getAuthenticatedUser, requireRole } from "./lib/auth";
+import { Errors } from "./lib/errors";
+import { getFileUrl, getUserImageUrl } from "./lib/fileStorage";
 
 // List all approved mechanics for the directory
 export const listMechanics = query({
@@ -30,8 +32,9 @@ export const listMechanics = query({
     cursor: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return { mechanics: [], nextCursor: null };
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return { mechanics: [], nextCursor: null };
+    const userId = user._id;
 
     // Get all mechanics with completed onboarding
     let mechanics = await ctx.db
@@ -71,12 +74,7 @@ export const listMechanics = query({
           .first();
 
         // Get company logo or profile photo URL
-        let imageUrl = null;
-        if (mechanic.companyLogoStorageId) {
-          imageUrl = await ctx.storage.getUrl(mechanic.companyLogoStorageId);
-        } else if (mechanic.profilePhotoStorageId) {
-          imageUrl = await ctx.storage.getUrl(mechanic.profilePhotoStorageId);
-        }
+        const imageUrl = await getUserImageUrl(ctx, mechanic);
 
         return {
           _id: mechanic._id,
@@ -152,8 +150,8 @@ export const listMechanics = query({
 export const getMechanicSpotlight = query({
   args: { mechanicId: v.id("users") },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return null;
 
     const mechanic = await ctx.db.get(args.mechanicId);
     if (!mechanic || mechanic.role !== "mechanic") return null;
@@ -185,23 +183,16 @@ export const getMechanicSpotlight = query({
     );
 
     // Get images
-    let companyLogoUrl = null;
-    let profilePhotoUrl = null;
-    if (mechanic.companyLogoStorageId) {
-      companyLogoUrl = await ctx.storage.getUrl(mechanic.companyLogoStorageId);
-    }
-    if (mechanic.profilePhotoStorageId) {
-      profilePhotoUrl = await ctx.storage.getUrl(mechanic.profilePhotoStorageId);
-    }
+    const companyLogoUrl = await getFileUrl(ctx, mechanic.companyLogoStorageId);
+    const profilePhotoUrl = await getFileUrl(ctx, mechanic.profilePhotoStorageId);
 
     // Check if current user has this mechanic in their preferred list
-    const currentUser = await ctx.db.get(userId);
     let isPreferred = false;
-    if (currentUser?.role === "owner") {
+    if (user.role === "owner") {
       const preferred = await ctx.db
         .query("preferredMechanics")
-        .withIndex("by_owner_mechanic", (q) => 
-          q.eq("ownerId", userId).eq("mechanicId", args.mechanicId)
+        .withIndex("by_owner_mechanic", (q) =>
+          q.eq("ownerId", user._id).eq("mechanicId", args.mechanicId)
         )
         .first();
       isPreferred = !!preferred;
@@ -281,13 +272,7 @@ export const updateAvailabilityStatus = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "mechanic") {
-      throw new Error("Only mechanics can update their availability status");
-    }
+    const { userId } = await requireRole(ctx, "mechanic");
 
     await ctx.db.patch(userId, {
       availabilityStatus: args.status,
@@ -303,11 +288,9 @@ export const updateAvailabilityStatus = mutation({
 export const getSuggestedAvailabilityStatus = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user || user.role !== "mechanic") return null;
+    const userId = user._id;
 
     // Count active work orders (in_progress and quote_requested)
     const activeWorkOrders = await ctx.db
@@ -355,16 +338,10 @@ export const updateMaxConcurrentJobs = mutation({
     maxConcurrentJobs: v.number(),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "mechanic") {
-      throw new Error("Only mechanics can update their settings");
-    }
+    const { userId } = await requireRole(ctx, "mechanic");
 
     if (args.maxConcurrentJobs < 1 || args.maxConcurrentJobs > 50) {
-      throw new Error("Max concurrent jobs must be between 1 and 50");
+      throw Errors.validation("Max concurrent jobs must be between 1 and 50");
     }
 
     await ctx.db.patch(userId, {
@@ -443,8 +420,8 @@ export const searchMechanics = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return [];
 
     if (!args.searchTerm || args.searchTerm.length < 2) return [];
 
@@ -467,12 +444,7 @@ export const searchMechanics = query({
     // Get basic info for results
     const results = await Promise.all(
       matched.slice(0, limit).map(async (mechanic) => {
-        let imageUrl = null;
-        if (mechanic.companyLogoStorageId) {
-          imageUrl = await ctx.storage.getUrl(mechanic.companyLogoStorageId);
-        } else if (mechanic.profilePhotoStorageId) {
-          imageUrl = await ctx.storage.getUrl(mechanic.profilePhotoStorageId);
-        }
+        const imageUrl = await getUserImageUrl(ctx, mechanic);
 
         const metrics = await ctx.db
           .query("mechanicMetrics")
@@ -503,8 +475,8 @@ export const getFeaturedMechanics = query({
     serviceAreas: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return [];
 
     const limit = args.limit || 6;
 
@@ -543,12 +515,7 @@ export const getFeaturedMechanics = query({
           .withIndex("by_mechanic", (q) => q.eq("mechanicId", mechanic._id))
           .first();
 
-        let imageUrl = null;
-        if (mechanic.companyLogoStorageId) {
-          imageUrl = await ctx.storage.getUrl(mechanic.companyLogoStorageId);
-        } else if (mechanic.profilePhotoStorageId) {
-          imageUrl = await ctx.storage.getUrl(mechanic.profilePhotoStorageId);
-        }
+        const imageUrl = await getUserImageUrl(ctx, mechanic);
 
         return {
           _id: mechanic._id,
@@ -614,11 +581,9 @@ export const getFeaturedMechanics = query({
 export const getMechanicStats = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user || user.role !== "mechanic") return null;
+    const userId = user._id;
 
     // Get work orders for this month
     const now = Date.now();

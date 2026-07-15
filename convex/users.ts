@@ -1,8 +1,8 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
-import { requireAdmin } from "./lib/auth";
+import { getAuthenticatedUser, requireAuth, requireRole, requireAdmin } from "./lib/auth";
 import { logAudit } from "./lib/audit";
+import { Errors } from "./lib/errors";
 
 // Check if an email is already registered (used during sign-up to prevent silent sign-in)
 export const emailExists = query({
@@ -27,11 +27,7 @@ export const emailExists = query({
 export const currentUser = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-
-    const user = await ctx.db.get(userId);
-    return user;
+    return await getAuthenticatedUser(ctx);
   },
 });
 
@@ -46,7 +42,7 @@ export const seedAdmin = mutation({
       .query("users")
       .filter((q) => q.eq(q.field("email"), "admin@meta-phoenix.io"))
       .first();
-    
+
     if (existingAdmin) {
       // Update to admin role if not already
       if (existingAdmin.role !== "admin") {
@@ -65,9 +61,9 @@ export const seedAdmin = mutation({
       isActive: true,
     });
 
-    return { 
-      message: "Admin user created. Sign up with email: admin@meta-phoenix.io to set password", 
-      userId 
+    return {
+      message: "Admin user created. Sign up with email: admin@meta-phoenix.io to set password",
+      userId
     };
   },
 });
@@ -84,7 +80,7 @@ export const promoteToAdmin = mutation({
       .collect();
 
     if (targets.length === 0) {
-      throw new Error("User not found");
+      throw Errors.notFound("User");
     }
 
     const updated = [];
@@ -148,8 +144,7 @@ export const updateProfile = mutation({
     licenseNumber: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    const { userId } = await requireAuth(ctx);
 
     const updates: Record<string, string | undefined> = {};
     if (args.firstName !== undefined) updates.firstName = args.firstName;
@@ -172,13 +167,8 @@ export const listUsers = query({
     ),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return [];
-
-    const currentUser = await ctx.db.get(userId);
-    if (!currentUser || currentUser.role !== "admin") {
-      throw new Error("Admin access required");
-    }
+    const user = await getAuthenticatedUser(ctx);
+    if (!user || user.role !== "admin") return [];
 
     if (args.role) {
       return await ctx.db
@@ -225,10 +215,7 @@ export const getMechanicProfile = query({
 export const getMechanicOnboardingStatus = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user || user.role !== "mechanic") return null;
 
     // Check what required fields are missing
@@ -295,13 +282,7 @@ export const completeMechanicOnboarding = mutation({
     bio: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "mechanic") {
-      throw new Error("Only mechanics can complete onboarding");
-    }
+    const { userId } = await requireRole(ctx, "mechanic");
 
     // Update user with onboarding data
     await ctx.db.patch(userId, {
@@ -332,13 +313,7 @@ export const completeMechanicOnboarding = mutation({
 export const skipMechanicOnboarding = mutation({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "mechanic") {
-      throw new Error("Only mechanics can skip onboarding");
-    }
+    const { userId } = await requireRole(ctx, "mechanic");
 
     await ctx.db.patch(userId, {
       onboardingSkippedAt: Date.now(),
@@ -386,13 +361,7 @@ export const updateMechanicProfile = mutation({
     bio: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "mechanic") {
-      throw new Error("Only mechanics can update mechanic profile");
-    }
+    const { userId } = await requireRole(ctx, "mechanic");
 
     // Filter out undefined values
     const updates: Record<string, unknown> = {};
@@ -407,7 +376,7 @@ export const updateMechanicProfile = mutation({
     // Check if all required fields are now filled (auto-complete onboarding)
     const updatedUser = await ctx.db.get(userId);
     if (updatedUser && !updatedUser.onboardingCompleted) {
-      const hasAllRequired = 
+      const hasAllRequired =
         updatedUser.companyName &&
         updatedUser.phone &&
         updatedUser.businessYearsInOperation !== undefined &&
@@ -416,7 +385,7 @@ export const updateMechanicProfile = mutation({
         updatedUser.serviceAreas && updatedUser.serviceAreas.length > 0 &&
         updatedUser.serviceTypes && updatedUser.serviceTypes.length > 0 &&
         updatedUser.hoursOfOperation;
-      
+
       if (hasAllRequired) {
         await ctx.db.patch(userId, {
           onboardingCompleted: true,
@@ -435,11 +404,9 @@ export const updateMechanicProfile = mutation({
 export const getOwnerOnboardingStatus = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user || user.role !== "owner") return null;
+    const userId = user._id;
 
     // Check what required fields are filled
     const requiredFields = {
@@ -454,7 +421,7 @@ export const getOwnerOnboardingStatus = query({
       .query("vessels")
       .withIndex("by_owner", (q) => q.eq("ownerId", userId))
       .collect();
-    
+
     const hasVessel = vessels.length > 0;
 
     const profileComplete = Object.values(requiredFields).every(Boolean);
@@ -492,13 +459,7 @@ export const completeOwnerOnboarding = mutation({
     }),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "owner") {
-      throw new Error("Only owners can complete owner onboarding");
-    }
+    const { userId } = await requireRole(ctx, "owner");
 
     // Update user with onboarding data
     await ctx.db.patch(userId, {
@@ -518,13 +479,7 @@ export const completeOwnerOnboarding = mutation({
 export const skipOwnerOnboarding = mutation({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "owner") {
-      throw new Error("Only owners can skip onboarding");
-    }
+    const { userId } = await requireRole(ctx, "owner");
 
     await ctx.db.patch(userId, {
       onboardingSkippedAt: Date.now(),
@@ -549,13 +504,7 @@ export const updateOwnerProfile = mutation({
     })),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const user = await ctx.db.get(userId);
-    if (!user || user.role !== "owner") {
-      throw new Error("Only owners can update owner profile");
-    }
+    const { userId } = await requireRole(ctx, "owner");
 
     // Filter out undefined values
     const updates: Record<string, unknown> = {};
@@ -570,12 +519,12 @@ export const updateOwnerProfile = mutation({
     // Check if all required fields are now filled (auto-complete onboarding)
     const updatedUser = await ctx.db.get(userId);
     if (updatedUser && !updatedUser.onboardingCompleted) {
-      const hasAllRequired = 
+      const hasAllRequired =
         updatedUser.firstName &&
         updatedUser.lastName &&
         updatedUser.phone &&
         updatedUser.address;
-      
+
       if (hasAllRequired) {
         await ctx.db.patch(userId, {
           onboardingCompleted: true,
@@ -594,10 +543,7 @@ export const updateOwnerProfile = mutation({
 export const getAdminStats = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) return null;
-
-    const user = await ctx.db.get(userId);
+    const user = await getAuthenticatedUser(ctx);
     if (!user || user.role !== "admin") return null;
 
     // Get all counts

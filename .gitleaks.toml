@@ -1,0 +1,22 @@
+# Gitleaks configuration for QR Captain
+# https://github.com/gitleaks/gitleaks
+
+title = "QR Captain Secret Scanner"
+
+[extend]
+useDefault = true  # includes all built-in secret patterns
+
+# Allowlisted paths that may contain test fixtures or fake credentials
+[allowlist]
+description = "Allow test files and known safe patterns"
+paths = [
+  '''apps/web/__tests__''',
+  '''\.md$''',
+]
+regexes = [
+  # Convex placeholder URL used in CI build job
+  '''https://placeholder\.convex\.cloud''',
+  # Example/documentation values
+  '''your[-_]api[-_]key''',
+  '''example[-_]key''',
+]

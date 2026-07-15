@@ -8,6 +8,8 @@ import {
 } from "./lib/auth";
 import { logAudit } from "./lib/audit";
 import { Errors } from "./lib/errors";
+import { getFileUrl } from "./lib/fileStorage";
+import { requireMaxLength } from "./lib/validate";
 
 function generateQRCodeData(): string {
   const timestamp = Date.now().toString(36);
@@ -73,9 +75,7 @@ export const listMyVessels = query({
 
         return {
           ...vessel,
-          imageUrl: vessel.imageStorageId
-            ? await ctx.storage.getUrl(vessel.imageStorageId)
-            : null,
+          imageUrl: await getFileUrl(ctx, vessel.imageStorageId),
           activeWorkOrderCount: activeWorkOrders.length,
           activeWorkOrder: activeWorkOrderInfo,
           totalWorkOrders: workOrders.length,
@@ -158,9 +158,7 @@ export const getAuthorizedVessels = query({
           year: vessel.year,
           vesselType: vessel.vesselType,
           qrCodeData: vessel.qrCodeData,
-          imageUrl: vessel.imageStorageId
-            ? await ctx.storage.getUrl(vessel.imageStorageId)
-            : null,
+          imageUrl: await getFileUrl(ctx, vessel.imageStorageId),
           owner: owner
             ? {
                 _id: owner._id,
@@ -170,9 +168,7 @@ export const getAuthorizedVessels = query({
                     : owner.name ?? "Unknown",
                 email: owner.email,
                 phone: owner.phone,
-                profilePhotoUrl: owner.profilePhotoStorageId
-                  ? await ctx.storage.getUrl(owner.profilePhotoStorageId)
-                  : null,
+                profilePhotoUrl: await getFileUrl(ctx, owner.profilePhotoStorageId),
               }
             : null,
           authorization: { authorizedAt: auth.authorizedAt },
@@ -238,6 +234,14 @@ export const createVessel = mutation({
   handler: async (ctx, args) => {
     const { userId } = await requireRole(ctx, "owner");
 
+    requireMaxLength(args.name, "Vessel name", 200);
+    requireMaxLength(args.make, "Make", 100);
+    requireMaxLength(args.model, "Model", 100);
+    requireMaxLength(args.vesselType, "Vessel type", 100);
+    if (args.registrationNumber !== undefined) requireMaxLength(args.registrationNumber, "Registration number", 100);
+    if (args.hullId !== undefined) requireMaxLength(args.hullId, "Hull ID", 100);
+    if (args.notes !== undefined) requireMaxLength(args.notes, "Notes", 2000);
+
     const qrCodeData = generateQRCodeData();
 
     const vesselId = await ctx.db.insert("vessels", {
@@ -272,6 +276,13 @@ export const updateVessel = mutation({
   },
   handler: async (ctx, args) => {
     const { userId, vessel } = await requireVesselOwnerOrAdmin(ctx, args.vesselId);
+
+    if (args.name !== undefined) requireMaxLength(args.name, "Vessel name", 200);
+    if (args.make !== undefined) requireMaxLength(args.make, "Make", 100);
+    if (args.model !== undefined) requireMaxLength(args.model, "Model", 100);
+    if (args.vesselType !== undefined) requireMaxLength(args.vesselType, "Vessel type", 100);
+    if (args.hullId !== undefined) requireMaxLength(args.hullId, "Hull ID", 100);
+    if (args.notes !== undefined) requireMaxLength(args.notes, "Notes", 2000);
 
     const { vesselId, ...fields } = args;
     const updates = Object.fromEntries(
