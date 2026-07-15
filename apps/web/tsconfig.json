@@ -20,7 +20,9 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "@qrcaptain/shared": ["../../packages/shared/src"]
+      "@qrcaptain/shared": ["../../packages/shared/src"],
+      "@convex/*": ["../../convex/*"],
+      "convex-lib/*": ["../../convex/lib/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
