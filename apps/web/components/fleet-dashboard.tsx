@@ -8,7 +8,8 @@ import { GlassCard, GlassButton } from "./ui/glass";
 import { useTheme } from "./providers/theme-provider";
 import { FleetCreateModal } from "./fleet-create-modal";
 import { FleetVesselTable } from "./fleet-vessel-table";
-import { VesselDetailModal } from "./dashboard";
+import { FleetSettingsPanel } from "./fleet-settings-panel";
+import { FleetAddVesselModal } from "./fleet-add-vessel-modal";
 
 // ──────────────────────────────────────────────
 // Stat tile
@@ -160,7 +161,8 @@ export function FleetDashboard() {
   const [selectedFleetId, setSelectedFleetId] = useState<Id<"fleets"> | null>(null);
   const [showCreateFleet, setShowCreateFleet] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [viewingVesselId, setViewingVesselId] = useState<Id<"vessels"> | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showAddVessel, setShowAddVessel] = useState(false);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const a = api as any;
@@ -220,9 +222,23 @@ export function FleetDashboard() {
             Real-time health and service status across your fleet
           </p>
         </div>
-        <GlassButton variant="secondary" onClick={() => setShowCreateFleet(true)}>
-          + New Fleet
-        </GlassButton>
+        <div className="flex items-center gap-2">
+          {selectedFleetId && (
+            <button
+              onClick={() => setShowSettings(true)}
+              className={`p-2.5 rounded-xl border transition-all ${mode === "dark" ? "border-white/10 text-gray-400 hover:text-white hover:border-white/20" : "border-gray-200 text-gray-400 hover:text-gray-700 hover:border-gray-300"}`}
+              title="Fleet settings"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          )}
+          <GlassButton variant="secondary" onClick={() => setShowCreateFleet(true)}>
+            + New Fleet
+          </GlassButton>
+        </div>
       </div>
 
       {/* Fleet selector */}
@@ -330,13 +346,19 @@ export function FleetDashboard() {
           )}
 
           {/* Vessel table */}
-          <FleetVesselTable
-            vessels={dashboard.vessels}
-            fleetId={selectedFleetId!}
-            activeFilter={activeFilter}
-            onClearFilter={() => setActiveFilter(null)}
-            onVesselClick={(vesselId) => setViewingVesselId(vesselId)}
-          />
+          <div className="space-y-3">
+            <div className="flex justify-end">
+              <GlassButton variant="secondary" onClick={() => setShowAddVessel(true)}>
+                + Add Vessel
+              </GlassButton>
+            </div>
+            <FleetVesselTable
+              vessels={dashboard.vessels}
+              fleetId={selectedFleetId!}
+              activeFilter={activeFilter}
+              onClearFilter={() => setActiveFilter(null)}
+            />
+          </div>
         </>
       )}
 
@@ -347,10 +369,17 @@ export function FleetDashboard() {
         />
       )}
 
-      {viewingVesselId && (
-        <VesselDetailModal
-          vesselId={viewingVesselId}
-          onClose={() => setViewingVesselId(null)}
+      {showSettings && selectedFleetId && (
+        <FleetSettingsPanel
+          fleetId={selectedFleetId}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
+      {showAddVessel && selectedFleetId && (
+        <FleetAddVesselModal
+          fleetId={selectedFleetId}
+          onClose={() => setShowAddVessel(false)}
         />
       )}
     </div>

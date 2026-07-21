@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Id } from "../../../convex/_generated/dataModel";
 import { GlassCard, GlassBadge } from "./ui/glass";
 import { useTheme } from "./providers/theme-provider";
@@ -49,15 +50,14 @@ export function FleetVesselTable({
   fleetId,
   activeFilter,
   onClearFilter,
-  onVesselClick,
 }: {
   vessels: VesselRow[];
   fleetId: Id<"fleets">;
   activeFilter: string | null;
   onClearFilter: () => void;
-  onVesselClick?: (vesselId: Id<"vessels">) => void;
 }) {
   const { mode } = useTheme();
+  const router = useRouter();
 
   const filtered = activeFilter
     ? vessels.filter((v) => {
@@ -123,8 +123,8 @@ export function FleetVesselTable({
               filtered.map((vessel) => (
                 <tr
                   key={vessel.vesselId}
-                  onClick={() => onVesselClick?.(vessel.vesselId)}
-                  className={`border-b last:border-0 ${borderColor} ${rowHover} transition-colors ${onVesselClick ? "cursor-pointer" : ""}`}
+                  onClick={() => router.push(`/vessel/${vessel.vesselId}`)}
+                  className={`border-b last:border-0 ${borderColor} ${rowHover} transition-colors cursor-pointer`}
                 >
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-2">
@@ -134,9 +134,7 @@ export function FleetVesselTable({
                           <p className={`text-xs mt-0.5 ${subColor}`}>{[vessel.make, vessel.model].filter(Boolean).join(" ")}</p>
                         )}
                       </div>
-                      {onVesselClick && (
-                        <span className={`ml-auto text-xs ${mode === "dark" ? "text-white/20 group-hover:text-white/50" : "text-gray-300"}`}>›</span>
-                      )}
+                      <span className={`ml-auto text-xs ${mode === "dark" ? "text-white/20" : "text-gray-300"}`}>›</span>
                     </div>
                   </td>
                   <td className="px-4 py-4">
