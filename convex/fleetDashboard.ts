@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { requireAuth } from "./lib/auth";
-import { computeServicePrediction } from "./engineHours";
+import { computeServicePrediction } from "./lib/servicePredictor";
 
 export const getFleetDashboard = query({
   args: { fleetId: v.id("fleets") },

@@ -4,39 +4,9 @@ import { requireAuth, requireMechanicVesselAccess } from "./lib/auth";
 import { requireNonNegative, requireMaxLength, clampLimit } from "./lib/validate";
 import { logAudit } from "./lib/audit";
 import { Doc } from "./_generated/dataModel";
+import { computeServicePrediction } from "./lib/servicePredictor";
 
-// Pure function — no Convex runtime dependency, fully testable
-export function computeServicePrediction(
-  logs: Array<{ hours: number; recordedAt: number }>,
-  serviceIntervalHours: number | undefined,
-  lastServiceHours: number | undefined,
-) {
-  if (!serviceIntervalHours || logs.length < 2) {
-    return { avgHoursPerDay: null, predictedServiceDate: null, hoursUntilService: null, daysUntilService: null, isOverdue: false, overdueByHours: null };
-  }
-
-  const sorted = [...logs].sort((a, b) => a.recordedAt - b.recordedAt);
-  const first = sorted[0];
-  const last = sorted[sorted.length - 1];
-  const elapsedDays = (last.recordedAt - first.recordedAt) / (1000 * 60 * 60 * 24);
-  const avgHoursPerDay = elapsedDays > 0 ? (last.hours - first.hours) / elapsedDays : null;
-
-  const currentHours = last.hours;
-  const baseHours = lastServiceHours ?? 0;
-  const nextServiceAt = baseHours + serviceIntervalHours;
-  const hoursUntilService = nextServiceAt - currentHours;
-  const isOverdue = hoursUntilService <= 0;
-  const overdueByHours = isOverdue ? Math.abs(hoursUntilService) : null;
-
-  let predictedServiceDate: number | null = null;
-  let daysUntilService: number | null = null;
-  if (avgHoursPerDay && avgHoursPerDay > 0 && !isOverdue) {
-    daysUntilService = hoursUntilService / avgHoursPerDay;
-    predictedServiceDate = Date.now() + daysUntilService * 24 * 60 * 60 * 1000;
-  }
-
-  return { avgHoursPerDay, predictedServiceDate, hoursUntilService, daysUntilService, isOverdue, overdueByHours };
-}
+export { computeServicePrediction };
 
 export const logEngineHours = mutation({
   args: {
