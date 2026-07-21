@@ -26,6 +26,7 @@ import {
   Pencil,
   Trash2,
   ArrowLeft,
+  Layers,
 } from "lucide-react";
 import { AnnouncementManager } from "./announcement-manager";
 import { useRouter } from "next/navigation";
@@ -86,7 +87,7 @@ const CATEGORY_INFO: Record<SettingCategory, { label: string; icon: React.ReactN
 export function AdminControlPanel() {
   const router = useRouter();
   const { mode } = useTheme();
-  const [activeTab, setActiveTab] = useState<"overview" | "settings" | "announcements" | "donations" | "waitlist" | "raffle" | "audit">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "settings" | "announcements" | "donations" | "waitlist" | "raffle" | "audit" | "fleets">("overview");
   const [activeCategory, setActiveCategory] = useState<SettingCategory>("notifications");
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
@@ -101,6 +102,8 @@ export function AdminControlPanel() {
 
   // Queries
   const stats = useQuery(api.settings.getSystemStats);
+  const a = api as any;
+  const fleetList = useQuery(a.admin.listAllFleets);
   const allSettings = useQuery(api.settings.getAllSettings);
 
   // Donation, Waitlist, Raffle queries
@@ -242,6 +245,7 @@ export function AdminControlPanel() {
     { id: "waitlist" as const, label: "Waitlist", icon: Users },
     { id: "raffle" as const, label: "Raffle", icon: Ticket },
     { id: "audit" as const, label: "Audit Log", icon: ShieldCheck },
+    { id: "fleets" as const, label: "Fleets", icon: Layers },
   ];
 
   return (
@@ -315,6 +319,10 @@ export function AdminControlPanel() {
                     <StatCard label="Mechanics" value={stats.users.mechanics} color={mode === "dark" ? "bg-orange-500/10" : "bg-orange-100"} icon={<Wrench className="w-4 h-4 text-orange-600" />} mode={mode} />
                     <StatCard label="New This Week" value={stats.users.recentSignups} color={mode === "dark" ? "bg-green-500/10" : "bg-green-100"} icon={<Clock className="w-4 h-4 text-green-600" />} mode={mode} />
                   </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                    <StatCard label="Fleet Managers" value={stats.users.fleetManagers} color={mode === "dark" ? "bg-captain-500/10" : "bg-captain-100"} icon={<Layers className="w-4 h-4 text-captain-600" />} mode={mode} />
+                    <StatCard label="Captains" value={stats.users.captains} color={mode === "dark" ? "bg-purple-500/10" : "bg-purple-100"} mode={mode} />
+                  </div>
                 </div>
 
                 {/* Vessel Stats */}
@@ -325,6 +333,26 @@ export function AdminControlPanel() {
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <StatCard label="Total Vessels" value={stats.vessels.total} color={mode === "dark" ? "bg-blue-500/10" : "bg-blue-100"} mode={mode} />
+                    <StatCard label="In Service" value={stats.vessels.inService} color={mode === "dark" ? "bg-green-500/10" : "bg-green-100"} mode={mode} />
+                    <StatCard label="In Maintenance" value={stats.vessels.inMaintenance} color={mode === "dark" ? "bg-yellow-500/10" : "bg-yellow-100"} mode={mode} />
+                    <StatCard label="Out of Service" value={stats.vessels.outOfService} color={mode === "dark" ? "bg-red-500/10" : "bg-red-100"} mode={mode} />
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                    <StatCard label="In Storage" value={stats.vessels.inStorage} color={mode === "dark" ? "bg-white/5" : "bg-gray-100"} mode={mode} />
+                  </div>
+                </div>
+
+                {/* Fleet Stats */}
+                <div>
+                  <h3 className={`text-lg font-semibold ${mode === "dark" ? "text-white" : "text-gray-900"} mb-4 flex items-center gap-2`}>
+                    <Layers className="w-5 h-5 text-captain-600" />
+                    Fleets
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <StatCard label="Total Fleets" value={stats.fleets.total} color={mode === "dark" ? "bg-captain-500/10" : "bg-captain-100"} icon={<Layers className="w-4 h-4 text-captain-600" />} mode={mode} />
+                    <StatCard label="Fleet Vessels" value={stats.fleets.vesselCount} color={mode === "dark" ? "bg-blue-500/10" : "bg-blue-100"} mode={mode} />
+                    <StatCard label="Standalone Vessels" value={stats.fleets.standaloneVessels} color={mode === "dark" ? "bg-white/5" : "bg-gray-100"} mode={mode} />
+                    <StatCard label="Active Mechanic Auths" value={stats.fleets.activeMechanicAuthorizations} color={mode === "dark" ? "bg-orange-500/10" : "bg-orange-100"} mode={mode} />
                   </div>
                 </div>
 
@@ -740,6 +768,108 @@ export function AdminControlPanel() {
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {/* Fleets Tab */}
+        {activeTab === "fleets" && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+            {/* Summary Stats */}
+            {stats && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <StatCard label="Total Fleets" value={stats.fleets.total} color={mode === "dark" ? "bg-captain-500/10" : "bg-captain-100"} icon={<Layers className="w-4 h-4 text-captain-600" />} mode={mode} />
+                <StatCard label="Fleet Vessels" value={stats.fleets.vesselCount} color={mode === "dark" ? "bg-blue-500/10" : "bg-blue-100"} icon={<Ship className="w-4 h-4 text-blue-600" />} mode={mode} />
+                <StatCard label="Standalone Vessels" value={stats.fleets.standaloneVessels} color={mode === "dark" ? "bg-white/5" : "bg-gray-100"} mode={mode} />
+                <StatCard label="Active Mechanic Auths" value={stats.fleets.activeMechanicAuthorizations} color={mode === "dark" ? "bg-orange-500/10" : "bg-orange-100"} icon={<Wrench className="w-4 h-4 text-orange-600" />} mode={mode} />
+              </div>
+            )}
+
+            {/* Fleet Type Breakdown */}
+            {stats && (
+              <GlassCard className="p-6">
+                <h3 className={`text-lg font-semibold ${mode === "dark" ? "text-white" : "text-gray-900"} mb-4 flex items-center gap-2`}>
+                  <Layers className="w-5 h-5 text-captain-600" />
+                  Fleet Types
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  {(["charter", "fishing", "racing", "leisure", "commercial"] as const).map((type) => (
+                    <div key={type} className={`${mode === "dark" ? "bg-white/5" : "bg-gray-50"} rounded-lg p-3 text-center`}>
+                      <span className={`block text-xl font-bold ${mode === "dark" ? "text-white" : "text-gray-900"}`}>
+                        {stats.fleets.byType[type]}
+                      </span>
+                      <span className={`text-xs capitalize ${mode === "dark" ? "text-gray-400" : "text-gray-500"}`}>{type}</span>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            )}
+
+            {/* All Fleets Table */}
+            <GlassCard className="p-6">
+              <h3 className={`text-lg font-semibold ${mode === "dark" ? "text-white" : "text-gray-900"} mb-4 flex items-center gap-2`}>
+                <Layers className="w-5 h-5 text-captain-600" />
+                All Fleets
+              </h3>
+              {!fleetList ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-2 border-captain-600 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : fleetList.length === 0 ? (
+                <div className={`text-center py-12 ${mode === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                  <Layers className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">No fleets registered yet</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className={`border-b ${mode === "dark" ? "border-white/10" : "border-gray-200"}`}>
+                        {["Fleet", "Owner", "Type", "Vessels", "Mechanics", "Created"].map((col) => (
+                          <th key={col} className={`pb-3 text-left font-semibold ${mode === "dark" ? "text-gray-300" : "text-gray-700"}`}>{col}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {fleetList.map((fleet: any) => {
+                        const fleetTypeBadgeColor: Record<string, "blue" | "green" | "red" | "yellow"> = {
+                          charter: "blue",
+                          fishing: "green",
+                          racing: "red",
+                          leisure: "blue",
+                          commercial: "yellow",
+                        };
+                        return (
+                          <tr key={fleet._id} className={`${mode === "dark" ? "hover:bg-white/5" : "hover:bg-gray-50"} transition-colors`}>
+                            <td className="py-3 pr-4">
+                              <button
+                                onClick={() => router.push("/fleet")}
+                                className="font-medium text-captain-600 hover:text-captain-500 transition-colors text-left"
+                              >
+                                {fleet.name}
+                              </button>
+                            </td>
+                            <td className={`py-3 pr-4 ${mode === "dark" ? "text-gray-300" : "text-gray-700"}`}>
+                              <div>{fleet.ownerName}</div>
+                              <div className={`text-xs ${mode === "dark" ? "text-gray-500" : "text-gray-400"}`}>{fleet.ownerEmail}</div>
+                            </td>
+                            <td className="py-3 pr-4">
+                              <GlassBadge color={fleetTypeBadgeColor[fleet.fleetType] ?? "blue"}>
+                                {fleet.fleetType}
+                              </GlassBadge>
+                            </td>
+                            <td className={`py-3 pr-4 ${mode === "dark" ? "text-gray-300" : "text-gray-700"}`}>{fleet.vesselCount}</td>
+                            <td className={`py-3 pr-4 ${mode === "dark" ? "text-gray-300" : "text-gray-700"}`}>{fleet.mechanicCount}</td>
+                            <td className={`py-3 ${mode === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+                              {new Date(fleet._creationTime).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </GlassCard>
           </div>
         )}
 

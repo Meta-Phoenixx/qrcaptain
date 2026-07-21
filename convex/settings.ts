@@ -274,6 +274,22 @@ export const getSystemStats = query({
     // Count vessels
     const vessels = await ctx.db.query("vessels").collect();
 
+    // Count fleets
+    const fleets = await ctx.db.query("fleets").collect();
+    const fleetMechanicAuths = await ctx.db.query("fleetMechanicAuthorizations")
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    const vesselsInFleet = vessels.filter(v => v.fleetId).length;
+
+    const fleetsByType = {
+      charter: fleets.filter(f => f.fleetType === "charter").length,
+      fishing: fleets.filter(f => f.fleetType === "fishing").length,
+      racing: fleets.filter(f => f.fleetType === "racing").length,
+      leisure: fleets.filter(f => f.fleetType === "leisure").length,
+      commercial: fleets.filter(f => f.fleetType === "commercial").length,
+    };
+
     // Count work orders by status
     const workOrders = await ctx.db.query("workOrders").collect();
     const workOrdersByStatus = {
@@ -297,9 +313,22 @@ export const getSystemStats = query({
         mechanics: mechanics.length,
         admins: admins.length,
         recentSignups: recentUsers,
+        fleetManagers: allUsers.filter(u => u.role === "fleet_manager").length,
+        captains: allUsers.filter(u => u.role === "captain").length,
       },
       vessels: {
         total: vessels.length,
+        inService: vessels.filter(v => v.status === "in_service").length,
+        inMaintenance: vessels.filter(v => v.status === "in_maintenance").length,
+        outOfService: vessels.filter(v => v.status === "out_of_service").length,
+        inStorage: vessels.filter(v => v.status === "storage").length,
+      },
+      fleets: {
+        total: fleets.length,
+        vesselCount: vesselsInFleet,
+        standaloneVessels: vessels.length - vesselsInFleet,
+        activeMechanicAuthorizations: fleetMechanicAuths.length,
+        byType: fleetsByType,
       },
       workOrders: {
         total: workOrders.length,
