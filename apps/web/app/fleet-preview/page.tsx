@@ -44,10 +44,13 @@ function StatTile({ label, value, color, active, onClick }: { label: string; val
   );
 }
 
+type MockVessel = typeof MOCK_VESSELS[number];
+
 export default function FleetPreviewPage() {
   const [activeFilter, setActiveFilter] = useState<string|null>(null);
   const [showModal, setShowModal] = useState(false);
   const [distressSent, setDistressSent] = useState(false);
+  const [selectedVessel, setSelectedVessel] = useState<MockVessel | null>(null);
 
   const vessels = activeFilter
     ? MOCK_VESSELS.filter(v =>
@@ -116,10 +119,15 @@ export default function FleetPreviewPage() {
               {vessels.map(v => {
                 const st = STATUS_MAP[v.status] ?? { label: v.status, color: "blue" as const };
                 return (
-                  <tr key={v.vesselId} className="hover:bg-white/[0.03] transition-colors">
+                  <tr key={v.vesselId} onClick={() => setSelectedVessel(v)} className="hover:bg-white/[0.06] transition-colors cursor-pointer">
                     <td className="px-6 py-4">
-                      <div className="font-medium text-white">{v.name}</div>
-                      <div className="text-xs text-white/40">{v.make} {v.model}</div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <div className="font-medium text-white">{v.name}</div>
+                          <div className="text-xs text-white/40">{v.make} {v.model}</div>
+                        </div>
+                        <span className="text-white/30 text-lg">›</span>
+                      </div>
                     </td>
                     <td className="px-4 py-4"><GlassBadge color={st.color}>{st.label}</GlassBadge></td>
                     <td className="px-4 py-4">
@@ -191,6 +199,38 @@ export default function FleetPreviewPage() {
           )}
         </GlassCard>
       </div>
+
+      {selectedVessel && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-4" onClick={() => setSelectedVessel(null)}>
+          <div className="bg-[#0d1627] border border-white/10 rounded-2xl w-full max-w-lg p-6 space-y-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-white font-bold text-xl font-heading">{selectedVessel.name}</h2>
+                <p className="text-white/50 text-sm mt-0.5">{selectedVessel.make} {selectedVessel.model}</p>
+              </div>
+              <button onClick={() => setSelectedVessel(null)} className="text-white/30 hover:text-white text-2xl leading-none">×</button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: "Status", value: STATUS_MAP[selectedVessel.status]?.label ?? selectedVessel.status },
+                { label: "Service", value: selectedVessel.isOverdue ? "Overdue" : selectedVessel.isApproaching ? "Due Soon" : "Current" },
+                { label: "Insurance", value: selectedVessel.hasInsurance ? "On File" : "Missing" },
+                { label: "Open Work Orders", value: String(selectedVessel.openWorkOrderCount) },
+                { label: "Mechanic", value: selectedVessel.hasMechanic ? "Assigned" : "None" },
+              ].map(({ label, value }) => (
+                <div key={label} className="bg-white/[0.04] rounded-xl p-3">
+                  <p className="text-white/40 text-xs uppercase tracking-wider mb-1">{label}</p>
+                  <p className="text-white font-medium">{value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-3 pt-1">
+              <GlassButton variant="primary" onClick={() => setSelectedVessel(null)}>View Full Detail</GlassButton>
+              <GlassButton variant="ghost" onClick={() => setSelectedVessel(null)}>Close</GlassButton>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
