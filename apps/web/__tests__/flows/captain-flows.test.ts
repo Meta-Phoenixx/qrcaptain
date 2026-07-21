@@ -299,9 +299,9 @@ describe("Captain: distress notice", () => {
   });
 
   it("distress notification message omits GPS section when no coordinates", () => {
-    const gpsLat: number | undefined = undefined;
-    const gpsLng: number | undefined = undefined;
-    const gpsInfo = gpsLat && gpsLng ? ` GPS: ${gpsLat.toFixed(4)}, ${gpsLng.toFixed(4)}` : "";
+    const gpsLat = undefined as number | undefined;
+    const gpsLng = undefined as number | undefined;
+    const gpsInfo = gpsLat != null && gpsLng != null ? ` GPS: ${(gpsLat as number).toFixed(4)}, ${(gpsLng as number).toFixed(4)}` : "";
     const notifMessage = `URGENT — ${VESSEL.name} (Captain): Engine fire${gpsInfo}`;
 
     expect(notifMessage).not.toContain("GPS:");

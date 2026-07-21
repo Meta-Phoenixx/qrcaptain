@@ -49,11 +49,13 @@ export function FleetVesselTable({
   fleetId,
   activeFilter,
   onClearFilter,
+  onVesselClick,
 }: {
   vessels: VesselRow[];
   fleetId: Id<"fleets">;
   activeFilter: string | null;
   onClearFilter: () => void;
+  onVesselClick?: (vesselId: Id<"vessels">) => void;
 }) {
   const { mode } = useTheme();
 
@@ -119,12 +121,23 @@ export function FleetVesselTable({
               </tr>
             ) : (
               filtered.map((vessel) => (
-                <tr key={vessel.vesselId} className={`border-b last:border-0 ${borderColor} ${rowHover} transition-colors`}>
+                <tr
+                  key={vessel.vesselId}
+                  onClick={() => onVesselClick?.(vessel.vesselId)}
+                  className={`border-b last:border-0 ${borderColor} ${rowHover} transition-colors ${onVesselClick ? "cursor-pointer" : ""}`}
+                >
                   <td className="px-5 py-4">
-                    <p className={`font-medium ${mode === "dark" ? "text-white" : "text-gray-900"}`}>{vessel.name}</p>
-                    {(vessel.make || vessel.model) && (
-                      <p className={`text-xs mt-0.5 ${subColor}`}>{[vessel.make, vessel.model].filter(Boolean).join(" ")}</p>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <p className={`font-medium ${mode === "dark" ? "text-white" : "text-gray-900"}`}>{vessel.name}</p>
+                        {(vessel.make || vessel.model) && (
+                          <p className={`text-xs mt-0.5 ${subColor}`}>{[vessel.make, vessel.model].filter(Boolean).join(" ")}</p>
+                        )}
+                      </div>
+                      {onVesselClick && (
+                        <span className={`ml-auto text-xs ${mode === "dark" ? "text-white/20 group-hover:text-white/50" : "text-gray-300"}`}>›</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-4">
                     <StatusBadge status={vessel.status} />

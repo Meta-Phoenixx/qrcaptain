@@ -8,6 +8,7 @@ import { GlassCard, GlassButton } from "./ui/glass";
 import { useTheme } from "./providers/theme-provider";
 import { FleetCreateModal } from "./fleet-create-modal";
 import { FleetVesselTable } from "./fleet-vessel-table";
+import { VesselDetailModal } from "./dashboard";
 
 // ──────────────────────────────────────────────
 // Stat tile
@@ -159,6 +160,7 @@ export function FleetDashboard() {
   const [selectedFleetId, setSelectedFleetId] = useState<Id<"fleets"> | null>(null);
   const [showCreateFleet, setShowCreateFleet] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [viewingVesselId, setViewingVesselId] = useState<Id<"vessels"> | null>(null);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const a = api as any;
@@ -333,6 +335,7 @@ export function FleetDashboard() {
             fleetId={selectedFleetId!}
             activeFilter={activeFilter}
             onClearFilter={() => setActiveFilter(null)}
+            onVesselClick={(vesselId) => setViewingVesselId(vesselId)}
           />
         </>
       )}
@@ -341,6 +344,13 @@ export function FleetDashboard() {
         <FleetCreateModal
           onSuccess={(id) => { setSelectedFleetId(id); setShowCreateFleet(false); }}
           onClose={() => setShowCreateFleet(false)}
+        />
+      )}
+
+      {viewingVesselId && (
+        <VesselDetailModal
+          vesselId={viewingVesselId}
+          onClose={() => setViewingVesselId(null)}
         />
       )}
     </div>

@@ -1388,7 +1388,7 @@ function AddVesselModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onClose: () => void }) {
+export function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onClose: () => void }) {
   const { mode } = useTheme();
   const vessel = useQuery(api.vessels.getVessel, { vesselId });
   const workOrders = useQuery(api.workOrders.getVesselWorkOrders, { vesselId });
