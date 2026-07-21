@@ -9,6 +9,13 @@ import { useRouter } from "next/navigation";
 import { GlassCard, GlassButton, GlassBadge } from "./ui/glass";
 import { useTheme } from "./providers/theme-provider";
 
+// Fleet manager redirect (inline — avoids a circular dep with fleet-dashboard)
+function FleetManagerRedirect() {
+  const router = useRouter();
+  useEffect(() => { router.replace("/fleet"); }, [router]);
+  return null;
+}
+
 // Import landing page components
 import { AnnouncementsFeed } from "./announcements-feed";
 import { HelpGuides, HelpButton } from "./help-guides";
@@ -687,10 +694,15 @@ export function LandingPage() {
             />
           </div>
         )}
+        {user.role === "fleet_manager" && (
+          <div className={mode === 'dark' ? "text-white" : "text-gray-900"}>
+            <FleetManagerRedirect />
+          </div>
+        )}
         {user.role === "mechanic" && (
           <div className={mode === 'dark' ? "text-white" : "text-gray-900"}>
-            <MechanicLandingPage 
-              user={user} 
+            <MechanicLandingPage
+              user={user}
               onViewDashboard={handleViewDashboard}
             />
           </div>
