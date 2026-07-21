@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // User Validations
-export const userRoleSchema = z.enum(["admin", "owner", "mechanic"]);
+export const userRoleSchema = z.enum(["admin", "owner", "mechanic", "fleet_manager", "captain"]);
 export type UserRole = z.infer<typeof userRoleSchema>;
 
 export const createUserSchema = z.object({

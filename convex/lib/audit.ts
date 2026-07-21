@@ -31,16 +31,31 @@ export type AuditAction =
   | "admin.announcement_created"
   | "admin.announcement_updated"
   | "admin.setting_changed"
-  | "admin.user_promoted";
+  | "admin.user_promoted"
+  // Fleet actions
+  | "fleet.create"
+  | "fleet.update"
+  | "fleet.delete"
+  | "fleet.vessel_added"
+  | "fleet.vessel_removed"
+  | "fleet.mechanic_authorized"
+  | "fleet.mechanic_revoked"
+  | "vessel.status_updated"
+  | "vessel.insurance_saved"
+  | "engine_hours.logged"
+  | "captain.assigned"
+  | "captain.removed"
+  | "captain.distress_sent"
+  | "captain_report.resolved";
 
 interface AuditParams {
   action: AuditAction;
   actorId: Id<"users">;
   targetId?: string;
   targetType?: string;
-  before?: Record<string, unknown>;
-  after?: Record<string, unknown>;
-  metadata?: Record<string, unknown>;
+  before?: string | Record<string, unknown>;
+  after?: string | Record<string, unknown>;
+  metadata?: string | Record<string, unknown>;
 }
 
 /**
@@ -51,14 +66,17 @@ export async function logAudit(
   ctx: MutationCtx,
   params: AuditParams
 ): Promise<void> {
+  const serialize = (v: string | Record<string, unknown> | undefined) =>
+    v === undefined ? undefined : typeof v === "string" ? v : JSON.stringify(v);
+
   await ctx.db.insert("auditLogs", {
     action: params.action,
     actorId: params.actorId,
     targetId: params.targetId,
     targetType: params.targetType,
-    before: params.before ? JSON.stringify(params.before) : undefined,
-    after: params.after ? JSON.stringify(params.after) : undefined,
-    metadata: params.metadata ? JSON.stringify(params.metadata) : undefined,
+    before: serialize(params.before),
+    after: serialize(params.after),
+    metadata: serialize(params.metadata),
     createdAt: Date.now(),
   });
 }
