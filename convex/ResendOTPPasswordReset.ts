@@ -20,7 +20,13 @@ export const ResendOTPPasswordReset = Email({
   },
 
   async sendVerificationRequest({ identifier: email, provider, token }) {
-    // Use Resend's REST API directly (avoids Node.js-only SDK deps)
+    // In dev mode with no API key, log the OTP to Convex function logs
+    // so you can complete the reset without email delivery.
+    if (!provider.apiKey) {
+      console.log(`[DEV] Password reset OTP for ${email}: ${token}`);
+      return;
+    }
+
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -52,8 +58,12 @@ export const ResendOTPPasswordReset = Email({
     });
 
     if (!response.ok) {
-      const errorData = await response.text();
-      throw new Error(`Could not send password reset email: ${errorData}`);
+      const errorBody = await response.text();
+      // Log the full Resend error so it's visible in Convex dashboard logs
+      console.error(`[Resend] Failed to send password reset to ${email}:`, errorBody);
+      throw new Error(`Could not send password reset email: ${errorBody}`);
     }
+
+    console.log(`[Resend] Password reset email sent to ${email}`);
   },
 });
