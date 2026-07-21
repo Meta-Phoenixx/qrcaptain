@@ -256,6 +256,24 @@ export const resolveTripReport = mutation({
   },
 });
 
+export const listMyAssignments = query({
+  args: {},
+  handler: async (ctx) => {
+    const { userId, user } = await requireAuth(ctx);
+    if (user.role !== "captain") return [];
+
+    const assignments = await ctx.db.query("captainAssignments")
+      .withIndex("by_captain", (q) => q.eq("captainId", userId))
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    const vessels = await Promise.all(assignments.map((a) => ctx.db.get(a.vesselId)));
+    return vessels
+      .filter(Boolean)
+      .map((v) => ({ vesselId: v!._id, vesselName: v!.name }));
+  },
+});
+
 export const listTripReports = query({
   args: {
     vesselId: v.id("vessels"),

@@ -11,6 +11,8 @@ export default function TabLayout() {
   const user = useQuery(api.users.currentUser);
   const isOwner = user?.role === "owner";
   const isMechanic = user?.role === "mechanic";
+  const isFleetManager = user?.role === "fleet_manager";
+  const isCaptain = user?.role === "captain";
 
   return (
     <Tabs
@@ -42,6 +44,26 @@ export default function TabLayout() {
           tabBarButton: isOwner ? undefined : hidden,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="boat" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="fleet"
+        options={{
+          title: "Fleet",
+          tabBarButton: isFleetManager ? undefined : hidden,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="layers" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="captain"
+        options={{
+          title: "Captain",
+          tabBarButton: isCaptain ? undefined : hidden,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="compass" size={size} color={color} />
           ),
         }}
       />
