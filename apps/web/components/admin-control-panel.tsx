@@ -84,10 +84,10 @@ const CATEGORY_INFO: Record<SettingCategory, { label: string; icon: React.ReactN
   },
 };
 
-export function AdminControlPanel() {
+export function AdminControlPanel({ initialTab }: { initialTab?: "overview" | "settings" | "announcements" | "donations" | "waitlist" | "raffle" | "audit" | "fleets" }) {
   const router = useRouter();
   const { mode } = useTheme();
-  const [activeTab, setActiveTab] = useState<"overview" | "settings" | "announcements" | "donations" | "waitlist" | "raffle" | "audit" | "fleets">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "settings" | "announcements" | "donations" | "waitlist" | "raffle" | "audit" | "fleets">(initialTab ?? "overview");
   const [activeCategory, setActiveCategory] = useState<SettingCategory>("notifications");
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
@@ -309,72 +309,80 @@ export function AdminControlPanel() {
               <>
                 {/* User Stats */}
                 <div>
-                  <h3 className={`text-lg font-semibold ${mode === "dark" ? "text-white" : "text-gray-900"} mb-4 flex items-center gap-2`}>
+                  <button
+                    onClick={() => setActiveTab("waitlist")}
+                    className={`w-full text-left text-lg font-semibold mb-4 flex items-center gap-2 transition-opacity hover:opacity-70 ${mode === "dark" ? "text-white" : "text-gray-900"}`}
+                  >
                     <Users className="w-5 h-5 text-captain-600" />
                     Users
-                  </h3>
+                    <ChevronRight className="w-4 h-4 text-captain-400 ml-auto" />
+                  </button>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <StatCard label="Total Users" value={stats.users.total} color={mode === "dark" ? "bg-white/5" : "bg-gray-100"} mode={mode} />
-                    <StatCard label="Owners" value={stats.users.owners} color={mode === "dark" ? "bg-blue-500/10" : "bg-blue-100"} icon={<Ship className="w-4 h-4 text-blue-600" />} mode={mode} />
-                    <StatCard label="Mechanics" value={stats.users.mechanics} color={mode === "dark" ? "bg-orange-500/10" : "bg-orange-100"} icon={<Wrench className="w-4 h-4 text-orange-600" />} mode={mode} />
-                    <StatCard label="New This Week" value={stats.users.recentSignups} color={mode === "dark" ? "bg-green-500/10" : "bg-green-100"} icon={<Clock className="w-4 h-4 text-green-600" />} mode={mode} />
+                    <StatCard label="Total Users" value={stats.users.total} color={mode === "dark" ? "bg-white/5" : "bg-gray-100"} mode={mode} onClick={() => setActiveTab("waitlist")} />
+                    <StatCard label="Owners" value={stats.users.owners} color={mode === "dark" ? "bg-blue-500/10" : "bg-blue-100"} icon={<Ship className="w-4 h-4 text-blue-600" />} mode={mode} onClick={() => setActiveTab("waitlist")} />
+                    <StatCard label="Mechanics" value={stats.users.mechanics} color={mode === "dark" ? "bg-orange-500/10" : "bg-orange-100"} icon={<Wrench className="w-4 h-4 text-orange-600" />} mode={mode} onClick={() => setActiveTab("waitlist")} />
+                    <StatCard label="New This Week" value={stats.users.recentSignups} color={mode === "dark" ? "bg-green-500/10" : "bg-green-100"} icon={<Clock className="w-4 h-4 text-green-600" />} mode={mode} onClick={() => setActiveTab("waitlist")} />
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                    <StatCard label="Fleet Managers" value={stats.users.fleetManagers} color={mode === "dark" ? "bg-captain-500/10" : "bg-captain-100"} icon={<Layers className="w-4 h-4 text-captain-600" />} mode={mode} />
-                    <StatCard label="Captains" value={stats.users.captains} color={mode === "dark" ? "bg-purple-500/10" : "bg-purple-100"} mode={mode} />
+                    <StatCard label="Fleet Managers" value={stats.users.fleetManagers} color={mode === "dark" ? "bg-captain-500/10" : "bg-captain-100"} icon={<Layers className="w-4 h-4 text-captain-600" />} mode={mode} onClick={() => setActiveTab("fleets")} />
+                    <StatCard label="Captains" value={stats.users.captains} color={mode === "dark" ? "bg-purple-500/10" : "bg-purple-100"} mode={mode} onClick={() => setActiveTab("fleets")} />
                   </div>
                 </div>
 
                 {/* Vessel Stats */}
                 <div>
-                  <h3 className={`text-lg font-semibold ${mode === "dark" ? "text-white" : "text-gray-900"} mb-4 flex items-center gap-2`}>
+                  <div className={`text-lg font-semibold mb-4 flex items-center gap-2 ${mode === "dark" ? "text-white" : "text-gray-900"}`}>
                     <Ship className="w-5 h-5 text-captain-600" />
                     Vessels
-                  </h3>
+                  </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <StatCard label="Total Vessels" value={stats.vessels.total} color={mode === "dark" ? "bg-blue-500/10" : "bg-blue-100"} mode={mode} />
-                    <StatCard label="In Service" value={stats.vessels.inService} color={mode === "dark" ? "bg-green-500/10" : "bg-green-100"} mode={mode} />
-                    <StatCard label="In Maintenance" value={stats.vessels.inMaintenance} color={mode === "dark" ? "bg-yellow-500/10" : "bg-yellow-100"} mode={mode} />
-                    <StatCard label="Out of Service" value={stats.vessels.outOfService} color={mode === "dark" ? "bg-red-500/10" : "bg-red-100"} mode={mode} />
+                    <StatCard label="Total Vessels" value={stats.vessels.total} color={mode === "dark" ? "bg-blue-500/10" : "bg-blue-100"} mode={mode} onClick={() => setActiveTab("fleets")} />
+                    <StatCard label="In Service" value={stats.vessels.inService} color={mode === "dark" ? "bg-green-500/10" : "bg-green-100"} mode={mode} onClick={() => setActiveTab("fleets")} />
+                    <StatCard label="In Maintenance" value={stats.vessels.inMaintenance} color={mode === "dark" ? "bg-yellow-500/10" : "bg-yellow-100"} mode={mode} onClick={() => setActiveTab("fleets")} />
+                    <StatCard label="Out of Service" value={stats.vessels.outOfService} color={mode === "dark" ? "bg-red-500/10" : "bg-red-100"} mode={mode} onClick={() => setActiveTab("fleets")} />
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                    <StatCard label="In Storage" value={stats.vessels.inStorage} color={mode === "dark" ? "bg-white/5" : "bg-gray-100"} mode={mode} />
+                    <StatCard label="In Storage" value={stats.vessels.inStorage} color={mode === "dark" ? "bg-white/5" : "bg-gray-100"} mode={mode} onClick={() => setActiveTab("fleets")} />
                   </div>
                 </div>
 
                 {/* Fleet Stats */}
                 <div>
-                  <h3 className={`text-lg font-semibold ${mode === "dark" ? "text-white" : "text-gray-900"} mb-4 flex items-center gap-2`}>
+                  <button
+                    onClick={() => setActiveTab("fleets")}
+                    className={`w-full text-left text-lg font-semibold mb-4 flex items-center gap-2 transition-opacity hover:opacity-70 ${mode === "dark" ? "text-white" : "text-gray-900"}`}
+                  >
                     <Layers className="w-5 h-5 text-captain-600" />
                     Fleets
-                  </h3>
+                    <ChevronRight className="w-4 h-4 text-captain-400 ml-auto" />
+                  </button>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <StatCard label="Total Fleets" value={stats.fleets.total} color={mode === "dark" ? "bg-captain-500/10" : "bg-captain-100"} icon={<Layers className="w-4 h-4 text-captain-600" />} mode={mode} />
-                    <StatCard label="Fleet Vessels" value={stats.fleets.vesselCount} color={mode === "dark" ? "bg-blue-500/10" : "bg-blue-100"} mode={mode} />
-                    <StatCard label="Standalone Vessels" value={stats.fleets.standaloneVessels} color={mode === "dark" ? "bg-white/5" : "bg-gray-100"} mode={mode} />
-                    <StatCard label="Active Mechanic Auths" value={stats.fleets.activeMechanicAuthorizations} color={mode === "dark" ? "bg-orange-500/10" : "bg-orange-100"} mode={mode} />
+                    <StatCard label="Total Fleets" value={stats.fleets.total} color={mode === "dark" ? "bg-captain-500/10" : "bg-captain-100"} icon={<Layers className="w-4 h-4 text-captain-600" />} mode={mode} onClick={() => setActiveTab("fleets")} />
+                    <StatCard label="Fleet Vessels" value={stats.fleets.vesselCount} color={mode === "dark" ? "bg-blue-500/10" : "bg-blue-100"} mode={mode} onClick={() => setActiveTab("fleets")} />
+                    <StatCard label="Standalone Vessels" value={stats.fleets.standaloneVessels} color={mode === "dark" ? "bg-white/5" : "bg-gray-100"} mode={mode} onClick={() => setActiveTab("fleets")} />
+                    <StatCard label="Active Mechanic Auths" value={stats.fleets.activeMechanicAuthorizations} color={mode === "dark" ? "bg-orange-500/10" : "bg-orange-100"} mode={mode} onClick={() => setActiveTab("fleets")} />
                   </div>
                 </div>
 
                 {/* Work Order Stats */}
                 <div>
-                  <h3 className={`text-lg font-semibold ${mode === "dark" ? "text-white" : "text-gray-900"} mb-4 flex items-center gap-2`}>
+                  <div className={`text-lg font-semibold mb-4 flex items-center gap-2 ${mode === "dark" ? "text-white" : "text-gray-900"}`}>
                     <FileText className="w-5 h-5 text-captain-600" />
                     Work Orders
-                  </h3>
+                  </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <StatCard label="Total" value={stats.workOrders.total} color={mode === "dark" ? "bg-white/5" : "bg-gray-100"} mode={mode} />
-                    <StatCard label="In Progress" value={stats.workOrders.byStatus.in_progress} color={mode === "dark" ? "bg-yellow-500/10" : "bg-yellow-100"} mode={mode} />
-                    <StatCard label="Completed" value={stats.workOrders.byStatus.completed} color={mode === "dark" ? "bg-green-500/10" : "bg-green-100"} mode={mode} />
-                    <StatCard label="New This Week" value={stats.workOrders.recentCreated} color={mode === "dark" ? "bg-captain-500/10" : "bg-captain-100"} mode={mode} />
+                    <StatCard label="Total" value={stats.workOrders.total} color={mode === "dark" ? "bg-white/5" : "bg-gray-100"} mode={mode} onClick={() => setActiveTab("audit")} />
+                    <StatCard label="In Progress" value={stats.workOrders.byStatus.in_progress} color={mode === "dark" ? "bg-yellow-500/10" : "bg-yellow-100"} mode={mode} onClick={() => setActiveTab("audit")} />
+                    <StatCard label="Completed" value={stats.workOrders.byStatus.completed} color={mode === "dark" ? "bg-green-500/10" : "bg-green-100"} mode={mode} onClick={() => setActiveTab("audit")} />
+                    <StatCard label="New This Week" value={stats.workOrders.recentCreated} color={mode === "dark" ? "bg-captain-500/10" : "bg-captain-100"} mode={mode} onClick={() => setActiveTab("audit")} />
                   </div>
                   <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mt-4">
-                    <MiniStatCard label="Quote Requested" value={stats.workOrders.byStatus.quote_requested} mode={mode} />
-                    <MiniStatCard label="Quoted" value={stats.workOrders.byStatus.quoted} mode={mode} />
-                    <MiniStatCard label="In Progress" value={stats.workOrders.byStatus.in_progress} mode={mode} />
-                    <MiniStatCard label="Completed" value={stats.workOrders.byStatus.completed} mode={mode} />
-                    <MiniStatCard label="Declined" value={stats.workOrders.byStatus.declined} mode={mode} />
-                    <MiniStatCard label="Cancelled" value={stats.workOrders.byStatus.cancelled} mode={mode} />
+                    <MiniStatCard label="Quote Requested" value={stats.workOrders.byStatus.quote_requested} mode={mode} onClick={() => setActiveTab("audit")} />
+                    <MiniStatCard label="Quoted" value={stats.workOrders.byStatus.quoted} mode={mode} onClick={() => setActiveTab("audit")} />
+                    <MiniStatCard label="In Progress" value={stats.workOrders.byStatus.in_progress} mode={mode} onClick={() => setActiveTab("audit")} />
+                    <MiniStatCard label="Completed" value={stats.workOrders.byStatus.completed} mode={mode} onClick={() => setActiveTab("audit")} />
+                    <MiniStatCard label="Declined" value={stats.workOrders.byStatus.declined} mode={mode} onClick={() => setActiveTab("audit")} />
+                    <MiniStatCard label="Cancelled" value={stats.workOrders.byStatus.cancelled} mode={mode} onClick={() => setActiveTab("audit")} />
                   </div>
                 </div>
               </>
@@ -891,18 +899,26 @@ function StatCard({
   color,
   icon,
   mode,
+  onClick,
 }: {
   label: string;
   value: number;
   color: string;
   icon?: React.ReactNode;
   mode: "light" | "dark";
+  onClick?: () => void;
 }) {
   return (
-    <div className={`${color} rounded-lg p-4`}>
+    <div
+      className={`${color} rounded-lg p-4 ${onClick ? "cursor-pointer transition-opacity hover:opacity-80 active:opacity-60 select-none" : ""}`}
+      onClick={onClick}
+    >
       <div className="flex items-center justify-between mb-1">
         <span className={`text-sm ${mode === "dark" ? "text-gray-300" : "text-gray-600"}`}>{label}</span>
-        {icon}
+        <div className="flex items-center gap-1">
+          {icon}
+          {onClick && <ChevronRight className={`w-3.5 h-3.5 ${mode === "dark" ? "text-gray-500" : "text-gray-400"}`} />}
+        </div>
       </div>
       <span className={`text-2xl font-bold ${mode === "dark" ? "text-white" : "text-gray-900"}`}>{value}</span>
     </div>
@@ -910,9 +926,12 @@ function StatCard({
 }
 
 // Mini Stat Card Component
-function MiniStatCard({ label, value, mode }: { label: string; value: number; mode: "light" | "dark" }) {
+function MiniStatCard({ label, value, mode, onClick }: { label: string; value: number; mode: "light" | "dark"; onClick?: () => void }) {
   return (
-    <div className={`${mode === "dark" ? "bg-white/5" : "bg-gray-50"} rounded-lg p-3 text-center`}>
+    <div
+      className={`${mode === "dark" ? "bg-white/5" : "bg-gray-50"} rounded-lg p-3 text-center ${onClick ? "cursor-pointer transition-opacity hover:opacity-80 active:opacity-60 select-none" : ""}`}
+      onClick={onClick}
+    >
       <span className={`block text-lg font-semibold ${mode === "dark" ? "text-white" : "text-gray-900"}`}>{value}</span>
       <span className={`text-xs ${mode === "dark" ? "text-gray-400" : "text-gray-500"}`}>{label}</span>
     </div>
