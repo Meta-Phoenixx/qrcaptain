@@ -3,12 +3,14 @@
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { AdminControlPanel } from "@/components/admin-control-panel";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, Suspense } from "react";
 
 function AdminGuard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const currentUser = useQuery(api.users.currentUser);
+  const initialTab = searchParams.get("tab") as any ?? "overview";
 
   useEffect(() => {
     if (currentUser !== undefined && (!currentUser || currentUser.role !== "admin")) {
@@ -24,9 +26,13 @@ function AdminGuard() {
     );
   }
 
-  return <AdminControlPanel />;
+  return <AdminControlPanel initialTab={initialTab} />;
 }
 
 export default function AdminPage() {
-  return <AdminGuard />;
+  return (
+    <Suspense>
+      <AdminGuard />
+    </Suspense>
+  );
 }

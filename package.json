@@ -10,7 +10,7 @@
     "clean": "turbo clean && rm -rf node_modules",
     "dev:web": "turbo dev --filter=web",
     "dev:mobile": "turbo dev --filter=mobile",
-    "dev:convex": "cd convex && npx convex dev"
+    "dev:convex": "npx convex dev"
   },
   "dependencies": {
     "@convex-dev/auth": "^0.0.71",

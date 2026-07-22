@@ -24,7 +24,9 @@ export default defineSchema({
       v.union(
         v.literal("admin"),
         v.literal("owner"),
-        v.literal("mechanic")
+        v.literal("mechanic"),
+        v.literal("fleet_manager"),
+        v.literal("captain")
       )
     ),
     companyName: v.optional(v.string()),
@@ -117,9 +119,106 @@ export default defineSchema({
     notes: v.optional(v.string()),
     qrCodeData: v.string(),
     imageStorageId: v.optional(v.id("_storage")),
+
+    // ============ FLEET MANAGEMENT FIELDS ============
+    fleetId: v.optional(v.id("fleets")),            // null = standalone vessel
+    status: v.optional(v.union(
+      v.literal("in_service"),
+      v.literal("in_maintenance"),
+      v.literal("out_of_service"),
+      v.literal("storage"),
+    )),
+    insuranceInfo: v.optional(v.object({
+      provider: v.string(),
+      policyNumber: v.string(),
+      insuredName: v.string(),
+      expiryDate: v.number(),                       // timestamp
+      documentStorageId: v.optional(v.id("_storage")),
+      verifiedAt: v.optional(v.number()),
+    })),
   })
     .index("by_owner", ["ownerId"])
-    .index("by_qr_code", ["qrCodeData"]),
+    .index("by_qr_code", ["qrCodeData"])
+    .index("by_fleet", ["fleetId"]),
+
+  // ============================================
+  // FLEETS
+  // ============================================
+  fleets: defineTable({
+    ownerId: v.id("users"),                         // fleet_manager who owns this fleet
+    name: v.string(),
+    description: v.optional(v.string()),
+    fleetType: v.optional(v.union(
+      v.literal("charter"),
+      v.literal("fishing"),
+      v.literal("racing"),
+      v.literal("leisure"),
+      v.literal("commercial"),
+    )),
+    imageStorageId: v.optional(v.id("_storage")),
+    createdAt: v.number(),
+  })
+    .index("by_owner", ["ownerId"]),
+
+  // Engine hours time-series log (per engine/equipment per vessel)
+  engineHoursLog: defineTable({
+    vesselId: v.id("vessels"),
+    equipmentId: v.id("vesselEquipment"),           // specific engine being logged
+    recordedBy: v.id("users"),                      // mechanic or fleet_manager
+    hours: v.number(),                              // engine hours at time of recording
+    serviceLabel: v.optional(v.string()),           // e.g. "250 Hr Service Due" — label only
+    notes: v.optional(v.string()),
+    gpsLat: v.optional(v.number()),
+    gpsLng: v.optional(v.number()),
+    recordedAt: v.number(),
+  })
+    .index("by_vessel", ["vesselId"])
+    .index("by_equipment", ["equipmentId"])
+    .index("by_equipment_recorded", ["equipmentId", "recordedAt"]),
+
+  // Fleet-level mechanic authorizations (bulk coverage for all vessels in a fleet)
+  fleetMechanicAuthorizations: defineTable({
+    fleetId: v.id("fleets"),
+    mechanicId: v.id("users"),
+    authorizedBy: v.id("users"),
+    authorizedAt: v.number(),
+    isActive: v.boolean(),
+  })
+    .index("by_fleet", ["fleetId"])
+    .index("by_mechanic", ["mechanicId"])
+    .index("by_fleet_mechanic", ["fleetId", "mechanicId"]),
+
+  // Captain assignments to vessels within a fleet
+  captainAssignments: defineTable({
+    vesselId: v.id("vessels"),
+    captainId: v.id("users"),                       // user with captain role
+    assignedBy: v.id("users"),                      // fleet_manager who assigned them
+    assignedAt: v.number(),
+    isActive: v.boolean(),
+  })
+    .index("by_vessel", ["vesselId"])
+    .index("by_captain", ["captainId"])
+    .index("by_vessel_captain", ["vesselId", "captainId"]),
+
+  // Captain trip reports — post-trip notes and distress notices
+  captainTripReports: defineTable({
+    vesselId: v.id("vessels"),
+    captainId: v.id("users"),
+    reportType: v.union(
+      v.literal("post_trip"),
+      v.literal("distress"),
+    ),
+    message: v.string(),
+    gpsLat: v.optional(v.number()),
+    gpsLng: v.optional(v.number()),
+    isResolved: v.boolean(),
+    resolvedAt: v.optional(v.number()),
+    resolvedBy: v.optional(v.id("users")),          // mechanic or fleet_manager who closed it
+    createdAt: v.number(),
+  })
+    .index("by_vessel", ["vesselId"])
+    .index("by_captain", ["captainId"])
+    .index("by_vessel_unresolved", ["vesselId", "isResolved"]),
 
   // Equipment catalog for each vessel - 15 categories for comprehensive tracking
   vesselEquipment: defineTable({
@@ -465,9 +564,19 @@ export default defineSchema({
       
       // Onboarding
       v.literal("onboarding_reminder"),      // Reminder to complete profile
-      
+
       // Announcements
-      v.literal("new_announcement")          // Admin published a new announcement
+      v.literal("new_announcement"),         // Admin published a new announcement
+
+      // Fleet management
+      v.literal("fleet_service_overdue"),    // Vessel in fleet passed its service label threshold
+      v.literal("fleet_service_approaching"),// Vessel approaching service label threshold
+      v.literal("fleet_captain_report"),     // Captain filed a post-trip note
+      v.literal("fleet_distress_notice"),    // Captain sent an urgent distress alert
+      v.literal("fleet_mechanic_authorized"),// Mechanic authorized/deauthorized for fleet
+      v.literal("fleet_vessel_status"),      // Vessel status changed
+      v.literal("insurance_expiring"),       // Vessel insurance expires within 30 days
+      v.literal("insurance_missing")         // Vessel has no insurance on file
     ),
     title: v.string(),
     message: v.string(),
@@ -535,7 +644,9 @@ export default defineSchema({
       v.literal("owner"),
       v.literal("mechanic"),
       v.literal("admin"),
-      v.literal("all")
+      v.literal("fleet_manager"),
+      v.literal("captain"),
+      v.literal("all"),
     )),
     isActive: v.boolean(),
     isPinned: v.boolean(),        // Show at top
@@ -575,7 +686,9 @@ export default defineSchema({
     targetRoles: v.array(v.union(
       v.literal("owner"),
       v.literal("mechanic"),
-      v.literal("admin")
+      v.literal("admin"),
+      v.literal("fleet_manager"),
+      v.literal("captain"),
     )),
     book: v.optional(v.union(
       v.literal("owner"),

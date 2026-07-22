@@ -8,6 +8,22 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
+const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
+  in_service:     { bg: "#f0fdf4", color: "#10b981", label: "In Service" },
+  in_maintenance: { bg: "#fffbeb", color: "#f59e0b", label: "In Maintenance" },
+  out_of_service: { bg: "#fef2f2", color: "#ef4444", label: "Out of Service" },
+  storage:        { bg: "#f3f4f6", color: "#6b7280", label: "Storage" },
+};
+
+function StatusBadge({ status }: { status?: string }) {
+  const s = STATUS_STYLES[status ?? ""] ?? STATUS_STYLES.in_service;
+  return (
+    <View style={{ paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, backgroundColor: s.bg }}>
+      <Text style={{ fontSize: 10, fontWeight: "600", color: s.color }}>{s.label}</Text>
+    </View>
+  );
+}
+
 export default function Vessels() {
   const vessels = useQuery(api.vessels.listMyVessels);
 
@@ -38,7 +54,10 @@ export default function Vessels() {
           <TouchableOpacity style={styles.card}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardTitle}>{item.name}</Text>
-              <Text style={styles.cardBadge}>{item.vesselType}</Text>
+              <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
+                <StatusBadge status={(item as any).status} />
+                <Text style={styles.cardBadge}>{item.vesselType}</Text>
+              </View>
             </View>
             <Text style={styles.cardSubtitle}>
               {item.year} {item.make} {item.model}

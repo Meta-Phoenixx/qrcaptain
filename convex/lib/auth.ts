@@ -4,7 +4,7 @@ import { MutationCtx, QueryCtx } from "../_generated/server";
 import { Doc, Id } from "../_generated/dataModel";
 
 type AnyCtx = QueryCtx | MutationCtx;
-type UserRole = "admin" | "owner" | "mechanic";
+type UserRole = "admin" | "owner" | "mechanic" | "fleet_manager" | "captain";
 
 /**
  * Returns the authenticated user, or null if unauthenticated.
@@ -50,6 +50,20 @@ export async function requireRole(
   return { userId, user };
 }
 
+/** Requires owner OR fleet_manager role (both are "vessel owners"). */
+export async function requireOwnerClass(
+  ctx: AnyCtx
+): Promise<{ userId: Id<"users">; user: Doc<"users"> }> {
+  return requireRole(ctx, "owner", "fleet_manager");
+}
+
+/** Shorthand: requires fleet_manager role. */
+export async function requireFleetManager(
+  ctx: AnyCtx
+): Promise<{ userId: Id<"users">; user: Doc<"users"> }> {
+  return requireRole(ctx, "fleet_manager", "admin");
+}
+
 /** Shorthand: requires admin role. */
 export async function requireAdmin(
   ctx: AnyCtx
@@ -74,7 +88,8 @@ export async function requireVesselOwnerOrAdmin(
   const vessel = await ctx.db.get(vesselId);
   if (!vessel) throw new ConvexError("Vessel not found");
 
-  if (user.role !== "admin" && vessel.ownerId !== userId) {
+  const isOwnerClass = user.role === "owner" || user.role === "fleet_manager";
+  if (user.role !== "admin" && !(isOwnerClass && vessel.ownerId === userId)) {
     throw new ConvexError("Access denied");
   }
 
@@ -126,7 +141,7 @@ export async function requireVesselReadAccess(
 
   if (user.role === "admin") return { userId, user, vessel };
 
-  if (user.role === "owner") {
+  if (user.role === "owner" || user.role === "fleet_manager") {
     if (vessel.ownerId !== userId) throw new ConvexError("Access denied");
     return { userId, user, vessel };
   }
@@ -140,6 +155,18 @@ export async function requireVesselReadAccess(
       .filter((q) => q.eq(q.field("isActive"), true))
       .first();
     if (!auth) throw new ConvexError("Access denied");
+    return { userId, user, vessel };
+  }
+
+  if (user.role === "captain") {
+    const assignment = await ctx.db
+      .query("captainAssignments")
+      .withIndex("by_vessel_captain", (q) =>
+        q.eq("vesselId", vesselId).eq("captainId", userId)
+      )
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .first();
+    if (!assignment) throw new ConvexError("Access denied");
     return { userId, user, vessel };
   }
 
