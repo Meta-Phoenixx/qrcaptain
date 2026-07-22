@@ -373,6 +373,7 @@ export function SignInForm() {
               >
                 <option value="owner">Boat Owner</option>
                 <option value="mechanic">Marine Mechanic</option>
+                <option value="fleet_manager">Fleet Manager</option>
               </GlassSelect>
             </div>
 
