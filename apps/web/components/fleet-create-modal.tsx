@@ -25,7 +25,6 @@ export function FleetCreateModal({
   onClose: () => void;
 }) {
   const { mode } = useTheme();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const createFleet = useMutation((api as any).fleets.createFleet);
 
   const [name, setName] = useState("");
