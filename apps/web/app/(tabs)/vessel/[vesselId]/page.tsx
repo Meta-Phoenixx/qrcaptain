@@ -8,8 +8,7 @@ import { Id } from "@convex/_generated/dataModel";
 import { GlassCard, GlassButton, GlassBadge, GlassInput, GlassSelect } from "@/components/ui/glass";
 import { useTheme } from "@/components/providers/theme-provider";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const a = api as any;
+const a = api as any; // anyApi fallback pattern
 
 function StatusBadge({ status }: { status?: string }) {
   const map: Record<string, { label: string; variant: "green" | "yellow" | "red" | "blue" }> = {
