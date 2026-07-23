@@ -164,7 +164,6 @@ export function FleetDashboard() {
   const [showSettings, setShowSettings] = useState(false);
   const [showAddVessel, setShowAddVessel] = useState(false);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const a = api as any;
   const fleetList = useQuery(a.fleetDashboard.listAllFleetsDashboard);
   const dashboard = useQuery(
