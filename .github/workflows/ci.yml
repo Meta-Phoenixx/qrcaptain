@@ -245,8 +245,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Deploy to Convex dev
-        run: npx convex deploy
-        working-directory: convex
+        run: npx convex deploy --yes
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
 
@@ -296,7 +295,6 @@ jobs:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PROD_DEPLOY_KEY }}
 
       - name: Deploy to Convex production
-        run: npx convex deploy
-        working-directory: convex
+        run: npx convex deploy --yes
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PROD_DEPLOY_KEY }}
