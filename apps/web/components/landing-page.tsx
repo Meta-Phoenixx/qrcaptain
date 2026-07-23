@@ -744,7 +744,7 @@ export function LandingPage() {
       </footer>
 
       {/* Profile Modal - Role-specific */}
-      {showProfile && user.role === "owner" && (
+      {showProfile && (user.role === "owner" || user.role === "fleet_manager") && (
         <OwnerProfile onClose={() => setShowProfile(false)} />
       )}
       {showProfile && user.role === "mechanic" && (

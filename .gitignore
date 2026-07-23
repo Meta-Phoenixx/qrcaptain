@@ -8,6 +8,9 @@ dist
 .expo
 *.tsbuildinfo
 
+# Convex CLI creates this nested dir when run from convex/ instead of project root
+convex/convex/
+
 # Environment files
 .env
 .env.local
