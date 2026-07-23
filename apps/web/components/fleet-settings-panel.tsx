@@ -143,7 +143,7 @@ function MechanicsTab({ fleetId, isDark, textPrimary, textSecondary }: { fleetId
 
   const searchMechanics = useQuery(
     a.mechanicDirectory.searchMechanics,
-    mechanicSearch.trim().length >= 2 ? { query: mechanicSearch.trim() } : "skip"
+    mechanicSearch.trim().length >= 2 ? { searchTerm: mechanicSearch.trim() } : "skip"
   );
 
   const divider = isDark ? "border-white/10" : "border-gray-200";
