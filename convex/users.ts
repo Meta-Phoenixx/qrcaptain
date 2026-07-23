@@ -506,7 +506,7 @@ export const updateOwnerProfile = mutation({
     })),
   },
   handler: async (ctx, args) => {
-    const { userId } = await requireRole(ctx, "owner");
+    const { userId } = await requireRole(ctx, "owner", "fleet_manager");
 
     // Filter out undefined values
     const updates: Record<string, unknown> = {};
