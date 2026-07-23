@@ -120,6 +120,40 @@ const FLEET_VESSELS = [
   },
 ];
 
+export const removeDuplicateFleets = mutation({
+  args: { ownerEmail: v.string() },
+  handler: async (ctx, args) => {
+    const owner = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.ownerEmail))
+      .first();
+    if (!owner) throw new Error(`No user found with email: ${args.ownerEmail}`);
+
+    const fleets = await ctx.db
+      .query("fleets")
+      .withIndex("by_owner", (q) => q.eq("ownerId", owner._id))
+      .collect();
+
+    if (fleets.length <= 1) return { removed: 0 };
+
+    // Keep the oldest fleet (first created), remove the rest with their vessels
+    const [keep, ...duplicates] = fleets.sort((a, b) => a._creationTime - b._creationTime);
+    let removedVessels = 0;
+    for (const fleet of duplicates) {
+      const vessels = await ctx.db
+        .query("vessels")
+        .withIndex("by_fleet", (q) => q.eq("fleetId", fleet._id))
+        .collect();
+      for (const vessel of vessels) {
+        await ctx.db.delete(vessel._id);
+        removedVessels++;
+      }
+      await ctx.db.delete(fleet._id);
+    }
+    return { kept: keep._id, removedFleets: duplicates.length, removedVessels };
+  },
+});
+
 export const seedFleetVessels = mutation({
   args: {
     ownerEmail: v.string(),
@@ -134,6 +168,29 @@ export const seedFleetVessels = mutation({
 
     if (!owner) {
       throw new Error(`No user found with email: ${args.ownerEmail}`);
+    }
+
+    // Ensure fleet_manager/captain profiles are marked onboarding complete
+    if (owner.role === "fleet_manager" || owner.role === "captain") {
+      await ctx.db.patch(owner._id, { onboardingCompleted: true });
+    }
+
+    // Idempotent: skip if this user already has a fleet with this name
+    const existingFleet = await ctx.db
+      .query("fleets")
+      .withIndex("by_owner", (q) => q.eq("ownerId", owner._id))
+      .first();
+    if (existingFleet) {
+      const vessels = await ctx.db
+        .query("vessels")
+        .withIndex("by_fleet", (q) => q.eq("fleetId", existingFleet._id))
+        .collect();
+      return {
+        ownerId: owner._id,
+        fleetId: existingFleet._id,
+        vessels: vessels.map((v) => ({ id: v._id, name: v.name, status: v.status ?? "in_service" })),
+        skipped: true,
+      };
     }
 
     // Create a fleet for these vessels

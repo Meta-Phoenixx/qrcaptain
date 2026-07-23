@@ -24,22 +24,26 @@ export const { auth, signIn, signOut, store } = convexAuth({
           isActive: true,
         };
         
-        // Add mechanic-specific fields if signing up as mechanic
+        // Mechanics need onboarding (company name, phone, license)
         if (isMechanic) {
           return {
             ...baseProfile,
             companyName: params.companyName as string,
             phone: params.phone as string,
-            // Mechanics start with onboarding incomplete
             onboardingCompleted: false,
           };
         }
-        
-        // Owners also start with onboarding incomplete
-        return {
-          ...baseProfile,
-          onboardingCompleted: false,
-        };
+
+        // Owners need onboarding (address, vessel info)
+        if (role === "owner") {
+          return {
+            ...baseProfile,
+            onboardingCompleted: false,
+          };
+        }
+
+        // fleet_manager and captain have no onboarding step — mark complete immediately
+        return baseProfile;
       },
     }),
   ],
