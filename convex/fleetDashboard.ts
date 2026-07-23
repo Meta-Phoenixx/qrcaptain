@@ -71,7 +71,10 @@ export const getFleetDashboard = query({
         }
       }
 
-      if (vesselIsOverdue) overdueCount++;
+      const vesselStatus = vessel.status ?? "in_service";
+      if (vesselStatus === "out_of_service" || vesselStatus === "in_maintenance") {
+        // Not healthy regardless of service schedule
+      } else if (vesselIsOverdue) overdueCount++;
       else if (vesselIsApproaching) approachingCount++;
       else healthyCount++;
 
