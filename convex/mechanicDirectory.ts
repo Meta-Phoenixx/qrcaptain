@@ -435,7 +435,15 @@ export const searchMechanics = query({
       .filter((q) => q.eq(q.field("onboardingCompleted"), true))
       .collect();
 
-    const matched = mechanics.filter(m => 
+    // Deduplicate by _id before filtering (index can return same doc twice with multiple authAccounts)
+    const seen = new Set<string>();
+    const unique = mechanics.filter((m) => {
+      if (seen.has(m._id)) return false;
+      seen.add(m._id);
+      return true;
+    });
+
+    const matched = unique.filter(m =>
       m.companyName?.toLowerCase().includes(searchLower) ||
       m.firstName?.toLowerCase().includes(searchLower) ||
       m.lastName?.toLowerCase().includes(searchLower)
