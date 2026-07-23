@@ -1,8 +1,8 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Id } from "../../../convex/_generated/dataModel";
-import { GlassCard, GlassBadge } from "./ui/glass";
 import { useTheme } from "./providers/theme-provider";
 
 type VesselRow = {
@@ -17,34 +17,92 @@ type VesselRow = {
   isApproaching: boolean;
   openWorkOrderCount: number;
   hasMechanic: boolean;
+  mechanicName?: string | null;
+  mechanicCompany?: string | null;
   currentEngineHours?: number | null;
   engineManufacturer?: string | null;
+  nextServiceDate?: number | null;
 };
 
-function StatusBadge({ status }: { status?: string }) {
-  const map: Record<string, { label: string; variant: "green" | "yellow" | "red" | "blue" }> = {
-    in_service: { label: "In Service", variant: "green" },
-    in_maintenance: { label: "In Maintenance", variant: "yellow" },
-    out_of_service: { label: "Out of Service", variant: "red" },
-    storage: { label: "Storage", variant: "blue" as const },
-  };
-  const entry = map[status ?? ""] ?? { label: "Unknown", variant: "blue" as const };
-  return <GlassBadge color={entry.variant}>{entry.label}</GlassBadge>;
+const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+  in_service:     { bg: "bg-emerald-500/15", text: "text-emerald-400", dot: "bg-emerald-400" },
+  in_maintenance: { bg: "bg-amber-500/15",   text: "text-amber-400",   dot: "bg-amber-400"   },
+  out_of_service: { bg: "bg-red-500/15",     text: "text-red-400",     dot: "bg-red-400"     },
+  storage:        { bg: "bg-sky-500/15",     text: "text-sky-400",     dot: "bg-sky-400"     },
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  in_service: "In Service", in_maintenance: "In Maintenance",
+  out_of_service: "Out of Service", storage: "Storage",
+};
+
+function StatusPill({ status }: { status: string }) {
+  const c = STATUS_COLORS[status] ?? STATUS_COLORS.storage;
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${c.bg} ${c.text}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+      {STATUS_LABELS[status] ?? status}
+    </span>
+  );
 }
 
-function ServiceBadge({ isOverdue, isApproaching }: { isOverdue?: boolean; isApproaching?: boolean }) {
-  if (isOverdue) return <GlassBadge color="red">Overdue</GlassBadge>;
-  if (isApproaching) return <GlassBadge color="yellow">Due Soon</GlassBadge>;
-  return <GlassBadge color="green">Current</GlassBadge>;
+function ServicePill({ isOverdue, isApproaching, daysOverdue }: { isOverdue?: boolean; isApproaching?: boolean; daysOverdue?: number }) {
+  if (isOverdue) return (
+    <div>
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/15 text-red-400">
+        ⚠ Overdue
+      </span>
+      {daysOverdue != null && <p className="text-[10px] text-red-400/70 mt-0.5 pl-1">{daysOverdue} days</p>}
+    </div>
+  );
+  if (isApproaching) return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/15 text-amber-400">
+      ⏱ Due Soon
+    </span>
+  );
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-400">
+      ✓ Current
+    </span>
+  );
 }
 
-function InsuranceBadge({ hasInsurance, expiryDate }: { hasInsurance: boolean; expiryDate: number | null }) {
-  if (!hasInsurance) return <GlassBadge color="red">Missing</GlassBadge>;
-  if (!expiryDate) return <GlassBadge color="green">On File</GlassBadge>;
-  const daysLeft = Math.floor((expiryDate - Date.now()) / (1000 * 60 * 60 * 24));
-  if (daysLeft < 0) return <GlassBadge color="red">Expired</GlassBadge>;
-  if (daysLeft <= 30) return <GlassBadge color="yellow">{daysLeft}d left</GlassBadge>;
-  return <GlassBadge color="green">Valid</GlassBadge>;
+function NextServiceCell({ date }: { date: number | null | undefined }) {
+  if (!date) return <span className="text-xs text-white/25">—</span>;
+  const now = Date.now();
+  const days = Math.ceil((date - now) / 86400000);
+  const d = new Date(date);
+  const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const urgent = days <= 14;
+  const color = days < 0 ? "text-red-400" : urgent ? "text-amber-400" : "text-emerald-400";
+  return (
+    <div>
+      <p className="text-xs text-white/60">{label}</p>
+      <p className={`text-[10px] font-medium ${color}`}>
+        {days < 0 ? `${Math.abs(days)}d overdue` : `in ${days} days`}
+      </p>
+    </div>
+  );
+}
+
+function MechanicCell({ name, company }: { name?: string | null; company?: string | null }) {
+  if (!name) return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-amber-500/10 text-amber-400">
+      Uncovered
+    </span>
+  );
+  const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-7 h-7 rounded-full bg-captain-500/20 border border-captain-500/30 flex items-center justify-center text-[10px] font-bold text-captain-300 flex-shrink-0">
+        {initials}
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-medium text-white/80 truncate">{name}</p>
+        {company && <p className="text-[10px] text-white/40 truncate">{company}</p>}
+      </div>
+    </div>
+  );
 }
 
 export function FleetVesselTable({
@@ -60,65 +118,117 @@ export function FleetVesselTable({
 }) {
   const { mode } = useTheme();
   const router = useRouter();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [mechanicFilter, setMechanicFilter] = useState("all");
 
-  const filtered = activeFilter
-    ? vessels.filter((v) => {
-        if (activeFilter === "in_service") return v.status === "in_service";
-        if (activeFilter === "in_maintenance") return v.status === "in_maintenance";
-        if (activeFilter === "out_of_service") return v.status === "out_of_service";
-        if (activeFilter === "overdue") return v.isOverdue === true;
-        if (activeFilter === "approaching") return v.isApproaching === true;
-        return true;
-      })
-    : vessels;
+  const filtered = useMemo(() => {
+    let rows = vessels;
 
-  const borderColor = mode === "dark" ? "border-white/10" : "border-gray-200";
-  const theadColor = mode === "dark" ? "text-gray-400 bg-white/[0.03]" : "text-gray-500 bg-gray-50/80";
-  const rowHover = mode === "dark" ? "hover:bg-white/[0.03]" : "hover:bg-gray-50/50";
-  const cellColor = mode === "dark" ? "text-gray-300" : "text-gray-700";
-  const subColor = mode === "dark" ? "text-gray-500" : "text-gray-400";
+    // Active filter from parent (clicking stat tiles)
+    if (activeFilter) {
+      if (activeFilter === "in_service") rows = rows.filter((v) => v.status === "in_service");
+      else if (activeFilter === "in_maintenance") rows = rows.filter((v) => v.status === "in_maintenance");
+      else if (activeFilter === "out_of_service") rows = rows.filter((v) => v.status === "out_of_service");
+      else if (activeFilter === "overdue") rows = rows.filter((v) => v.isOverdue);
+      else if (activeFilter === "approaching") rows = rows.filter((v) => v.isApproaching);
+    }
+
+    // Local search
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      rows = rows.filter((v) =>
+        v.name.toLowerCase().includes(q) ||
+        v.make?.toLowerCase().includes(q) ||
+        v.model?.toLowerCase().includes(q)
+      );
+    }
+
+    // Status dropdown
+    if (statusFilter !== "all") rows = rows.filter((v) => v.status === statusFilter);
+
+    // Mechanic dropdown
+    if (mechanicFilter === "covered") rows = rows.filter((v) => v.hasMechanic);
+    else if (mechanicFilter === "uncovered") rows = rows.filter((v) => !v.hasMechanic);
+
+    return rows;
+  }, [vessels, activeFilter, search, statusFilter, mechanicFilter]);
+
+  const isDark = mode === "dark";
+  const card = isDark ? "bg-white/[0.03] border-white/[0.07]" : "bg-white border-gray-200";
+  const th = isDark ? "text-white/40 bg-white/[0.02]" : "text-gray-400 bg-gray-50";
+  const rowHover = isDark ? "hover:bg-white/[0.04]" : "hover:bg-gray-50";
+  const divider = isDark ? "border-white/[0.06]" : "border-gray-100";
 
   return (
-    <GlassCard className="overflow-hidden p-0">
-      <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)" }}>
-        <h2 className={`text-sm font-semibold ${mode === "dark" ? "text-white" : "text-gray-900"}`}>
+    <div className={`rounded-2xl border overflow-hidden ${card}`}>
+      {/* Table header bar */}
+      <div className={`flex items-center justify-between gap-3 px-5 py-4 border-b ${divider} flex-wrap`}>
+        <h2 className={`text-sm font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
           Vessel Roster
           {activeFilter && (
-            <span className={`ml-2 text-xs font-normal ${mode === "dark" ? "text-captain-400" : "text-captain-600"}`}>
-              — filtered
-            </span>
-          )}
-        </h2>
-        <div className="flex items-center gap-2">
-          {activeFilter && (
-            <button
-              onClick={onClearFilter}
-              className={`text-xs px-3 py-1 rounded-full border ${mode === "dark" ? "border-white/20 text-gray-400 hover:text-white" : "border-gray-300 text-gray-500 hover:text-gray-800"}`}
-            >
-              Clear filter
+            <button onClick={onClearFilter} className="ml-2 text-xs font-normal text-captain-400 hover:text-captain-300">
+              — clear filter ×
             </button>
           )}
-          <span className={`text-xs ${subColor}`}>{filtered.length} vessel{filtered.length !== 1 ? "s" : ""}</span>
+        </h2>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Search */}
+          <div className="relative">
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search vessels..."
+              className="pl-8 pr-3 py-1.5 text-xs rounded-lg bg-white/[0.06] border border-white/10 text-white placeholder-white/25 focus:outline-none focus:border-captain-500/50 w-44"
+            />
+          </div>
+          {/* Status filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-1.5 text-xs rounded-lg bg-white/[0.06] border border-white/10 text-white/70 focus:outline-none focus:border-captain-500/50"
+          >
+            <option value="all">All Status</option>
+            <option value="in_service">In Service</option>
+            <option value="in_maintenance">In Maintenance</option>
+            <option value="out_of_service">Out of Service</option>
+            <option value="storage">Storage</option>
+          </select>
+          {/* Mechanic filter */}
+          <select
+            value={mechanicFilter}
+            onChange={(e) => setMechanicFilter(e.target.value)}
+            className="px-3 py-1.5 text-xs rounded-lg bg-white/[0.06] border border-white/10 text-white/70 focus:outline-none focus:border-captain-500/50"
+          >
+            <option value="all">All Mechanics</option>
+            <option value="covered">Assigned</option>
+            <option value="uncovered">Uncovered</option>
+          </select>
+          <span className="text-xs text-white/30">{filtered.length} vessel{filtered.length !== 1 ? "s" : ""}</span>
         </div>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className={`${theadColor} border-b ${borderColor}`}>
-              <th className="text-left px-5 py-3 font-medium text-xs uppercase tracking-wider">Vessel</th>
-              <th className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wider">Status</th>
-              <th className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wider">Service</th>
-              <th className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wider">Insurance</th>
-              <th className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wider">Engine Hours</th>
-              <th className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wider">Work Orders</th>
-              <th className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wider">Mechanic</th>
+            <tr className={`${th} border-b ${divider} text-xs uppercase tracking-wider`}>
+              <th className="text-left px-5 py-3 font-medium">Vessel</th>
+              <th className="text-left px-4 py-3 font-medium">Status</th>
+              <th className="text-left px-4 py-3 font-medium">Service Status</th>
+              <th className="text-left px-4 py-3 font-medium">Engine Hours</th>
+              <th className="text-left px-4 py-3 font-medium">Mechanic</th>
+              <th className="text-left px-4 py-3 font-medium">Next Service</th>
+              <th className="text-left px-4 py-3 font-medium">Work Orders</th>
+              <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className={`px-5 py-10 text-center text-sm ${subColor}`}>
+                <td colSpan={8} className="px-5 py-12 text-center text-sm text-white/25">
                   No vessels match this filter.
                 </td>
               </tr>
@@ -127,57 +237,78 @@ export function FleetVesselTable({
                 <tr
                   key={vessel.vesselId}
                   onClick={() => router.push(`/vessel/${vessel.vesselId}`)}
-                  className={`border-b last:border-0 ${borderColor} ${rowHover} transition-colors cursor-pointer`}
+                  className={`border-b last:border-0 ${divider} ${rowHover} transition-colors cursor-pointer`}
                 >
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-2">
-                      <div>
-                        <p className={`font-medium ${mode === "dark" ? "text-white" : "text-gray-900"}`}>{vessel.name}</p>
-                        {(vessel.make || vessel.model) && (
-                          <p className={`text-xs mt-0.5 ${subColor}`}>{[vessel.make, vessel.model].filter(Boolean).join(" ")}</p>
-                        )}
+                  {/* Vessel name + model */}
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                      {/* Boat icon placeholder */}
+                      <div className="w-10 h-10 rounded-lg bg-captain-500/10 border border-captain-500/20 flex items-center justify-center flex-shrink-0 text-lg">
+                        ⛵
                       </div>
-                      <span className={`ml-auto text-xs ${mode === "dark" ? "text-white/20" : "text-gray-300"}`}>›</span>
+                      <div>
+                        <p className="text-sm font-semibold text-white">{vessel.name}</p>
+                        <p className="text-[11px] text-white/40 mt-0.5">
+                          {[vessel.make, vessel.model].filter(Boolean).join(" ")}
+                        </p>
+                      </div>
                     </div>
                   </td>
-                  <td className="px-4 py-4">
-                    <StatusBadge status={vessel.status} />
+                  {/* Status */}
+                  <td className="px-4 py-3.5">
+                    <StatusPill status={vessel.status} />
                   </td>
-                  <td className="px-4 py-4">
-                    <ServiceBadge isOverdue={vessel.isOverdue} isApproaching={vessel.isApproaching} />
+                  {/* Service status */}
+                  <td className="px-4 py-3.5">
+                    <ServicePill isOverdue={vessel.isOverdue} isApproaching={vessel.isApproaching} />
                   </td>
-                  <td className="px-4 py-4">
-                    <InsuranceBadge hasInsurance={vessel.hasInsurance} expiryDate={vessel.insuranceExpiry} />
-                  </td>
-                  <td className="px-4 py-4">
+                  {/* Engine hours */}
+                  <td className="px-4 py-3.5">
                     {vessel.currentEngineHours != null ? (
                       <div>
-                        <span className={`tabular-nums font-medium ${cellColor}`}>
+                        <span className="text-sm font-semibold text-white/80 tabular-nums">
                           {vessel.currentEngineHours.toLocaleString()} hrs
                         </span>
                         {vessel.engineManufacturer && (
-                          <p className={`text-xs mt-0.5 ${subColor}`}>{vessel.engineManufacturer}</p>
+                          <p className="text-[10px] text-white/35 mt-0.5">{vessel.engineManufacturer}</p>
                         )}
                       </div>
                     ) : (
-                      <span className={`text-xs ${subColor}`}>—</span>
+                      <span className="text-xs text-white/25">—</span>
                     )}
                   </td>
-                  <td className={`px-4 py-4 tabular-nums ${cellColor}`}>
-                    {vessel.openWorkOrderCount}
+                  {/* Mechanic */}
+                  <td className="px-4 py-3.5">
+                    <MechanicCell name={vessel.mechanicName} company={vessel.mechanicCompany} />
                   </td>
-                  <td className="px-4 py-4">
-                    {vessel.hasMechanic
-                      ? <GlassBadge color="green">Assigned</GlassBadge>
-                      : <GlassBadge color="yellow">Uncovered</GlassBadge>
-                    }
+                  {/* Next service */}
+                  <td className="px-4 py-3.5">
+                    <NextServiceCell date={vessel.nextServiceDate} />
                   </td>
+                  {/* Work orders */}
+                  <td className="px-4 py-3.5">
+                    <span className={`text-sm font-medium tabular-nums ${vessel.openWorkOrderCount > 0 ? "text-captain-400" : "text-white/30"}`}>
+                      {vessel.openWorkOrderCount}
+                    </span>
+                  </td>
+                  {/* Chevron */}
+                  <td className="px-4 py-3.5 text-white/20 text-right">›</td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
-    </GlassCard>
+
+      {/* Footer */}
+      <div className={`px-5 py-3 border-t ${divider} flex justify-center`}>
+        <button
+          onClick={() => router.push("/vessels")}
+          className="text-xs text-captain-400 hover:text-captain-300 font-medium transition-colors"
+        >
+          View All {vessels.length} Vessels →
+        </button>
+      </div>
+    </div>
   );
 }

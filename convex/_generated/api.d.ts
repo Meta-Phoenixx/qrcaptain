@@ -41,6 +41,7 @@ import type * as parts from "../parts.js";
 import type * as preferredMechanics from "../preferredMechanics.js";
 import type * as raffle from "../raffle.js";
 import type * as ratings from "../ratings.js";
+import type * as seedFleetVessels from "../seedFleetVessels.js";
 import type * as seedParts from "../seedParts.js";
 import type * as settings from "../settings.js";
 import type * as storage from "../storage.js";
@@ -91,6 +92,7 @@ declare const fullApi: ApiFromModules<{
   preferredMechanics: typeof preferredMechanics;
   raffle: typeof raffle;
   ratings: typeof ratings;
+  seedFleetVessels: typeof seedFleetVessels;
   seedParts: typeof seedParts;
   settings: typeof settings;
   storage: typeof storage;

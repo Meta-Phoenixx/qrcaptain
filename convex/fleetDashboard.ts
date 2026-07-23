@@ -102,11 +102,21 @@ export const getFleetDashboard = query({
         .withIndex("by_vessel_unresolved", (q) => q.eq("vesselId", vessel._id).eq("isResolved", false))
         .collect();
 
-      // Mechanic coverage
+      // Mechanic coverage + name
       const mechAuth = await ctx.db.query("mechanicAuthorizations")
         .withIndex("by_vessel", (q) => q.eq("vesselId", vessel._id))
         .filter((q) => q.eq(q.field("isActive"), true))
         .first();
+      const mechUser = mechAuth ? await ctx.db.get(mechAuth.mechanicId) : null;
+
+      // Next scheduled service date (earliest upcoming across all equipment)
+      const upcomingDates = equipment
+        .map((eq) => eq.nextServiceDate)
+        .filter((d): d is number => typeof d === "number" && d > now);
+      const nextServiceDate = upcomingDates.length > 0 ? Math.min(...upcomingDates) : null;
+
+      // Parts flagged (needs_attention condition)
+      const partsFlaggedCount = equipment.filter((eq) => eq.conditionStatus === "needs_attention").length;
 
       return {
         vesselId: vessel._id,
@@ -120,10 +130,14 @@ export const getFleetDashboard = query({
         openWorkOrderCount: openWorkOrders.length,
         openReportCount: openReports.length,
         hasMechanic: !!mechAuth,
+        mechanicName: mechUser ? `${mechUser.firstName ?? ""} ${mechUser.lastName ?? ""}`.trim() : null,
+        mechanicCompany: mechUser?.companyName ?? null,
         insuranceExpiry: vessel.insuranceInfo?.expiryDate ?? null,
         hasInsurance: !!vessel.insuranceInfo,
         currentEngineHours,
         engineManufacturer,
+        nextServiceDate,
+        partsFlaggedCount,
       };
     }));
 
@@ -152,6 +166,12 @@ export const getFleetDashboard = query({
 
     // Vessels without mechanic coverage
     const uncoveredVessels = vesselSummaries.filter((v) => !v.hasMechanic).length;
+    const coveredVessels = vesselSummaries.filter((v) => v.hasMechanic).length;
+
+    // Fleet-wide aggregates
+    const totalPartsFlagged = vesselSummaries.reduce((s, v) => s + v.partsFlaggedCount, 0);
+    const hoursArr = vesselSummaries.map((v) => v.currentEngineHours).filter((h): h is number => h !== null);
+    const avgEngineHours = hoursArr.length > 0 ? Math.round(hoursArr.reduce((a, b) => a + b, 0) / hoursArr.length) : null;
 
     return {
       fleet: { _id: fleet._id, name: fleet.name, fleetType: fleet.fleetType },
@@ -165,6 +185,9 @@ export const getFleetDashboard = query({
       approachingCount,
       totalOpenWorkOrders,
       uncoveredVessels,
+      coveredVessels,
+      totalPartsFlagged,
+      avgEngineHours,
       insuranceExpiringSoon,
       insuranceMissing,
       warrantyExpiringSoon,
