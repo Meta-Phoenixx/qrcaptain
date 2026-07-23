@@ -2,8 +2,8 @@
 
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { useQuery } from "convex/react";
+import { useState, useEffect } from "react";
+import { useConvex } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { GlassCard, GlassInput, GlassButton, GlassSelect } from "../ui/glass";
 import { useTheme } from "../providers/theme-provider";
@@ -49,13 +49,24 @@ export function SignInForm() {
   const [resetEmail, setResetEmail] = useState("");
   const { mode } = useTheme();
 
+  const convex = useConvex();
+  const [emailAlreadyExists, setEmailAlreadyExists] = useState<boolean | undefined>(undefined);
+
   const isSignUp = view === "signUp";
 
-  // Check if email already exists (only during sign-up with a valid-looking email)
-  const emailAlreadyExists = useQuery(
-    api.users.emailExists,
-    isSignUp && signUpEmail.includes("@") ? { email: signUpEmail } : "skip"
-  );
+  // Check if email already exists (only during sign-up with a valid-looking email).
+  // Uses imperative API so a query failure degrades gracefully instead of crashing the page.
+  useEffect(() => {
+    if (!isSignUp || !signUpEmail.includes("@")) {
+      setEmailAlreadyExists(undefined);
+      return;
+    }
+    let cancelled = false;
+    convex.query(api.users.emailExists, { email: signUpEmail })
+      .then((result) => { if (!cancelled) setEmailAlreadyExists(result); })
+      .catch(() => { if (!cancelled) setEmailAlreadyExists(false); });
+    return () => { cancelled = true; };
+  }, [isSignUp, signUpEmail, convex]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
