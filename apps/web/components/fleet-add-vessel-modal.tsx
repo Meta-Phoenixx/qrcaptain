@@ -7,7 +7,6 @@ import { Id } from "../../../convex/_generated/dataModel";
 import { GlassModal, GlassButton } from "./ui/glass";
 import { useTheme } from "./providers/theme-provider";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const a = api as any;
 
 export function FleetAddVesselModal({

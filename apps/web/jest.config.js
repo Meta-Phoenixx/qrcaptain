@@ -17,6 +17,7 @@ const config = {
     "<rootDir>/node_modules/",
     "<rootDir>/.next/",
     "<rootDir>/__tests__/test-utils.tsx",
+    "<rootDir>/__tests__/test-helpers/",
   ],
 };
 
