@@ -29,6 +29,35 @@ export const deleteUserByEmail = mutation({
   },
 });
 
+// One-time utility: wipe all auth + user records for an email so account can be recreated
+export const deleteUserByEmail = mutation({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+    if (!user) return { deleted: false, reason: "user not found" };
+
+    // Delete auth accounts linked to this user
+    const accounts = await ctx.db
+      .query("authAccounts")
+      .withIndex("userIdAndProvider", (q) => q.eq("userId", user._id))
+      .collect();
+    for (const a of accounts) await ctx.db.delete(a._id);
+
+    // Delete auth sessions
+    const sessions = await ctx.db
+      .query("authSessions")
+      .withIndex("userId", (q) => q.eq("userId", user._id))
+      .collect();
+    for (const s of sessions) await ctx.db.delete(s._id);
+
+    await ctx.db.delete(user._id);
+    return { deleted: true, accountsRemoved: accounts.length, sessionsRemoved: sessions.length };
+  },
+});
+
 function generateQRCodeData(): string {
   const timestamp = Date.now().toString(36);
   const random = Math.random().toString(36).substring(2, 10);
