@@ -13,8 +13,10 @@ check() {
   fi
 }
 
-# --- Required for web build ---
-check "NEXT_PUBLIC_CONVEX_URL"
+# --- Required for web build (skip when doing a Convex-only deploy) ---
+if [[ "${CONVEX_PROD_DEPLOY:-false}" != "true" ]]; then
+  check "NEXT_PUBLIC_CONVEX_URL"
+fi
 
 # --- Required for Convex production deploy ---
 if [[ "${CONVEX_PROD_DEPLOY:-false}" == "true" ]]; then
