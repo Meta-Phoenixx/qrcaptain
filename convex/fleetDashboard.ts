@@ -78,6 +78,13 @@ export const getFleetDashboard = query({
       else if (vesselIsApproaching) approachingCount++;
       else healthyCount++;
 
+      // Aggregate current engine hours + manufacturer from propulsion equipment
+      const propulsion = equipment.filter((eq) => eq.category === "propulsion");
+      const currentEngineHours = propulsion.length > 0
+        ? propulsion.reduce((sum, eq) => sum + (eq.currentHours ?? 0), 0)
+        : null;
+      const engineManufacturer = propulsion[0]?.manufacturer ?? null;
+
       // Active work orders
       const openWorkOrders = await ctx.db.query("workOrders")
         .withIndex("by_vessel", (q) => q.eq("vesselId", vessel._id))
@@ -115,6 +122,8 @@ export const getFleetDashboard = query({
         hasMechanic: !!mechAuth,
         insuranceExpiry: vessel.insuranceInfo?.expiryDate ?? null,
         hasInsurance: !!vessel.insuranceInfo,
+        currentEngineHours,
+        engineManufacturer,
       };
     }));
 

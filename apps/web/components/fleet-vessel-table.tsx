@@ -17,6 +17,8 @@ type VesselRow = {
   isApproaching: boolean;
   openWorkOrderCount: number;
   hasMechanic: boolean;
+  currentEngineHours?: number | null;
+  engineManufacturer?: string | null;
 };
 
 function StatusBadge({ status }: { status?: string }) {
@@ -108,6 +110,7 @@ export function FleetVesselTable({
               <th className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wider">Status</th>
               <th className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wider">Service</th>
               <th className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wider">Insurance</th>
+              <th className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wider">Engine Hours</th>
               <th className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wider">Work Orders</th>
               <th className="text-left px-4 py-3 font-medium text-xs uppercase tracking-wider">Mechanic</th>
             </tr>
@@ -115,7 +118,7 @@ export function FleetVesselTable({
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className={`px-5 py-10 text-center text-sm ${subColor}`}>
+                <td colSpan={7} className={`px-5 py-10 text-center text-sm ${subColor}`}>
                   No vessels match this filter.
                 </td>
               </tr>
@@ -145,6 +148,20 @@ export function FleetVesselTable({
                   </td>
                   <td className="px-4 py-4">
                     <InsuranceBadge hasInsurance={vessel.hasInsurance} expiryDate={vessel.insuranceExpiry} />
+                  </td>
+                  <td className="px-4 py-4">
+                    {vessel.currentEngineHours != null ? (
+                      <div>
+                        <span className={`tabular-nums font-medium ${cellColor}`}>
+                          {vessel.currentEngineHours.toLocaleString()} hrs
+                        </span>
+                        {vessel.engineManufacturer && (
+                          <p className={`text-xs mt-0.5 ${subColor}`}>{vessel.engineManufacturer}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <span className={`text-xs ${subColor}`}>—</span>
+                    )}
                   </td>
                   <td className={`px-4 py-4 tabular-nums ${cellColor}`}>
                     {vessel.openWorkOrderCount}
