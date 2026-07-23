@@ -113,7 +113,9 @@ export const createProfile = internalMutation({
     role: v.union(
       v.literal("admin"),
       v.literal("owner"),
-      v.literal("mechanic")
+      v.literal("mechanic"),
+      v.literal("fleet_manager"),
+      v.literal("captain")
     ),
   },
   handler: async (ctx, args) => {
