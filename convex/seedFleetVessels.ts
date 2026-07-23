@@ -1,31 +1,50 @@
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
-// One-time utility: wipe all auth + user records for an email so account can be recreated
-export const deleteUserByEmail = mutation({
-  args: { email: v.string() },
+// Admin utility: find duplicate user accounts by name for deduplication
+export const findDuplicateUsers = query({
+  args: { firstName: v.string(), lastName: v.string() },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
-      .first();
-    if (!user) return { deleted: false, reason: "user not found" };
+    const users = await ctx.db.query("users").collect();
+    return users
+      .filter(
+        (u) =>
+          u.firstName?.toLowerCase() === args.firstName.toLowerCase() &&
+          u.lastName?.toLowerCase() === args.lastName.toLowerCase()
+      )
+      .map((u) => ({
+        _id: u._id,
+        email: u.email,
+        role: u.role,
+        onboardingCompleted: u.onboardingCompleted,
+        companyName: u.companyName,
+        creationTime: u._creationTime,
+      }));
+  },
+});
+
+// Admin utility: delete a user record by ID (keeps auth accounts intact)
+export const deleteUserById = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) return { deleted: false, reason: "not found" };
 
     const accounts = await ctx.db
       .query("authAccounts")
-      .withIndex("userIdAndProvider", (q) => q.eq("userId", user._id))
+      .withIndex("userIdAndProvider", (q) => q.eq("userId", args.userId))
       .collect();
     for (const a of accounts) await ctx.db.delete(a._id);
 
     const sessions = await ctx.db
       .query("authSessions")
-      .withIndex("userId", (q) => q.eq("userId", user._id))
+      .withIndex("userId", (q) => q.eq("userId", args.userId))
       .collect();
     for (const s of sessions) await ctx.db.delete(s._id);
 
-    await ctx.db.delete(user._id);
-    return { deleted: true, accountsRemoved: accounts.length, sessionsRemoved: sessions.length };
+    await ctx.db.delete(args.userId);
+    return { deleted: true, email: user.email, accountsRemoved: accounts.length, sessionsRemoved: sessions.length };
   },
 });
 
