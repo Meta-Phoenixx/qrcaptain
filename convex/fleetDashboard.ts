@@ -10,7 +10,33 @@ export const getFleetDashboard = query({
     const { userId, user } = await requireAuth(ctx);
     const fleet = await ctx.db.get(args.fleetId);
     if (!fleet) return null;
-    if (user.role !== "admin" && fleet.ownerId !== userId) return null;
+
+    // Allow: admin, fleet owner, or mechanic authorized on any vessel in the fleet
+    if (user.role !== "admin" && fleet.ownerId !== userId) {
+      if (user.role === "mechanic") {
+        const fleetAuth = await ctx.db.query("fleetMechanicAuthorizations")
+          .withIndex("by_fleet_mechanic", (q) => q.eq("fleetId", args.fleetId).eq("mechanicId", userId))
+          .first();
+        // Also check vessel-level authorizations within this fleet
+        if (!fleetAuth) {
+          const fleetVessels = await ctx.db.query("vessels")
+            .withIndex("by_fleet", (q) => q.eq("fleetId", args.fleetId))
+            .collect();
+          const vesselIds = fleetVessels.map((v) => v._id);
+          const vesselAuths = await Promise.all(
+            vesselIds.map((vid) =>
+              ctx.db.query("mechanicAuthorizations")
+                .withIndex("by_vessel_mechanic", (q) => q.eq("vesselId", vid).eq("mechanicId", userId))
+                .filter((q) => q.eq(q.field("isActive"), true))
+                .first()
+            )
+          );
+          if (!vesselAuths.some(Boolean)) return null;
+        }
+      } else {
+        return null;
+      }
+    }
 
     const vessels = await ctx.db.query("vessels")
       .withIndex("by_fleet", (q) => q.eq("fleetId", args.fleetId))
@@ -250,9 +276,34 @@ export const listAllFleetsDashboard = query({
   args: {},
   handler: async (ctx) => {
     const { userId, user } = await requireAuth(ctx);
-    const fleets = user.role === "admin"
-      ? await ctx.db.query("fleets").collect()
-      : await ctx.db.query("fleets").withIndex("by_owner", (q) => q.eq("ownerId", userId)).collect();
+
+    let fleets;
+    if (user.role === "admin") {
+      fleets = await ctx.db.query("fleets").collect();
+    } else if (user.role === "mechanic") {
+      // Fleets via fleet-level mechanic authorizations
+      const fleetAuths = await ctx.db.query("fleetMechanicAuthorizations")
+        .withIndex("by_mechanic", (q) => q.eq("mechanicId", userId))
+        .collect();
+      const fleetIdsFromFleetAuth = fleetAuths.map((a) => a.fleetId);
+
+      // Fleets via vessel-level mechanic authorizations
+      const vesselAuths = await ctx.db.query("mechanicAuthorizations")
+        .withIndex("by_mechanic", (q) => q.eq("mechanicId", userId))
+        .filter((q) => q.eq(q.field("isActive"), true))
+        .collect();
+      const vesselFleetIds = await Promise.all(
+        vesselAuths.map(async (a) => {
+          const vessel = await ctx.db.get(a.vesselId);
+          return vessel?.fleetId ?? null;
+        })
+      );
+
+      const allFleetIds = [...new Set([...fleetIdsFromFleetAuth, ...vesselFleetIds.filter(Boolean)])];
+      fleets = (await Promise.all(allFleetIds.map((id) => ctx.db.get(id!)))).filter(Boolean) as typeof fleets;
+    } else {
+      fleets = await ctx.db.query("fleets").withIndex("by_owner", (q) => q.eq("ownerId", userId)).collect();
+    }
 
     return Promise.all(fleets.map(async (fleet) => {
       const vessels = await ctx.db.query("vessels").withIndex("by_fleet", (q) => q.eq("fleetId", fleet._id)).collect();

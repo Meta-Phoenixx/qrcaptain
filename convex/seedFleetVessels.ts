@@ -921,3 +921,69 @@ export const clearFleetData = mutation({
     return { removedFleets: fleets.length, removedVessels, removedEquipment, removedHoursLogs };
   },
 });
+
+// Admin utility: look up a user by email to diagnose login issues
+export const findUserByEmail = query({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const users = await ctx.db.query("users").collect();
+    const user = users.find((u) => u.email?.toLowerCase() === args.email.toLowerCase());
+    if (!user) return null;
+    const accounts = await ctx.db
+      .query("authAccounts")
+      .withIndex("userIdAndProvider", (q) => q.eq("userId", user._id))
+      .collect();
+    return {
+      _id: user._id,
+      email: user.email,
+      role: user.role,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      onboardingCompleted: user.onboardingCompleted,
+      companyName: user.companyName,
+      creationTime: user._creationTime,
+      authAccounts: accounts.map((a) => ({ provider: a.provider, providerAccountId: a.providerAccountId })),
+    };
+  },
+});
+
+// Admin utility: swap a user's email (both users table + authAccounts providerAccountId)
+export const swapUserEmail = mutation({
+  args: { userId: v.id("users"), newEmail: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) return { ok: false, reason: "user not found" };
+    const oldEmail = user.email;
+
+    // Update users table
+    await ctx.db.patch(args.userId, { email: args.newEmail });
+
+    // Update authAccounts providerAccountId (password provider uses email as ID)
+    const accounts = await ctx.db
+      .query("authAccounts")
+      .withIndex("userIdAndProvider", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const acct of accounts) {
+      if (acct.provider === "password") {
+        await ctx.db.patch(acct._id, { providerAccountId: args.newEmail });
+      }
+    }
+
+    return { ok: true, oldEmail, newEmail: args.newEmail, accountsUpdated: accounts.length };
+  },
+});
+
+// Admin utility: directly set a user's password hash (bypasses email reset flow)
+export const setUserPasswordHash = mutation({
+  args: { userId: v.id("users"), passwordHash: v.string() },
+  handler: async (ctx, args) => {
+    const accounts = await ctx.db
+      .query("authAccounts")
+      .withIndex("userIdAndProvider", (q) => q.eq("userId", args.userId))
+      .collect();
+    const passAcct = accounts.find((a) => a.provider === "password");
+    if (!passAcct) return { ok: false, reason: "no password account found" };
+    await ctx.db.patch(passAcct._id, { secret: args.passwordHash });
+    return { ok: true };
+  },
+});
