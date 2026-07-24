@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { requireAuth } from "./lib/auth";
 import { computeServicePrediction } from "./lib/servicePredictor";
+import { getFileUrl } from "./lib/fileStorage";
 
 export const getFleetDashboard = query({
   args: { fleetId: v.id("fleets") },
@@ -108,6 +109,14 @@ export const getFleetDashboard = query({
         .filter((q) => q.eq(q.field("isActive"), true))
         .first();
       const mechUser = mechAuth ? await ctx.db.get(mechAuth.mechanicId) : null;
+      const mechPhotoUrl = mechUser?.profilePhotoStorageId
+        ? await getFileUrl(ctx, mechUser.profilePhotoStorageId)
+        : null;
+
+      // Vessel image
+      const vesselImageUrl = vessel.imageStorageId
+        ? await getFileUrl(ctx, vessel.imageStorageId)
+        : null;
 
       // Next scheduled service date (earliest upcoming across all equipment)
       const upcomingDates = equipment
@@ -132,6 +141,8 @@ export const getFleetDashboard = query({
         hasMechanic: !!mechAuth,
         mechanicName: mechUser ? `${mechUser.firstName ?? ""} ${mechUser.lastName ?? ""}`.trim() : null,
         mechanicCompany: mechUser?.companyName ?? null,
+        mechanicPhotoUrl: mechPhotoUrl,
+        vesselImageUrl,
         insuranceExpiry: vessel.insuranceInfo?.expiryDate ?? null,
         hasInsurance: !!vessel.insuranceInfo,
         currentEngineHours,
@@ -168,6 +179,31 @@ export const getFleetDashboard = query({
     const uncoveredVessels = vesselSummaries.filter((v) => !v.hasMechanic).length;
     const coveredVessels = vesselSummaries.filter((v) => v.hasMechanic).length;
 
+    // Primary assigned mechanic (most frequently assigned across the fleet)
+    const mechCount: Record<string, { count: number; name: string; company: string | null; photoUrl: string | null }> = {};
+    for (const v of vesselSummaries) {
+      if (v.mechanicName) {
+        const key = v.mechanicName;
+        if (!mechCount[key]) mechCount[key] = { count: 0, name: v.mechanicName, company: v.mechanicCompany ?? null, photoUrl: v.mechanicPhotoUrl ?? null };
+        mechCount[key].count++;
+      }
+    }
+    const primaryMechanic = Object.values(mechCount).sort((a, b) => b.count - a.count)[0] ?? null;
+
+    // Estimated cost totals from open work orders
+    const allWorkOrderDocs = await Promise.all(
+      vessels.map((v) => ctx.db.query("workOrders").withIndex("by_vessel", (q) => q.eq("vesselId", v._id)).collect())
+    );
+    let approvedCost = 0;
+    let pendingCost = 0;
+    for (const wos of allWorkOrderDocs) {
+      for (const wo of wos) {
+        if (wo.status === "in_progress" && wo.quotedTotalEstimate) approvedCost += wo.quotedTotalEstimate;
+        else if ((wo.status === "quoted" || wo.status === "quote_requested") && wo.quotedTotalEstimate) pendingCost += wo.quotedTotalEstimate;
+      }
+    }
+    const totalEstimatedCost = approvedCost + pendingCost;
+
     // Fleet-wide aggregates
     const totalPartsFlagged = vesselSummaries.reduce((s, v) => s + v.partsFlaggedCount, 0);
     const hoursArr = vesselSummaries.map((v) => v.currentEngineHours).filter((h): h is number => h !== null);
@@ -191,6 +227,10 @@ export const getFleetDashboard = query({
       insuranceExpiringSoon,
       insuranceMissing,
       warrantyExpiringSoon,
+      primaryMechanic,
+      approvedCost,
+      pendingCost,
+      totalEstimatedCost,
       vessels: vesselSummaries.sort((a, b) => {
         // Sort: overdue > approaching > out_of_service > in_maintenance > in_service > storage
         const urgency = (v: typeof a) => {

@@ -6,13 +6,12 @@ import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { GlassButton } from "./ui/glass";
-import { useTheme } from "./providers/theme-provider";
 import { FleetCreateModal } from "./fleet-create-modal";
 import { FleetVesselTable } from "./fleet-vessel-table";
 import { FleetSettingsPanel } from "./fleet-settings-panel";
 import { FleetAddVesselModal } from "./fleet-add-vessel-modal";
 
-// ─── Arc helper for SVG donuts ────────────────────────────────────────────────
+// ─── Arc helper ───────────────────────────────────────────────────────────────
 function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: number) {
   const toRad = (d: number) => ((d - 90) * Math.PI) / 180;
   const x1 = cx + r * Math.cos(toRad(startDeg));
@@ -23,7 +22,7 @@ function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: nu
   return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
 }
 
-// ─── Fleet health donut ───────────────────────────────────────────────────────
+// ─── Health donut ─────────────────────────────────────────────────────────────
 function HealthDonut({ score, trend }: { score: number; trend?: number }) {
   const color = score >= 80 ? "#10b981" : score >= 60 ? "#f59e0b" : "#ef4444";
   const label = score >= 80 ? "Good" : score >= 60 ? "Fair" : "Critical";
@@ -48,7 +47,7 @@ function HealthDonut({ score, trend }: { score: number; trend?: number }) {
   );
 }
 
-// ─── Top KPI tile ─────────────────────────────────────────────────────────────
+// ─── KPI tile ─────────────────────────────────────────────────────────────────
 function KpiTile({ value, label, sub, color, onClick }: {
   value: number | string; label: string; sub?: string;
   color: "green" | "yellow" | "red" | "blue" | "gray"; onClick?: () => void;
@@ -63,17 +62,58 @@ function KpiTile({ value, label, sub, color, onClick }: {
   );
 }
 
-// ─── Multi-segment fleet overview donut ──────────────────────────────────────
+// ─── Assigned mechanic widget ─────────────────────────────────────────────────
+function AssignedMechanicWidget({ mechanic }: {
+  mechanic: { name: string; company: string | null; photoUrl: string | null } | null;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 p-4 rounded-2xl bg-white/[0.04] border border-white/[0.07] min-w-[160px]">
+      <p className="text-[10px] uppercase tracking-widest text-white/40 font-medium">Assigned Mechanic</p>
+      {mechanic ? (
+        <>
+          <div className="relative">
+            {mechanic.photoUrl ? (
+              <img src={mechanic.photoUrl} alt={mechanic.name} className="w-14 h-14 rounded-full object-cover border-2 border-captain-500/30" />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-captain-500/20 border-2 border-captain-500/30 flex items-center justify-center">
+                <svg className="w-7 h-7 text-captain-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+            )}
+            <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#0f1929]" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-white leading-tight">{mechanic.name}</p>
+            {mechanic.company && <p className="text-xs text-white/40 mt-0.5">{mechanic.company}</p>}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="w-14 h-14 rounded-full bg-white/[0.04] border-2 border-dashed border-white/20 flex items-center justify-center">
+            <svg className="w-6 h-6 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+            </svg>
+          </div>
+          <p className="text-xs text-white/30 text-center">No mechanic<br/>assigned</p>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Fleet overview donut ─────────────────────────────────────────────────────
 function FleetOverviewDonut({ total, inService, inMaintenance, approaching, overdue, onFilter }: {
   total: number; inService: number; inMaintenance: number; approaching: number; overdue: number;
   onFilter: (f: string) => void;
 }) {
   if (total === 0) return <div className="w-32 h-32 rounded-full bg-white/[0.04] flex items-center justify-center text-white/20 text-xs">No vessels</div>;
   const segments = [
-    { value: inService,     color: "#10b981", label: "In Service",         key: "in_service"     },
-    { value: inMaintenance, color: "#f59e0b", label: "In Maintenance",     key: "in_maintenance" },
-    { value: approaching,   color: "#f97316", label: "Service Due Soon",   key: "approaching"    },
-    { value: overdue,       color: "#ef4444", label: "Overdue / Out of Srvc", key: "overdue"    },
+    { value: inService,     color: "#10b981", label: "In Service",            key: "in_service"     },
+    { value: inMaintenance, color: "#f59e0b", label: "In Maintenance",        key: "in_maintenance" },
+    { value: approaching,   color: "#f97316", label: "Service Due Soon",      key: "approaching"    },
+    { value: overdue,       color: "#ef4444", label: "Overdue / Out of Srvc", key: "overdue"        },
   ].filter((s) => s.value > 0);
   let startDeg = 0;
   const arcs = segments.map((seg) => {
@@ -144,7 +184,68 @@ function ServiceStatusDonut({ overdue, approaching }: { overdue: number; approac
   );
 }
 
-// ─── Icon stat card ───────────────────────────────────────────────────────────
+// ─── Cost card ────────────────────────────────────────────────────────────────
+function CostCard({ total, approved, pending, inService, inMaintenance, attention }: {
+  total: number; approved: number; pending: number;
+  inService: number; inMaintenance: number; attention: number;
+}) {
+  const fmt = (n: number) => `$${n.toLocaleString()}`;
+  const hasData = total > 0;
+  return (
+    <div className="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-5 flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-white">Upcoming Maintenance Cost</h3>
+        <button className="text-xs text-captain-400 hover:text-captain-300">View All</button>
+      </div>
+      <div>
+        <p className="text-3xl font-bold text-white">{hasData ? fmt(total) : "—"}</p>
+        <p className="text-xs text-white/40 mt-1">Total Estimated</p>
+      </div>
+      {hasData && (
+        <>
+          <div className="flex h-2 rounded-full overflow-hidden gap-px">
+            <div className="rounded-l-full bg-emerald-500" style={{ flex: Math.max(approved, 0.5) }} />
+            <div className="bg-amber-500" style={{ flex: Math.max(pending, 0.5) }} />
+            <div className="rounded-r-full bg-red-500" style={{ flex: 0.5 }} />
+          </div>
+          <div className="flex flex-col gap-2">
+            {[
+              { color: "bg-emerald-500", label: "Approved Work",  value: fmt(approved) },
+              { color: "bg-amber-500",   label: "Quotes Pending", value: fmt(pending)  },
+              { color: "bg-red-500",     label: "Future Parts",   value: "—"           },
+            ].map((r) => (
+              <div key={r.label} className="flex items-center gap-2.5">
+                <span className={`w-2.5 h-2.5 rounded-sm ${r.color} flex-shrink-0`} />
+                <span className="text-xs text-white/50 flex-1">{r.label}</span>
+                <span className="text-xs font-medium text-white/70">{r.value}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      {!hasData && (
+        <div className="flex flex-col gap-2">
+          {[
+            { color: "bg-emerald-500", label: "In Service",      value: `${inService} vessels`    },
+            { color: "bg-amber-500",   label: "Maintenance",     value: `${inMaintenance} vessels` },
+            { color: "bg-red-500",     label: "Needs Attention", value: `${attention} vessels`     },
+          ].map((r) => (
+            <div key={r.label} className="flex items-center gap-2.5">
+              <span className={`w-2.5 h-2.5 rounded-sm ${r.color} flex-shrink-0`} />
+              <span className="text-xs text-white/50 flex-1">{r.label}</span>
+              <span className="text-xs font-medium text-white/70">{r.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <button className="text-xs text-captain-400 hover:text-captain-300 font-medium transition-colors text-left mt-auto">
+        View Cost Breakdown →
+      </button>
+    </div>
+  );
+}
+
+// ─── Icon stat ────────────────────────────────────────────────────────────────
 function IconStat({ icon, value, label, sub, linkLabel, onLink }: {
   icon: React.ReactNode; value: number | string; label: string; sub: string; linkLabel: string; onLink?: () => void;
 }) {
@@ -163,7 +264,7 @@ function IconStat({ icon, value, label, sub, linkLabel, onLink }: {
   );
 }
 
-// ─── Quick actions panel ──────────────────────────────────────────────────────
+// ─── Quick actions ────────────────────────────────────────────────────────────
 function QuickActions({ onAddVessel, onSettings }: { onAddVessel: () => void; onSettings: () => void }) {
   const router = useRouter();
   const actions = [
@@ -175,7 +276,7 @@ function QuickActions({ onAddVessel, onSettings }: { onAddVessel: () => void; on
   return (
     <div className="rounded-2xl bg-white/[0.03] border border-white/[0.07] overflow-hidden w-full lg:w-60 lg:flex-shrink-0">
       <div className="px-4 py-3 border-b border-white/[0.06]">
-        <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">Quick Actions</p>
+        <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">Alerts &amp; Notifications</p>
       </div>
       <div className="p-3 flex flex-col gap-2">
         <button onClick={onAddVessel} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-captain-500 hover:bg-captain-400 text-white text-sm font-semibold transition-colors">
@@ -197,58 +298,25 @@ function QuickActions({ onAddVessel, onSettings }: { onAddVessel: () => void; on
   );
 }
 
-// ─── Fleet selector dropdown ──────────────────────────────────────────────────
-function FleetDropdown({ fleets, selectedId, onSelect }: {
-  fleets: Array<{ _id: Id<"fleets">; name: string; vesselCount: number }>;
-  selectedId: Id<"fleets"> | null; onSelect: (id: Id<"fleets">) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const selected = fleets.find((f) => f._id === selectedId);
-  return (
-    <div className="relative">
-      <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] transition-colors text-xs sm:text-sm whitespace-nowrap">
-        <span className="font-semibold text-white truncate max-w-[120px] sm:max-w-none">{selected?.name ?? "Select Fleet"}</span>
-        <span className="text-white/40 text-xs">↓</span>
-        {selected && <span className="text-white/40 text-xs hidden sm:inline">{selected.vesselCount} Vessels</span>}
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 w-52 rounded-xl bg-[#1a2540] border border-white/[0.1] shadow-xl z-50 overflow-hidden">
-          {fleets.map((f) => (
-            <button key={f._id} onClick={() => { onSelect(f._id); setOpen(false); }}
-              className={`w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-white/[0.06] transition-colors text-left ${selectedId === f._id ? "text-captain-400" : "text-white/80"}`}>
-              <span>{f.name}</span>
-              <span className="text-xs text-white/30">{f.vesselCount}v</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Main dashboard ───────────────────────────────────────────────────────────
-export function FleetDashboard() {
-  const { mode } = useTheme();
+export function FleetDashboard({
+  selectedFleetId,
+  setSelectedFleetId,
+  fleetList,
+}: {
+  selectedFleetId: Id<"fleets"> | null;
+  setSelectedFleetId: (id: Id<"fleets">) => void;
+  fleetList: Array<{ _id: Id<"fleets">; name: string; vesselCount: number }>;
+}) {
   const router = useRouter();
-  const [selectedFleetId, setSelectedFleetId] = useState<Id<"fleets"> | null>(null);
   const [showCreateFleet, setShowCreateFleet] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showAddVessel, setShowAddVessel] = useState(false);
 
   const a = api as any;
-  const fleetList = useQuery(a.fleetDashboard.listAllFleetsDashboard);
   const dashboard = useQuery(a.fleetDashboard.getFleetDashboard, selectedFleetId ? { fleetId: selectedFleetId } : "skip");
-
-  if (fleetList && fleetList.length > 0 && !selectedFleetId) setSelectedFleetId(fleetList[0]._id);
-
-  if (fleetList === undefined) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 border-2 border-captain-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const d = dashboard;
 
   if (fleetList.length === 0) {
     return (
@@ -266,8 +334,6 @@ export function FleetDashboard() {
     );
   }
 
-  const d = dashboard;
-
   return (
     <div className="min-h-screen px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-5 max-w-[1400px] mx-auto">
 
@@ -275,10 +341,9 @@ export function FleetDashboard() {
       <div className="flex items-start justify-between gap-2 sm:gap-4">
         <div className="min-w-0">
           <h1 className="text-lg sm:text-2xl font-bold font-heading text-white leading-tight">Fleet Command Center</h1>
-          <p className="text-xs sm:text-sm text-white/40 mt-0.5 hidden sm:block">Real-time health and service status across your fleet</p>
+          <p className="text-xs sm:text-sm text-white/40 mt-0.5">Real-time health and service status across your fleet</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Bell */}
           <button className="relative p-2 sm:p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-colors text-white/50 hover:text-white">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -289,7 +354,6 @@ export function FleetDashboard() {
               </span>
             )}
           </button>
-          {/* Settings */}
           {selectedFleetId && (
             <button onClick={() => setShowSettings(true)} className="p-2 sm:p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-colors text-white/50 hover:text-white">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -298,23 +362,17 @@ export function FleetDashboard() {
               </svg>
             </button>
           )}
-          {/* New Fleet */}
           <button onClick={() => setShowCreateFleet(true)} className="flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-captain-500 hover:bg-captain-400 text-white text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap">
-            + <span className="hidden sm:inline">New</span> Fleet
+            + New Fleet
           </button>
         </div>
       </div>
 
       {/* ── Top KPI strip ─────────────────────────────────────────────────── */}
-      {/* Mobile: health full-width, then 2x3 grid of KPIs */}
-      {/* Desktop: single 7-col row */}
       <div className="flex flex-col lg:flex-row gap-3 lg:items-stretch">
-        {/* Health donut — full width on mobile, fixed width on desktop */}
         <div className="flex items-center justify-center p-4 rounded-2xl bg-white/[0.04] border border-white/[0.07] lg:w-48 lg:flex-shrink-0">
           <HealthDonut score={d?.healthScore ?? 0} trend={8} />
         </div>
-
-        {/* 5 KPI tiles: 2-col on mobile, 3-col on sm, 5-col on lg */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 flex-1">
           <KpiTile value={d?.approachingCount ?? 0} label="Service Due Soon" sub="within 14 days"
             color={d && d.approachingCount > 0 ? "yellow" : "gray"} onClick={() => setActiveFilter("approaching")} />
@@ -327,14 +385,11 @@ export function FleetDashboard() {
           <KpiTile value={d?.outOfServiceCount ?? 0} label="Out of Service" sub="not operational"
             color={d && d.outOfServiceCount > 0 ? "red" : "gray"} onClick={() => setActiveFilter("out_of_service")} />
         </div>
-
-        {/* Fleet dropdown — below on mobile, right of KPIs on desktop */}
-        <div className="flex lg:items-center">
-          <FleetDropdown fleets={fleetList} selectedId={selectedFleetId} onSelect={setSelectedFleetId} />
+        <div className="lg:flex-shrink-0">
+          <AssignedMechanicWidget mechanic={d?.primaryMechanic ?? null} />
         </div>
       </div>
 
-      {/* Loading */}
       {!d && selectedFleetId && (
         <div className="flex justify-center py-16">
           <div className="w-6 h-6 border-2 border-captain-500 border-t-transparent rounded-full animate-spin" />
@@ -343,9 +398,8 @@ export function FleetDashboard() {
 
       {d && (
         <>
-          {/* ── Middle row: 1-col mobile → 3-col desktop ─────────────────── */}
+          {/* ── Middle cards ──────────────────────────────────────────────── */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Fleet Overview */}
             <div className="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-5 flex flex-col gap-4">
               <h3 className="text-sm font-semibold text-white">Fleet Overview</h3>
               <FleetOverviewDonut
@@ -358,7 +412,6 @@ export function FleetDashboard() {
               </button>
             </div>
 
-            {/* Service Status */}
             <div className="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-5 flex flex-col gap-4">
               <h3 className="text-sm font-semibold text-white">Service Status</h3>
               <ServiceStatusDonut overdue={d.overdueCount} approaching={d.approachingCount} />
@@ -367,43 +420,17 @@ export function FleetDashboard() {
               </button>
             </div>
 
-            {/* Maintenance Cost */}
-            <div className="rounded-2xl bg-white/[0.03] border border-white/[0.07] p-5 flex flex-col gap-4 md:col-span-2 lg:col-span-1">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-white">Upcoming Maintenance Cost</h3>
-                <button className="text-xs text-captain-400 hover:text-captain-300">View All</button>
-              </div>
-              <div>
-                <p className="text-2xl sm:text-3xl font-bold text-white">
-                  {d.totalOpenWorkOrders > 0 ? "Quotes Pending" : "—"}
-                </p>
-                <p className="text-xs text-white/40 mt-1">Total Estimated</p>
-              </div>
-              <div className="flex h-2 rounded-full overflow-hidden gap-0.5">
-                <div className="rounded-l-full bg-emerald-500" style={{ flex: Math.max(d.inServiceCount, 0.5) }} />
-                <div className="bg-amber-500" style={{ flex: Math.max(d.inMaintenanceCount, 0.5) }} />
-                <div className="rounded-r-full bg-red-500" style={{ flex: Math.max(d.outOfServiceCount + d.overdueCount, 0.5) }} />
-              </div>
-              <div className="flex flex-col gap-2">
-                {[
-                  { color: "bg-emerald-500", label: "In Service",       value: `${d.inServiceCount} vessels`                       },
-                  { color: "bg-amber-500",   label: "Maintenance",      value: `${d.inMaintenanceCount} vessels`                   },
-                  { color: "bg-red-500",     label: "Needs Attention",  value: `${d.overdueCount + d.outOfServiceCount} vessels`   },
-                ].map((r) => (
-                  <div key={r.label} className="flex items-center gap-2.5">
-                    <span className={`w-2.5 h-2.5 rounded-sm ${r.color} flex-shrink-0`} />
-                    <span className="text-xs text-white/50 flex-1">{r.label}</span>
-                    <span className="text-xs font-medium text-white/70">{r.value}</span>
-                  </div>
-                ))}
-              </div>
-              <button className="text-xs text-captain-400 hover:text-captain-300 font-medium transition-colors text-left mt-auto">
-                View Cost Breakdown →
-              </button>
-            </div>
+            <CostCard
+              total={d.totalEstimatedCost ?? 0}
+              approved={d.approvedCost ?? 0}
+              pending={d.pendingCost ?? 0}
+              inService={d.inServiceCount}
+              inMaintenance={d.inMaintenanceCount}
+              attention={d.overdueCount + d.outOfServiceCount}
+            />
           </div>
 
-          {/* ── Icon stats: 2-col mobile → 5-col desktop ─────────────────── */}
+          {/* ── Icon stats ────────────────────────────────────────────────── */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <IconStat
               icon={<svg className="w-5 h-5 text-captain-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>}
@@ -433,8 +460,7 @@ export function FleetDashboard() {
             />
           </div>
 
-          {/* ── Vessel roster + Quick actions ────────────────────────────── */}
-          {/* Stack on mobile, side-by-side on large screens */}
+          {/* ── Vessel roster + Quick actions ─────────────────────────────── */}
           <div className="flex flex-col lg:flex-row gap-4 items-start">
             <div className="flex-1 min-w-0 w-full">
               <FleetVesselTable
@@ -449,7 +475,6 @@ export function FleetDashboard() {
         </>
       )}
 
-      {/* Modals */}
       {showCreateFleet && (
         <FleetCreateModal onSuccess={(id) => { setSelectedFleetId(id); setShowCreateFleet(false); }} onClose={() => setShowCreateFleet(false)} />
       )}
