@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
-import Image from "next/image";
 
 const NAV_ITEMS = [
   { label: "Command Center", href: "/fleet",       icon: (
@@ -49,8 +49,22 @@ export function FleetSideNav({
   const pathname = usePathname();
   const router = useRouter();
   const [fleetOpen, setFleetOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const { signOut } = useAuthActions();
   const a = api as any;
   const me = useQuery(a.users.currentUser);
+
+  // Close profile popover on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    if (profileOpen) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [profileOpen]);
 
   const selectedFleet = fleets.find((f) => f._id === selectedFleetId);
   const initials = me ? `${me.firstName?.[0] ?? ""}${me.lastName?.[0] ?? ""}`.toUpperCase() : "?";
@@ -141,20 +155,59 @@ export function FleetSideNav({
           Support
         </button>
 
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer">
-          <div className="w-8 h-8 rounded-full bg-captain-500/20 border border-captain-500/30 flex items-center justify-center flex-shrink-0">
-            {me?.profilePhotoStorageId ? (
-              <img src={me.profilePhotoStorageId} alt="" className="w-8 h-8 rounded-full object-cover" />
-            ) : (
-              <span className="text-xs font-bold text-captain-300">{initials}</span>
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-white truncate">
-              {me ? `${me.firstName ?? ""} ${me.lastName ?? ""}`.trim() : "Loading…"}
-            </p>
-            <p className="text-[10px] text-white/35 capitalize">{me?.role?.replace("_", " ") ?? ""}</p>
-          </div>
+        <div className="relative" ref={profileRef}>
+          {/* Profile popover */}
+          {profileOpen && (
+            <div className="absolute bottom-full left-0 right-0 mb-2 rounded-xl bg-[#1a2540] border border-white/[0.1] shadow-xl overflow-hidden z-50">
+              <div className="px-4 py-3 border-b border-white/[0.08]">
+                <p className="text-xs font-semibold text-white truncate">
+                  {me ? `${me.firstName ?? ""} ${me.lastName ?? ""}`.trim() : ""}
+                </p>
+                <p className="text-[10px] text-white/40 truncate">{me?.email ?? ""}</p>
+              </div>
+              <button
+                onClick={() => { router.push("/home"); setProfileOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors text-left"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                View Profile
+              </button>
+              <button
+                onClick={async () => { await signOut(); router.replace("/signin"); }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors text-left"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Sign Out
+              </button>
+            </div>
+          )}
+
+          {/* Profile button */}
+          <button
+            onClick={() => setProfileOpen((o) => !o)}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors"
+          >
+            <div className="w-8 h-8 rounded-full bg-captain-500/20 border border-captain-500/30 flex items-center justify-center flex-shrink-0">
+              {me?.profilePhotoStorageId ? (
+                <img src={me.profilePhotoStorageId} alt="" className="w-8 h-8 rounded-full object-cover" />
+              ) : (
+                <span className="text-xs font-bold text-captain-300">{initials}</span>
+              )}
+            </div>
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-xs font-semibold text-white truncate">
+                {me ? `${me.firstName ?? ""} ${me.lastName ?? ""}`.trim() : "Loading…"}
+              </p>
+              <p className="text-[10px] text-white/35 capitalize">{me?.role?.replace("_", " ") ?? ""}</p>
+            </div>
+            <svg className="w-3.5 h-3.5 text-white/20 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
         </div>
       </div>
     </aside>
