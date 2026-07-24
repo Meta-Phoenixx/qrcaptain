@@ -277,9 +277,11 @@ export const listAllFleetsDashboard = query({
   handler: async (ctx) => {
     const { userId, user } = await requireAuth(ctx);
 
-    let fleets;
+    const ownerFleets = await ctx.db.query("fleets").collect();
+    type Fleet = (typeof ownerFleets)[number];
+    let fleets: Fleet[];
     if (user.role === "admin") {
-      fleets = await ctx.db.query("fleets").collect();
+      fleets = ownerFleets;
     } else if (user.role === "mechanic") {
       // Fleets via fleet-level mechanic authorizations
       const fleetAuths = await ctx.db.query("fleetMechanicAuthorizations")
@@ -299,8 +301,9 @@ export const listAllFleetsDashboard = query({
         })
       );
 
-      const allFleetIds = [...new Set([...fleetIdsFromFleetAuth, ...vesselFleetIds.filter(Boolean)])];
-      fleets = (await Promise.all(allFleetIds.map((id) => ctx.db.get(id!)))).filter(Boolean) as typeof fleets;
+      const allFleetIds = [...new Set([...fleetIdsFromFleetAuth, ...vesselFleetIds.filter((id): id is NonNullable<typeof id> => id !== null)])];
+      const fetched = await Promise.all(allFleetIds.map((id) => ctx.db.get(id)));
+      fleets = fetched.filter((f): f is Fleet => f !== null);
     } else {
       fleets = await ctx.db.query("fleets").withIndex("by_owner", (q) => q.eq("ownerId", userId)).collect();
     }
