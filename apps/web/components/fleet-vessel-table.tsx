@@ -163,18 +163,21 @@ export function FleetVesselTable({
   return (
     <div className={`rounded-2xl border overflow-hidden ${card}`}>
       {/* Table header bar */}
-      <div className={`flex items-center justify-between gap-3 px-5 py-4 border-b ${divider} flex-wrap`}>
-        <h2 className={`text-sm font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
-          Vessel Roster
-          {activeFilter && (
-            <button onClick={onClearFilter} className="ml-2 text-xs font-normal text-captain-400 hover:text-captain-300">
-              — clear filter ×
-            </button>
-          )}
-        </h2>
-        <div className="flex items-center gap-2 flex-wrap">
+      <div className={`flex flex-col gap-3 px-4 sm:px-5 py-4 border-b ${divider}`}>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className={`text-sm font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>
+            Vessel Roster
+            {activeFilter && (
+              <button onClick={onClearFilter} className="ml-2 text-xs font-normal text-captain-400 hover:text-captain-300">
+                — clear filter ×
+              </button>
+            )}
+          </h2>
+          <span className="text-xs text-white/30 flex-shrink-0">{filtered.length} vessel{filtered.length !== 1 ? "s" : ""}</span>
+        </div>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           {/* Search */}
-          <div className="relative">
+          <div className="relative flex-1 sm:max-w-[200px]">
             <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -182,32 +185,33 @@ export function FleetVesselTable({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search vessels..."
-              className="pl-8 pr-3 py-1.5 text-xs rounded-lg bg-white/[0.06] border border-white/10 text-white placeholder-white/25 focus:outline-none focus:border-captain-500/50 w-44"
+              className="w-full pl-8 pr-3 py-2 text-xs rounded-lg bg-white/[0.06] border border-white/10 text-white placeholder-white/25 focus:outline-none focus:border-captain-500/50"
             />
           </div>
-          {/* Status filter */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-1.5 text-xs rounded-lg bg-white/[0.06] border border-white/10 text-white/70 focus:outline-none focus:border-captain-500/50"
-          >
-            <option value="all">All Status</option>
-            <option value="in_service">In Service</option>
-            <option value="in_maintenance">In Maintenance</option>
-            <option value="out_of_service">Out of Service</option>
-            <option value="storage">Storage</option>
-          </select>
-          {/* Mechanic filter */}
-          <select
-            value={mechanicFilter}
-            onChange={(e) => setMechanicFilter(e.target.value)}
-            className="px-3 py-1.5 text-xs rounded-lg bg-white/[0.06] border border-white/10 text-white/70 focus:outline-none focus:border-captain-500/50"
-          >
-            <option value="all">All Mechanics</option>
-            <option value="covered">Assigned</option>
-            <option value="uncovered">Uncovered</option>
-          </select>
-          <span className="text-xs text-white/30">{filtered.length} vessel{filtered.length !== 1 ? "s" : ""}</span>
+          <div className="flex gap-2">
+            {/* Status filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="flex-1 px-3 py-2 text-xs rounded-lg bg-white/[0.06] border border-white/10 text-white/70 focus:outline-none focus:border-captain-500/50"
+            >
+              <option value="all">All Status</option>
+              <option value="in_service">In Service</option>
+              <option value="in_maintenance">Maintenance</option>
+              <option value="out_of_service">Out of Service</option>
+              <option value="storage">Storage</option>
+            </select>
+            {/* Mechanic filter */}
+            <select
+              value={mechanicFilter}
+              onChange={(e) => setMechanicFilter(e.target.value)}
+              className="flex-1 px-3 py-2 text-xs rounded-lg bg-white/[0.06] border border-white/10 text-white/70 focus:outline-none focus:border-captain-500/50"
+            >
+              <option value="all">All Mechanics</option>
+              <option value="covered">Assigned</option>
+              <option value="uncovered">Uncovered</option>
+            </select>
+          </div>
         </div>
       </div>
 
