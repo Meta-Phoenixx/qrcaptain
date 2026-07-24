@@ -436,6 +436,8 @@ function MechanicLandingPage({
     },
   ];
 
+  const fleets = useQuery(api.fleetDashboard.listAllFleetsDashboard) ?? [];
+
   const quickActions: QuickAction[] = [
     {
       label: "View Work Orders",
@@ -472,6 +474,34 @@ function MechanicLandingPage({
         </div>
         <QuickActions actions={quickActions} />
       </div>
+
+      {/* Fleet Dashboard shortcut — shown when mechanic is assigned to one or more fleets */}
+      {fleets.length > 0 && (
+        <div
+          className="flex items-center justify-between gap-4 rounded-2xl px-5 py-4 cursor-pointer"
+          style={{ background: "linear-gradient(135deg, rgba(14,165,233,0.15) 0%, rgba(56,189,248,0.08) 100%)", border: "1px solid rgba(14,165,233,0.25)" }}
+          onClick={() => router.push("/fleet")}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "rgba(14,165,233,0.2)" }}>
+              <svg className="w-5 h-5 text-captain-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+            </div>
+            <div>
+              <p className={`text-sm font-semibold ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
+                {fleets.length === 1 ? fleets[0].name : `${fleets.length} Assigned Fleets`}
+              </p>
+              <p className={`text-xs ${mode === 'dark' ? "text-captain-300/70" : "text-captain-600"}`}>
+                {fleets.reduce((s, f) => s + f.vesselCount, 0)} vessels · View fleet dashboard
+              </p>
+            </div>
+          </div>
+          <svg className="w-5 h-5 text-captain-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      )}
 
       {/* Stats */}
       <StatsCard title="Your Stats" stats={stats} />
