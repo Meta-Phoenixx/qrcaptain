@@ -30,6 +30,18 @@ export const requestAccess = mutation({
       return { status: "already_authorized", message: "You already have access to this vessel" };
     }
 
+    // Also check fleet-level authorization
+    if (vessel.fleetId) {
+      const fleetAuth = await ctx.db
+        .query("fleetMechanicAuthorizations")
+        .withIndex("by_fleet_mechanic", (q) => q.eq("fleetId", vessel.fleetId!).eq("mechanicId", userId))
+        .filter((q) => q.eq(q.field("isActive"), true))
+        .first();
+      if (fleetAuth) {
+        return { status: "already_authorized", message: "You already have fleet-level access to this vessel" };
+      }
+    }
+
     const existingRequest = await ctx.db
       .query("accessRequests")
       .withIndex("by_vessel_mechanic", (q) =>
@@ -213,6 +225,19 @@ export const getMyRequestStatus = query({
 
     if (existingAuth) {
       return { status: "authorized", authorizedAt: existingAuth.authorizedAt };
+    }
+
+    // Check fleet-level authorization
+    const vessel = await ctx.db.get(args.vesselId);
+    if (vessel?.fleetId) {
+      const fleetAuth = await ctx.db
+        .query("fleetMechanicAuthorizations")
+        .withIndex("by_fleet_mechanic", (q) => q.eq("fleetId", vessel.fleetId!).eq("mechanicId", user._id))
+        .filter((q) => q.eq(q.field("isActive"), true))
+        .first();
+      if (fleetAuth) {
+        return { status: "authorized", authorizedAt: fleetAuth.authorizedAt };
+      }
     }
 
     const request = await ctx.db

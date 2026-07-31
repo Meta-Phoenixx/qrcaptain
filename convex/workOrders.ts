@@ -324,7 +324,7 @@ export const createWorkOrder = mutation({
     const vessel = await ctx.db.get(args.vesselId);
     if (!vessel) throw Errors.notFound("Vessel");
 
-    const auth = await ctx.db
+    const vesselAuth = await ctx.db
       .query("mechanicAuthorizations")
       .withIndex("by_vessel_mechanic", (q) =>
         q.eq("vesselId", args.vesselId).eq("mechanicId", userId)
@@ -332,7 +332,16 @@ export const createWorkOrder = mutation({
       .filter((q) => q.eq(q.field("isActive"), true))
       .first();
 
-    if (!auth) throw Errors.accessDenied();
+    if (!vesselAuth) {
+      const fleetId = vessel.fleetId;
+      if (!fleetId) throw Errors.accessDenied();
+      const fleetAuth = await ctx.db
+        .query("fleetMechanicAuthorizations")
+        .withIndex("by_fleet_mechanic", (q) => q.eq("fleetId", fleetId).eq("mechanicId", userId))
+        .filter((q) => q.eq(q.field("isActive"), true))
+        .first();
+      if (!fleetAuth) throw Errors.accessDenied();
+    }
 
     const workOrderId = await ctx.db.insert("workOrders", {
       vesselId: args.vesselId,

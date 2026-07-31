@@ -25,11 +25,24 @@ export const logEngineHours = mutation({
     const vessel = await ctx.db.get(args.vesselId);
     if (!vessel) throw new Error("Vessel not found");
 
-    const isMechanicAuthorized = user.role === "mechanic" && await ctx.db
-      .query("mechanicAuthorizations")
-      .withIndex("by_vessel_mechanic", (q) => q.eq("vesselId", args.vesselId).eq("mechanicId", userId))
-      .filter((q) => q.eq(q.field("isActive"), true))
-      .first();
+    let isMechanicAuthorized = false;
+    if (user.role === "mechanic") {
+      const vesselAuth = await ctx.db
+        .query("mechanicAuthorizations")
+        .withIndex("by_vessel_mechanic", (q) => q.eq("vesselId", args.vesselId).eq("mechanicId", userId))
+        .filter((q) => q.eq(q.field("isActive"), true))
+        .first();
+      if (vesselAuth) {
+        isMechanicAuthorized = true;
+      } else if (vessel.fleetId) {
+        const fleetAuth = await ctx.db
+          .query("fleetMechanicAuthorizations")
+          .withIndex("by_fleet_mechanic", (q) => q.eq("fleetId", vessel.fleetId!).eq("mechanicId", userId))
+          .filter((q) => q.eq(q.field("isActive"), true))
+          .first();
+        isMechanicAuthorized = !!fleetAuth;
+      }
+    }
     const isOwnerClass = (user.role === "owner" || user.role === "fleet_manager") && vessel.ownerId === userId;
     if (!isMechanicAuthorized && !isOwnerClass && user.role !== "admin") {
       throw new Error("Access denied");

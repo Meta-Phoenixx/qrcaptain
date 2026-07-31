@@ -37,18 +37,30 @@ async function checkVesselAccess(ctx: any, vesselId: any, userId: any) {
   // Owners can access their own vessels
   if (user.role === "owner" && vessel.ownerId === userId) return vessel;
 
-  // Mechanics can access authorized vessels
+  // Mechanics can access authorized vessels (vessel-level or fleet-level)
   if (user.role === "mechanic") {
-    const auth = await ctx.db
+    const vesselAuth = await ctx.db
       .query("mechanicAuthorizations")
       .withIndex("by_vessel_mechanic", (q: any) =>
         q.eq("vesselId", vesselId).eq("mechanicId", userId)
       )
       .filter((q: any) => q.eq(q.field("isActive"), true))
       .first();
+    if (vesselAuth) return vessel;
 
-    if (auth) return vessel;
+    const fleetId = vessel.fleetId;
+    if (fleetId) {
+      const fleetAuth = await ctx.db
+        .query("fleetMechanicAuthorizations")
+        .withIndex("by_fleet_mechanic", (q: any) => q.eq("fleetId", fleetId).eq("mechanicId", userId))
+        .filter((q: any) => q.eq(q.field("isActive"), true))
+        .first();
+      if (fleetAuth) return vessel;
+    }
   }
+
+  // Fleet managers can access vessels they own
+  if (user.role === "fleet_manager" && vessel.ownerId === userId) return vessel;
 
   return null;
 }
