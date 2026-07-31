@@ -17,37 +17,35 @@ function AuthenticatedContent() {
   const router = useRouter();
   const user = useQuery(api.users.currentUser);
 
-  // Read URL params synchronously in the state initializer to avoid race conditions.
-  // If we used useEffect to set this, the redirect effect could fire first
-  // (seeing fromHome=false) and push back to /home before the state update.
-  const [fromHome] = useState(() => {
-    if (typeof window !== "undefined") {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get("dashboard") === "true" || document.referrer.includes("/home");
-    }
-    return false;
-  });
-
-  // If user hasn't explicitly chosen to view dashboard, redirect to home
   useEffect(() => {
-    if (user && !fromHome) {
-      const preferDashboard = localStorage.getItem("qr-captain-prefer-dashboard");
-      if (!preferDashboard) {
-        router.push("/home");
-      }
+    if (!user) return;
+    if (user.role === "owner") {
+      router.replace("/my-vessels");
+    } else if (user.role === "mechanic") {
+      router.replace("/fleet");
+    } else if (user.role === "admin") {
+      router.replace("/admin");
+    } else if (user.role === "fleet_manager") {
+      router.replace("/fleet");
+    } else {
+      router.replace("/home");
     }
-  }, [user, fromHome, router]);
+  }, [user, router]);
 
-  // User data still loading
   if (user === undefined) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-captain-200 border-t-captain-600"></div>
+      <div className="flex min-h-screen items-center justify-center bg-[#0f1929]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-captain-400" />
       </div>
     );
   }
 
-  return <Dashboard />;
+  // Render nothing while redirect fires
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#0f1929]">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/10 border-t-captain-400" />
+    </div>
+  );
 }
 
 /**

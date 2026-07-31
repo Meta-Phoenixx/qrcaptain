@@ -8,6 +8,7 @@ import { Id } from "@convex/_generated/dataModel";
 import { QRCodeSVG } from "qrcode.react";
 import { Camera, Pencil, X } from "lucide-react";
 import { FleetSideNav } from "@/components/fleet-side-nav";
+import { OwnerSideNav } from "@/components/owner-side-nav";
 import { EquipmentManifest } from "@/components/equipment-manifest";
 import { ImageCropper } from "@/components/image-cropper";
 import { WorkOrderEditor } from "@/components/work-order-editor";
@@ -133,6 +134,8 @@ export default function VesselDetailPage() {
 
   const fleetList = useQuery(a.fleetDashboard.listAllFleetsDashboard) ?? [];
   const [selectedFleetId, setSelectedFleetId] = useState<Id<"fleets"> | null>(null);
+  const currentUser = useQuery(a.users.currentUser);
+  const isOwner = currentUser?.role === "owner";
   const vessel = useQuery(a.vessels.getVessel, { vesselId });
   const workOrders = useQuery(a.workOrders.getVesselWorkOrders, { vesselId });
   const vesselImageUrl = useQuery(a.storage.getVesselImageUrl, { vesselId });
@@ -248,7 +251,7 @@ export default function VesselDetailPage() {
   if (vessel === undefined || workOrders === undefined) {
     return (
       <div className="flex min-h-screen bg-[#0f1929]">
-        <FleetSideNav fleets={fleetList} selectedFleetId={selectedFleetId} onFleetChange={setSelectedFleetId} />
+        {isOwner ? <OwnerSideNav /> : <FleetSideNav fleets={fleetList} selectedFleetId={selectedFleetId} onFleetChange={setSelectedFleetId} />}
         <main className="flex-1 flex items-center justify-center">
           <div className="w-8 h-8 rounded-full border-2 border-white/10 border-t-captain-400 animate-spin" />
         </main>
@@ -259,7 +262,7 @@ export default function VesselDetailPage() {
   if (!vessel) {
     return (
       <div className="flex min-h-screen bg-[#0f1929]">
-        <FleetSideNav fleets={fleetList} selectedFleetId={selectedFleetId} onFleetChange={setSelectedFleetId} />
+        {isOwner ? <OwnerSideNav /> : <FleetSideNav fleets={fleetList} selectedFleetId={selectedFleetId} onFleetChange={setSelectedFleetId} />}
         <main className="flex-1 flex flex-col items-center justify-center gap-4 px-4">
           <p className="text-4xl">⚓</p>
           <h2 className="text-2xl font-bold font-heading text-white">Vessel Not Found</h2>
@@ -276,7 +279,7 @@ export default function VesselDetailPage() {
   return (
     <>
       <div className="flex min-h-screen bg-[#0f1929]">
-        <FleetSideNav fleets={fleetList} selectedFleetId={selectedFleetId} onFleetChange={setSelectedFleetId} />
+        {isOwner ? <OwnerSideNav /> : <FleetSideNav fleets={fleetList} selectedFleetId={selectedFleetId} onFleetChange={setSelectedFleetId} />}
 
         <main className="flex-1 min-w-0 overflow-x-hidden">
           {/* Page header */}
