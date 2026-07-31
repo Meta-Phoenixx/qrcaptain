@@ -20,7 +20,7 @@ function AuthenticatedContent() {
   useEffect(() => {
     if (!user) return;
     if (user.role === "owner") {
-      router.replace("/my-vessels");
+      router.replace("/my-dashboard");
     } else if (user.role === "mechanic") {
       router.replace("/fleet");
     } else if (user.role === "admin") {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
-import { FleetSideNav } from "@/components/fleet-side-nav";
+import { AppSideNav } from "@/components/app-side-nav";
 import { VesselGroupPicker } from "@/components/vessel-group-picker";
 import { ManifestViewer } from "@/components/manifest-viewer";
 import { useAllAccessibleVessels } from "@/hooks/useAllAccessibleVessels";
@@ -21,7 +21,7 @@ export default function DocumentsPage() {
 
   return (
     <div className="flex min-h-screen bg-[#0f1929]">
-      <FleetSideNav selectedFleetId={selectedFleetId} fleets={fleetList}
+      <AppSideNav selectedFleetId={selectedFleetId} fleets={fleetList}
         onFleetChange={(id) => { setSelectedFleetId(id); setSelectedVessel(null); }} />
 
       <main className="flex-1 min-w-0 overflow-x-hidden">

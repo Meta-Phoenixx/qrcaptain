@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
-import { FleetSideNav } from "@/components/fleet-side-nav";
+import { AppSideNav } from "@/components/app-side-nav";
 
 function timeAgo(ts: number) {
   const diff = Date.now() - ts;
@@ -34,7 +34,7 @@ export default function ReportsPage() {
 
   return (
     <div className="flex min-h-screen bg-[#0f1929]">
-      <FleetSideNav
+      <AppSideNav
         selectedFleetId={selectedFleetId}
         fleets={fleetList}
         onFleetChange={setSelectedFleetId}
