@@ -243,10 +243,22 @@ export const resolveTripReport = mutation({
     // Mechanic or fleet manager for this vessel can resolve
     if (user.role !== "admin") {
       const vessel = await ctx.db.get(report.vesselId);
-      const isMechanic = user.role === "mechanic" && await ctx.db.query("mechanicAuthorizations")
-        .withIndex("by_vessel_mechanic", (q) => q.eq("vesselId", report.vesselId).eq("mechanicId", userId))
-        .filter((q) => q.eq(q.field("isActive"), true))
-        .first();
+      let isMechanic = false;
+      if (user.role === "mechanic") {
+        const vesselAuth = await ctx.db.query("mechanicAuthorizations")
+          .withIndex("by_vessel_mechanic", (q) => q.eq("vesselId", report.vesselId).eq("mechanicId", userId))
+          .filter((q) => q.eq(q.field("isActive"), true))
+          .first();
+        if (vesselAuth) {
+          isMechanic = true;
+        } else if (vessel?.fleetId) {
+          const fleetAuth = await ctx.db.query("fleetMechanicAuthorizations")
+            .withIndex("by_fleet_mechanic", (q) => q.eq("fleetId", vessel.fleetId!).eq("mechanicId", userId))
+            .filter((q) => q.eq(q.field("isActive"), true))
+            .first();
+          isMechanic = !!fleetAuth;
+        }
+      }
       const isOwner = vessel && (user.role === "owner" || user.role === "fleet_manager") && vessel.ownerId === userId;
       if (!isMechanic && !isOwner) throw new Error("Access denied");
     }

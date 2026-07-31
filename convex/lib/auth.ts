@@ -98,6 +98,7 @@ export async function requireVesselOwnerOrAdmin(
 
 /**
  * Requires the caller to be an authorized mechanic for the vessel, or an admin.
+ * Checks both vessel-level and fleet-level mechanic authorizations.
  */
 export async function requireMechanicVesselAccess(
   ctx: AnyCtx,
@@ -109,7 +110,7 @@ export async function requireMechanicVesselAccess(
 
   if (user.role !== "mechanic") throw new ConvexError("Access denied");
 
-  const auth = await ctx.db
+  const vesselAuth = await ctx.db
     .query("mechanicAuthorizations")
     .withIndex("by_vessel_mechanic", (q) =>
       q.eq("vesselId", vesselId).eq("mechanicId", userId)
@@ -117,7 +118,17 @@ export async function requireMechanicVesselAccess(
     .filter((q) => q.eq(q.field("isActive"), true))
     .first();
 
-  if (!auth) throw new ConvexError("Access denied");
+  if (!vesselAuth) {
+    const vessel = await ctx.db.get(vesselId);
+    const fleetId = vessel?.fleetId;
+    if (!fleetId) throw new ConvexError("Access denied");
+    const fleetAuth = await ctx.db
+      .query("fleetMechanicAuthorizations")
+      .withIndex("by_fleet_mechanic", (q) => q.eq("fleetId", fleetId).eq("mechanicId", userId))
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .first();
+    if (!fleetAuth) throw new ConvexError("Access denied");
+  }
 
   return { userId, user };
 }
@@ -147,14 +158,23 @@ export async function requireVesselReadAccess(
   }
 
   if (user.role === "mechanic") {
-    const auth = await ctx.db
+    const vesselAuth = await ctx.db
       .query("mechanicAuthorizations")
       .withIndex("by_vessel_mechanic", (q) =>
         q.eq("vesselId", vesselId).eq("mechanicId", userId)
       )
       .filter((q) => q.eq(q.field("isActive"), true))
       .first();
-    if (!auth) throw new ConvexError("Access denied");
+    if (!vesselAuth) {
+      const fleetId = vessel.fleetId;
+      if (!fleetId) throw new ConvexError("Access denied");
+      const fleetAuth = await ctx.db
+        .query("fleetMechanicAuthorizations")
+        .withIndex("by_fleet_mechanic", (q) => q.eq("fleetId", fleetId).eq("mechanicId", userId))
+        .filter((q) => q.eq(q.field("isActive"), true))
+        .first();
+      if (!fleetAuth) throw new ConvexError("Access denied");
+    }
     return { userId, user, vessel };
   }
 

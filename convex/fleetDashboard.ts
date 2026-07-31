@@ -129,12 +129,19 @@ export const getFleetDashboard = query({
         .withIndex("by_vessel_unresolved", (q) => q.eq("vesselId", vessel._id).eq("isResolved", false))
         .collect();
 
-      // Mechanic coverage + name
+      // Mechanic coverage + name — check vessel-level then fleet-level
       const mechAuth = await ctx.db.query("mechanicAuthorizations")
         .withIndex("by_vessel", (q) => q.eq("vesselId", vessel._id))
         .filter((q) => q.eq(q.field("isActive"), true))
         .first();
-      const mechUser = mechAuth ? await ctx.db.get(mechAuth.mechanicId) : null;
+      const fleetMechAuth = !mechAuth && vessel.fleetId
+        ? await ctx.db.query("fleetMechanicAuthorizations")
+            .withIndex("by_fleet", (q) => q.eq("fleetId", vessel.fleetId!))
+            .filter((q) => q.eq(q.field("isActive"), true))
+            .first()
+        : null;
+      const effectiveMechAuth = mechAuth ?? fleetMechAuth;
+      const mechUser = effectiveMechAuth ? await ctx.db.get(effectiveMechAuth.mechanicId) : null;
       const mechPhotoUrl = mechUser?.profilePhotoStorageId
         ? await getFileUrl(ctx, mechUser.profilePhotoStorageId)
         : null;
@@ -164,7 +171,7 @@ export const getFleetDashboard = query({
         isApproaching: vesselIsApproaching,
         openWorkOrderCount: openWorkOrders.length,
         openReportCount: openReports.length,
-        hasMechanic: !!mechAuth,
+        hasMechanic: !!effectiveMechAuth,
         mechanicName: mechUser ? `${mechUser.firstName ?? ""} ${mechUser.lastName ?? ""}`.trim() : null,
         mechanicCompany: mechUser?.companyName ?? null,
         mechanicPhotoUrl: mechPhotoUrl,
