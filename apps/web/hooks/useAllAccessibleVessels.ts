@@ -16,7 +16,12 @@ export type IndividualGroup = {
   vessels: AccessibleVessel[];
 };
 
-export type VesselGroup = FleetGroup | IndividualGroup;
+export type OwnedGroup = {
+  type: "owned";
+  vessels: AccessibleVessel[];
+};
+
+export type VesselGroup = FleetGroup | IndividualGroup | OwnedGroup;
 
 export type AccessibleVessel = {
   vesselId: Id<"vessels">;
@@ -78,6 +83,9 @@ export function useAllAccessibleVessels(): {
   // Individual vessel-level authorizations (mechanic only; returns [] for other roles)
   const individualVessels = useQuery(api.vessels.getAuthorizedVessels) ?? [];
 
+  // Owner's own vessels (owner role only; empty for mechanics/fleet_managers)
+  const ownedVessels = useQuery(a.vessels.listMyVessels) ?? [];
+
   const isLoading =
     fleetList === undefined ||
     (fleetList.length > 0 && fleetDatas.slice(0, fleetList.length).some((d) => d === undefined));
@@ -120,9 +128,22 @@ export function useAllAccessibleVessels(): {
       ownerName: v.owner?.name ?? null,
     }));
 
+  // Owner's vessels — only present when role is "owner"; shown as "My Vessels" group
+  const ownedOnly: AccessibleVessel[] = (ownedVessels as any[]).map((v: any) => ({
+    vesselId: v._id,
+    name: v.name,
+    make: v.make,
+    model: v.model,
+    year: v.year,
+    status: v.status ?? "in_service",
+    vesselImageUrl: v.imageUrl,
+    openWorkOrderCount: v.activeWorkOrderCount ?? 0,
+  }));
+
   const groups: VesselGroup[] = [
     ...fleetGroups.filter((g) => g.vessels.length > 0),
     ...(individualOnly.length > 0 ? [{ type: "individual" as const, vessels: individualOnly }] : []),
+    ...(ownedOnly.length > 0 ? [{ type: "owned" as const, vessels: ownedOnly }] : []),
   ];
 
   const totalCount = groups.reduce((sum, g) => sum + g.vessels.length, 0);

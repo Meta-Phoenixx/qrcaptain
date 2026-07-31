@@ -33,10 +33,19 @@ export function VesselGroupPicker({ onSelect, emptyMessage = "No vessels accessi
   return (
     <div className="space-y-8">
       {groups.map((group) => (
-        <section key={group.type === "fleet" ? group.fleetId : "individual"}>
+        <section key={group.type === "fleet" ? group.fleetId : group.type}>
           {/* Group header */}
           <div className="flex items-center gap-3 mb-4">
-            {group.type === "fleet" ? (
+            {group.type === "owned" ? (
+              <>
+                <div className="w-6 h-6 rounded-lg bg-captain-500/20 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-3.5 h-3.5 text-captain-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9V3z" />
+                  </svg>
+                </div>
+                <h2 className="text-sm font-bold text-white/80">My Vessels</h2>
+              </>
+            ) : group.type === "fleet" ? (
               <>
                 <div className="w-6 h-6 rounded-lg bg-captain-500/20 flex items-center justify-center flex-shrink-0">
                   <svg className="w-3.5 h-3.5 text-captain-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
-import { FleetSideNav } from "@/components/fleet-side-nav";
+import { AppSideNav } from "@/components/app-side-nav";
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DAY_NAMES   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -113,7 +113,7 @@ export default function CalendarPage() {
 
   return (
     <div className="flex min-h-screen bg-[#0f1929]">
-      <FleetSideNav
+      <AppSideNav
         selectedFleetId={selectedFleetId}
         fleets={fleetList}
         onFleetChange={(id) => { setSelectedFleetId(id); setSelectedDay(null); }}

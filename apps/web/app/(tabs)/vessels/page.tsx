@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
-import { FleetSideNav } from "@/components/fleet-side-nav";
+import { AppSideNav } from "@/components/app-side-nav";
 import { useAllAccessibleVessels, type AccessibleVessel } from "@/hooks/useAllAccessibleVessels";
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; dot: string; label: string }> = {
@@ -102,7 +102,7 @@ export default function VesselsPage() {
 
   return (
     <div className="flex min-h-screen bg-[#0f1929]">
-      <FleetSideNav selectedFleetId={selectedFleetId} fleets={fleetList} onFleetChange={setSelectedFleetId} />
+      <AppSideNav selectedFleetId={selectedFleetId} fleets={fleetList} onFleetChange={setSelectedFleetId} />
 
       <main className="flex-1 min-w-0 overflow-x-hidden">
         <div className="px-6 pt-8 pb-6 border-b border-white/[0.06]">

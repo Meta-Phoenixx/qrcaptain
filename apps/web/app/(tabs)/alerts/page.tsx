@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
-import { FleetSideNav } from "@/components/fleet-side-nav";
+import { AppSideNav } from "@/components/app-side-nav";
 
 const TYPE_LABELS: Record<string, string> = {
   fleet_service_overdue:    "Service Overdue",
@@ -67,7 +67,7 @@ export default function AlertsPage() {
 
   return (
     <div className="flex min-h-screen bg-[#0f1929]">
-      <FleetSideNav
+      <AppSideNav
         selectedFleetId={selectedFleetId}
         fleets={fleetList}
         onFleetChange={setSelectedFleetId}
