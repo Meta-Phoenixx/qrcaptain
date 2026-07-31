@@ -100,14 +100,25 @@ export const getVessel = query({
     if (user.role === "owner" && vessel.ownerId !== user._id) return null;
 
     if (user.role === "mechanic") {
-      const auth = await ctx.db
+      // Check vessel-level authorization
+      const vesselAuth = await ctx.db
         .query("mechanicAuthorizations")
         .withIndex("by_vessel_mechanic", (q) =>
           q.eq("vesselId", args.vesselId).eq("mechanicId", user._id)
         )
         .filter((q) => q.eq(q.field("isActive"), true))
         .first();
-      if (!auth) return null;
+      if (!vesselAuth) {
+        // Check fleet-level authorization
+        const fleetId = vessel.fleetId;
+        if (!fleetId) return null;
+        const fleetAuth = await ctx.db
+          .query("fleetMechanicAuthorizations")
+          .withIndex("by_fleet_mechanic", (q) => q.eq("fleetId", fleetId).eq("mechanicId", user._id))
+          .filter((q) => q.eq(q.field("isActive"), true))
+          .first();
+        if (!fleetAuth) return null;
+      }
     }
 
     const owner = await ctx.db.get(vessel.ownerId);

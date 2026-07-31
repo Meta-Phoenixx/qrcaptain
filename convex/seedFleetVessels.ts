@@ -987,3 +987,77 @@ export const setUserPasswordHash = mutation({
     return { ok: true };
   },
 });
+
+export const debugMechanicFleets = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const vesselAuths = await ctx.db.query("mechanicAuthorizations")
+      .withIndex("by_mechanic", (q) => q.eq("mechanicId", args.userId))
+      .collect();
+    const vessels = await Promise.all(
+      vesselAuths.map(async (a) => {
+        const v = await ctx.db.get(a.vesselId);
+        return { vesselId: a.vesselId, isActive: a.isActive, name: v?.name, fleetId: v?.fleetId ?? null };
+      })
+    );
+    const fleetAuths = await ctx.db.query("fleetMechanicAuthorizations")
+      .withIndex("by_mechanic", (q) => q.eq("mechanicId", args.userId))
+      .collect();
+    return { vesselAuths: vessels, fleetAuths };
+  },
+});
+
+// Admin util: list all fleets on a deployment (no auth required — internal use only)
+export const listFleetsRaw = query({
+  args: {},
+  handler: async (ctx) => {
+    const fleets = await ctx.db.query("fleets").collect();
+    return Promise.all(fleets.map(async (f) => {
+      const owner = await ctx.db.get(f.ownerId);
+      const vessels = await ctx.db.query("vessels").withIndex("by_fleet", (q) => q.eq("fleetId", f._id)).collect();
+      return { fleetId: f._id, name: f.name, ownerEmail: owner?.email, vesselCount: vessels.length };
+    }));
+  },
+});
+
+// Admin util: assign a mechanic (by userId) to a fleet
+export const assignMechanicToFleet = mutation({
+  args: { mechanicId: v.id("users"), fleetId: v.id("fleets") },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.query("fleetMechanicAuthorizations")
+      .withIndex("by_fleet_mechanic", (q) => q.eq("fleetId", args.fleetId).eq("mechanicId", args.mechanicId))
+      .first();
+    if (existing) {
+      await ctx.db.patch(existing._id, { isActive: true });
+      return { ok: true, updated: true };
+    }
+    await ctx.db.insert("fleetMechanicAuthorizations", {
+      fleetId: args.fleetId,
+      mechanicId: args.mechanicId,
+      authorizedAt: Date.now(),
+      authorizedBy: args.mechanicId,
+      isActive: true,
+    });
+    return { ok: true, created: true };
+  },
+});
+
+// Admin util: run seedFleetVessels against prod for a given owner email
+export const seedFleetForOwner = mutation({
+  args: { ownerEmail: v.string(), fleetName: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const owner = await ctx.db.query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.ownerEmail))
+      .first();
+    if (!owner) return { ok: false, reason: `No user with email ${args.ownerEmail}` };
+    // Reuse the seed logic inline
+    const existingFleet = await ctx.db.query("fleets")
+      .withIndex("by_owner", (q) => q.eq("ownerId", owner._id))
+      .first();
+    if (existingFleet) {
+      const vessels = await ctx.db.query("vessels").withIndex("by_fleet", (q) => q.eq("fleetId", existingFleet._id)).collect();
+      return { ok: true, skipped: true, fleetId: existingFleet._id, vesselCount: vessels.length };
+    }
+    return { ok: false, reason: "Use seedFleetVessels mutation directly — this helper only checks" };
+  },
+});
