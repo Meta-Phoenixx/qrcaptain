@@ -272,8 +272,16 @@ export const getMyWorkOrderRequests = query({
     ),
   },
   handler: async (ctx, args) => {
-    const user = await getAuthenticatedUser(ctx);
-    if (!user || user.role !== "owner") return [];
+    const realUser = await getAuthenticatedUser(ctx);
+    if (!realUser) return [];
+
+    // Resolve impersonation: admin viewing as an owner sees that owner's work orders
+    let user = realUser;
+    if (realUser.role === "admin" && realUser.impersonatingAs) {
+      const target = await ctx.db.get(realUser.impersonatingAs);
+      if (target) user = target;
+    }
+    if (user.role !== "owner") return [];
 
     let q = ctx.db
       .query("workOrders")

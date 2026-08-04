@@ -46,7 +46,9 @@ export type AuditAction =
   | "captain.assigned"
   | "captain.removed"
   | "captain.distress_sent"
-  | "captain_report.resolved";
+  | "captain_report.resolved"
+  | "admin.impersonation_started"
+  | "admin.impersonation_ended";
 
 interface AuditParams {
   action: AuditAction;

@@ -84,10 +84,10 @@ const CATEGORY_INFO: Record<SettingCategory, { label: string; icon: React.ReactN
   },
 };
 
-export function AdminControlPanel({ initialTab }: { initialTab?: "overview" | "settings" | "announcements" | "donations" | "waitlist" | "raffle" | "audit" | "fleets" }) {
+export function AdminControlPanel({ initialTab }: { initialTab?: "overview" | "settings" | "announcements" | "donations" | "waitlist" | "raffle" | "audit" | "fleets" | "users" }) {
   const router = useRouter();
   const { mode } = useTheme();
-  const [activeTab, setActiveTab] = useState<"overview" | "settings" | "announcements" | "donations" | "waitlist" | "raffle" | "audit" | "fleets">(initialTab ?? "overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "settings" | "announcements" | "donations" | "waitlist" | "raffle" | "audit" | "fleets" | "users">(initialTab ?? "overview");
   const [activeCategory, setActiveCategory] = useState<SettingCategory>("notifications");
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
@@ -246,6 +246,7 @@ export function AdminControlPanel({ initialTab }: { initialTab?: "overview" | "s
     { id: "raffle" as const, label: "Raffle", icon: Ticket },
     { id: "audit" as const, label: "Audit Log", icon: ShieldCheck },
     { id: "fleets" as const, label: "Fleets", icon: Layers },
+    { id: "users" as const, label: "Users", icon: Users },
   ];
 
   return (
@@ -887,6 +888,8 @@ export function AdminControlPanel({ initialTab }: { initialTab?: "overview" | "s
             <AuditLogViewer />
           </div>
         )}
+
+        {activeTab === "users" && <UsersTab mode={mode} />}
       </div>
     </div>
   );
@@ -1041,6 +1044,217 @@ function SettingRow({
           Last updated: {new Date(setting.updatedAt).toLocaleString()}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Users Tab ───────────────────────────────────────────────────────────────
+
+function UsersTab({ mode }: { mode: string }) {
+  const a = api as any;
+  const router = useRouter();
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [impersonating, setImpersonating] = useState<string | null>(null);
+
+  const users = useQuery(a.admin.listAllUsers, { role: roleFilter || undefined, search: search || undefined }) ?? [];
+  const expandedDetails = useQuery(
+    expandedUserId ? a.admin.getUserDetails : "skip",
+    expandedUserId ? { userId: expandedUserId } : "skip"
+  );
+  const startImpersonation = useMutation(a.admin.startImpersonation);
+
+  const dark = mode === "dark";
+
+  async function handleImpersonate(userId: string) {
+    setImpersonating(userId);
+    try {
+      await startImpersonation({ targetUserId: userId });
+      // Redirect to the target user's home page
+      router.replace("/my-dashboard");
+    } catch (e) {
+      console.error(e);
+      setImpersonating(null);
+    }
+  }
+
+  const ROLE_COLORS: Record<string, string> = {
+    admin: "bg-red-500/15 text-red-400 border border-red-500/25",
+    owner: "bg-captain-500/15 text-captain-300 border border-captain-500/25",
+    mechanic: "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25",
+    fleet_manager: "bg-amber-500/15 text-amber-400 border border-amber-500/25",
+    captain: "bg-purple-500/15 text-purple-400 border border-purple-500/25",
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name or email…"
+          className={`flex-1 min-w-48 px-4 py-2.5 rounded-xl text-sm border outline-none transition-colors ${
+            dark
+              ? "bg-white/[0.04] border-white/[0.08] text-white placeholder:text-white/30 focus:border-captain-500/50"
+              : "bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-captain-500"
+          }`}
+        />
+        <select
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+          className={`px-4 py-2.5 rounded-xl text-sm border outline-none transition-colors ${
+            dark
+              ? "bg-white/[0.04] border-white/[0.08] text-white focus:border-captain-500/50"
+              : "bg-white border-gray-200 text-gray-900 focus:border-captain-500"
+          }`}
+        >
+          <option value="">All roles</option>
+          <option value="owner">Owner</option>
+          <option value="mechanic">Mechanic</option>
+          <option value="fleet_manager">Fleet Manager</option>
+          <option value="captain">Captain</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+
+      <p className={`text-xs ${dark ? "text-white/30" : "text-gray-400"}`}>{users.length} user{users.length !== 1 ? "s" : ""}</p>
+
+      {/* User list */}
+      <div className={`rounded-2xl border overflow-hidden ${dark ? "border-white/[0.07]" : "border-gray-200"}`}>
+        {users.length === 0 ? (
+          <div className="py-16 text-center">
+            <p className={dark ? "text-white/30" : "text-gray-400"}>No users found</p>
+          </div>
+        ) : (
+          users.map((u: any, i: number) => {
+            const isExpanded = expandedUserId === u._id;
+            const isLast = i === users.length - 1;
+            const name = `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || u.email || "Unknown";
+            return (
+              <div key={u._id} className={!isLast ? (dark ? "border-b border-white/[0.05]" : "border-b border-gray-100") : ""}>
+                {/* Row */}
+                <div
+                  className={`flex items-center gap-4 px-5 py-3.5 transition-colors cursor-pointer ${
+                    dark ? "hover:bg-white/[0.03]" : "hover:bg-gray-50"
+                  } ${isExpanded ? (dark ? "bg-white/[0.04]" : "bg-captain-50") : ""}`}
+                  onClick={() => setExpandedUserId(isExpanded ? null : u._id)}
+                >
+                  {/* Avatar */}
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold ${dark ? "bg-captain-500/20 text-captain-300" : "bg-captain-100 text-captain-700"}`}>
+                    {(u.firstName?.[0] ?? "") + (u.lastName?.[0] ?? "") || "?"}
+                  </div>
+
+                  {/* Name + email */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium truncate ${dark ? "text-white" : "text-gray-900"}`}>{name}</p>
+                    <p className={`text-xs truncate ${dark ? "text-white/35" : "text-gray-500"}`}>{u.email}</p>
+                  </div>
+
+                  {/* Role badge */}
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide flex-shrink-0 ${ROLE_COLORS[u.role ?? ""] ?? "bg-gray-500/10 text-gray-400"}`}>
+                    {u.role ?? "—"}
+                  </span>
+
+                  {/* Created */}
+                  <span className={`text-xs flex-shrink-0 hidden sm:block ${dark ? "text-white/25" : "text-gray-400"}`}>
+                    {new Date(u.createdAt).toLocaleDateString()}
+                  </span>
+
+                  {/* Impersonate button */}
+                  {u.role !== "admin" && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleImpersonate(u._id); }}
+                      disabled={impersonating === u._id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-captain-500/15 text-captain-300 hover:bg-captain-500/25 transition-colors text-xs font-medium flex-shrink-0 disabled:opacity-50"
+                    >
+                      {impersonating === u._id ? (
+                        <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      )}
+                      View As
+                    </button>
+                  )}
+
+                  {/* Expand chevron */}
+                  <svg className={`w-4 h-4 flex-shrink-0 transition-transform ${dark ? "text-white/20" : "text-gray-300"} ${isExpanded ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+
+                {/* Expanded detail panel */}
+                {isExpanded && (
+                  <div className={`px-5 pb-5 pt-2 border-t ${dark ? "border-white/[0.05] bg-white/[0.02]" : "border-gray-100 bg-gray-50/50"}`}>
+                    {!expandedDetails ? (
+                      <div className="py-6 flex justify-center">
+                        <div className="w-5 h-5 rounded-full border-2 border-captain-500/30 border-t-captain-500 animate-spin" />
+                      </div>
+                    ) : (
+                      <div className="space-y-4 mt-2">
+                        {/* Profile fields */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {[
+                            { label: "Company", value: expandedDetails.user.companyName },
+                            { label: "Onboarding", value: expandedDetails.user.onboardingCompleted ? "Complete" : "Pending" },
+                            { label: "Active", value: expandedDetails.user.isActive !== false ? "Yes" : "No" },
+                          ].map((f) => f.value && (
+                            <div key={f.label} className={`px-3 py-2 rounded-lg ${dark ? "bg-white/[0.04]" : "bg-white border border-gray-200"}`}>
+                              <p className={`text-[10px] font-medium uppercase tracking-wider mb-0.5 ${dark ? "text-white/30" : "text-gray-400"}`}>{f.label}</p>
+                              <p className={`text-sm ${dark ? "text-white/70" : "text-gray-700"}`}>{f.value}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Vessels */}
+                        {expandedDetails.vessels.length > 0 && (
+                          <div>
+                            <p className={`text-xs font-semibold uppercase tracking-wider mb-2 ${dark ? "text-white/40" : "text-gray-400"}`}>Vessels ({expandedDetails.vessels.length})</p>
+                            <div className="space-y-1.5">
+                              {expandedDetails.vessels.map((v: any) => (
+                                <div key={v._id} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${dark ? "bg-white/[0.03] text-white/60" : "bg-white border border-gray-200 text-gray-600"}`}>
+                                  <svg className="w-3.5 h-3.5 flex-shrink-0 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9V3z" />
+                                  </svg>
+                                  <span className="font-medium">{v.name}</span>
+                                  <span className="opacity-50">{v.make} {v.model} {v.year}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Recent work orders */}
+                        {expandedDetails.workOrders.length > 0 && (
+                          <div>
+                            <p className={`text-xs font-semibold uppercase tracking-wider mb-2 ${dark ? "text-white/40" : "text-gray-400"}`}>Recent Work Orders</p>
+                            <div className="space-y-1.5">
+                              {expandedDetails.workOrders.map((wo: any) => (
+                                <div key={wo._id} className={`flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-xs ${dark ? "bg-white/[0.03] text-white/50" : "bg-white border border-gray-200 text-gray-500"}`}>
+                                  <span className="truncate">{wo.description || "—"}</span>
+                                  <span className={`px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${wo.status === "completed" ? "bg-emerald-500/10 text-emerald-400" : wo.status === "in_progress" ? "bg-amber-500/10 text-amber-400" : "bg-white/5 text-white/30"}`}>
+                                    {wo.status}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
