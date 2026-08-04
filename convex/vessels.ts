@@ -20,8 +20,15 @@ function generateQRCodeData(): string {
 export const listMyVessels = query({
   args: {},
   handler: async (ctx) => {
-    const user = await getAuthenticatedUser(ctx);
-    if (!user) return [];
+    const realUser = await getAuthenticatedUser(ctx);
+    if (!realUser) return [];
+
+    // Resolve impersonation: if admin is impersonating, operate as the target user
+    let user = realUser;
+    if (realUser.role === "admin" && realUser.impersonatingAs) {
+      const target = await ctx.db.get(realUser.impersonatingAs);
+      if (target) user = target;
+    }
 
     const userId = user._id;
     let vessels: Doc<"vessels">[] = [];

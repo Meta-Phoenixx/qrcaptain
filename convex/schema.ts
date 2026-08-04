@@ -101,6 +101,9 @@ export default defineSchema({
     availabilityStatusUpdatedAt: v.optional(v.number()),  // When status was last updated
     isAvailabilityManuallySet: v.optional(v.boolean()),   // True if manually set (vs auto-calculated)
     maxConcurrentJobs: v.optional(v.number()),            // Threshold for auto-calculation
+
+    // Admin impersonation — set when an admin is viewing the app as another user
+    impersonatingAs: v.optional(v.id("users")),
   })
     .index("by_email", ["email"])
     .index("by_role", ["role"])

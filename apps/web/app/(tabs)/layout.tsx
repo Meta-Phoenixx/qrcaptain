@@ -3,6 +3,7 @@
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ImpersonationBanner } from "@/components/impersonation-banner";
 
 function UnauthRedirect() {
   const router = useRouter();
@@ -43,7 +44,10 @@ export default function TabsLayout({
       <Unauthenticated>
         <UnauthRedirect />
       </Unauthenticated>
-      <Authenticated>{children}</Authenticated>
+      <Authenticated>
+        <ImpersonationBanner />
+        {children}
+      </Authenticated>
     </>
   );
 }

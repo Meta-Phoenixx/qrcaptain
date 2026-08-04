@@ -23,11 +23,25 @@ export const emailExists = query({
   },
 });
 
-// Get the current authenticated user
+// Get the current authenticated user.
+// When an admin is impersonating another user, returns the impersonated user's
+// profile with an extra `_impersonating: true` flag so the UI can show a banner.
+// Write mutations always authenticate as the real admin — impersonation is read-only.
 export const currentUser = query({
   args: {},
   handler: async (ctx) => {
-    return await getAuthenticatedUser(ctx);
+    const realUser = await getAuthenticatedUser(ctx);
+    if (!realUser) return null;
+    if (realUser.role === "admin" && realUser.impersonatingAs) {
+      const target = await ctx.db.get(realUser.impersonatingAs);
+      if (target) {
+        return { ...target, _impersonating: true, _realAdminId: realUser._id } as typeof target & {
+          _impersonating: boolean;
+          _realAdminId: string;
+        };
+      }
+    }
+    return realUser;
   },
 });
 
