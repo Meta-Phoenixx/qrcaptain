@@ -1407,8 +1407,9 @@ export function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels
   const [selectedWorkOrderId, setSelectedWorkOrderId] = useState<Id<"workOrders"> | null>(null);
   const [showWorkOrderRequest, setShowWorkOrderRequest] = useState(false);
   const [nudgeDismissed, setNudgeDismissed] = useState(() => sessionDismissedVessels.has(vesselId));
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
-  const showNudge = !nudgeDismissed && completeness !== undefined && !completeness?.isComplete;
+  const showNudge = !nudgeDismissed && !showOnboarding && completeness !== undefined && !completeness?.isComplete;
 
   // Editing state
   const [isEditing, setIsEditing] = useState(false);
@@ -1579,7 +1580,7 @@ export function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels
           {/* Actions */}
           <div className="flex flex-col gap-2.5 w-full">
             <button
-              onClick={() => { setNudgeDismissed(true); startEditing(); }}
+              onClick={() => setShowOnboarding(true)}
               className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-semibold text-sm transition-colors"
             >
               Continue Setup
@@ -1600,6 +1601,16 @@ export function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels
           </p>
         </div>
       </GlassModal>
+    );
+  }
+
+  if (showOnboarding) {
+    return (
+      <VesselOnboarding
+        existingVesselId={vesselId}
+        onComplete={() => { setShowOnboarding(false); setNudgeDismissed(true); }}
+        onSkip={() => { setShowOnboarding(false); sessionDismissedVessels.add(vesselId); setNudgeDismissed(true); }}
+      />
     );
   }
 

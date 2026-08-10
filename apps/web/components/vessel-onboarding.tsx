@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import { Id } from "../../../convex/_generated/dataModel";
 import { ImageCropper } from "./image-cropper";
 import { GlassModal, GlassButton, GlassInput, GlassSelect } from "./ui/glass";
 import { useTheme } from "./providers/theme-provider";
@@ -25,6 +26,8 @@ import {
 interface VesselOnboardingProps {
   onComplete: () => void;
   onSkip: () => void;
+  /** When provided, flow updates the existing vessel instead of creating a new one */
+  existingVesselId?: Id<"vessels">;
 }
 
 // Common vessel types
@@ -75,7 +78,7 @@ const ELECTRONICS_OPTIONS = [
 
 type Step = 1 | 2;
 
-export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) {
+export function VesselOnboarding({ onComplete, onSkip, existingVesselId }: VesselOnboardingProps) {
   const { mode } = useTheme();
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,11 +91,18 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
   const [vesselPhotoPreview, setVesselPhotoPreview] = useState<string | null>(null);
 
   const createVessel = useMutation(api.vessels.createVessel);
+  const updateVessel = useMutation(api.vessels.updateVessel);
   const addEquipment = useMutation(api.vesselEquipment.createEquipment);
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const saveVesselImage = useMutation(api.storage.saveVesselImage);
 
-  // Step 1: Vessel info
+  // Pre-load existing vessel data when editing
+  const existingVessel = useQuery(
+    existingVesselId ? (api as any).vessels.getVessel : "skip",
+    existingVesselId ? { vesselId: existingVesselId } : "skip"
+  );
+
+  // Step 1: Vessel info — pre-populated from existing vessel if present
   const [vesselData, setVesselData] = useState({
     name: "",
     make: "",
@@ -102,6 +112,21 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
     registrationNumber: "",
     hullId: "",
   });
+
+  // Once existing vessel loads, populate the form (runs once)
+  const [prefilled, setPrefilled] = useState(false);
+  if (existingVessel && !prefilled) {
+    setVesselData({
+      name: existingVessel.name ?? "",
+      make: existingVessel.make ?? "",
+      model: existingVessel.model ?? "",
+      year: String(existingVessel.year ?? new Date().getFullYear()),
+      vesselType: existingVessel.vesselType ?? "",
+      registrationNumber: existingVessel.registrationNumber ?? "",
+      hullId: existingVessel.hullId ?? "",
+    });
+    setPrefilled(true);
+  }
 
   // Step 2: Equipment info
   const [equipmentData, setEquipmentData] = useState({
@@ -188,16 +213,34 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
     setError(null);
 
     try {
-      // Step 1: Create the vessel
-      const { vesselId } = await createVessel({
-        name: vesselData.name,
-        make: vesselData.make,
-        model: vesselData.model,
-        year: parseInt(vesselData.year),
-        vesselType: vesselData.vesselType,
-        registrationNumber: vesselData.registrationNumber || undefined,
-        hullId: vesselData.hullId || undefined,
-      });
+      let vesselId: Id<"vessels">;
+
+      if (existingVesselId) {
+        // Update the existing vessel with the completed info
+        await updateVessel({
+          vesselId: existingVesselId,
+          name: vesselData.name,
+          make: vesselData.make,
+          model: vesselData.model,
+          year: parseInt(vesselData.year),
+          vesselType: vesselData.vesselType,
+          registrationNumber: vesselData.registrationNumber || undefined,
+          hullId: vesselData.hullId || undefined,
+        });
+        vesselId = existingVesselId;
+      } else {
+        // Create a brand-new vessel
+        const result = await createVessel({
+          name: vesselData.name,
+          make: vesselData.make,
+          model: vesselData.model,
+          year: parseInt(vesselData.year),
+          vesselType: vesselData.vesselType,
+          registrationNumber: vesselData.registrationNumber || undefined,
+          hullId: vesselData.hullId || undefined,
+        });
+        vesselId = result.vesselId;
+      }
 
       // Upload vessel photo if present
       if (vesselPhotoBlob) {
@@ -209,10 +252,9 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
             body: vesselPhotoBlob,
           });
           const { storageId } = await result.json();
-          await saveVesselImage({ vesselId: vesselId, storageId });
+          await saveVesselImage({ vesselId, storageId });
         } catch (photoErr) {
           console.error("Failed to upload photo:", photoErr);
-          // Continue without photo
         }
       }
 
@@ -320,7 +362,7 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
 
       onComplete();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create vessel");
+      setError(err instanceof Error ? err.message : existingVesselId ? "Failed to update vessel" : "Failed to create vessel");
     } finally {
       setIsSubmitting(false);
     }
@@ -337,8 +379,8 @@ export function VesselOnboarding({ onComplete, onSkip }: VesselOnboardingProps) 
                 <Anchor className={`w-6 h-6 ${mode === 'dark' ? "text-white" : ""}`} />
               </div>
               <div>
-                <h2 className={`text-xl font-bold ${mode === 'dark' ? "text-white" : ""}`}>Add Your Vessel</h2>
-                <p className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-captain-100"}`}>Let's set up your boat</p>
+                <h2 className={`text-xl font-bold ${mode === 'dark' ? "text-white" : ""}`}>{existingVesselId ? "Complete Vessel Setup" : "Add Your Vessel"}</h2>
+                <p className={`text-sm ${mode === 'dark' ? "text-gray-300" : "text-captain-100"}`}>{existingVesselId ? "Fill in the remaining details" : "Let's set up your boat"}</p>
               </div>
             </div>
             <button
