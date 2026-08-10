@@ -14,6 +14,7 @@ import { ImageCropper } from "@/components/image-cropper";
 import { WorkOrderEditor } from "@/components/work-order-editor";
 import { WorkOrderRequestForm } from "@/components/work-order-request-form";
 import { GlassButton, GlassBadge, GlassInput, GlassSelect } from "@/components/ui/glass";
+import { VesselOnboarding } from "@/components/vessel-onboarding";
 
 const a = api as any;
 
@@ -149,6 +150,7 @@ export default function VesselDetailPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -278,7 +280,17 @@ export default function VesselDetailPage() {
   const inProgressOrders = (workOrders ?? []).filter((wo: any) => wo.status === "in_progress");
   const historyOrders = (workOrders ?? []).filter((wo: any) => wo.status !== "in_progress");
 
-  const showNudge = !nudgeDismissed && completeness !== undefined && completeness !== null && !completeness.isComplete;
+  if (showOnboarding) {
+    return (
+      <VesselOnboarding
+        existingVesselId={vesselId}
+        onComplete={() => { setShowOnboarding(false); setNudgeDismissed(true); }}
+        onSkip={() => { setShowOnboarding(false); setNudgeDismissed(true); }}
+      />
+    );
+  }
+
+  const showNudge = !nudgeDismissed && !showOnboarding && completeness !== undefined && completeness !== null && !completeness.isComplete;
 
   if (showNudge && completeness) {
     return (
@@ -319,7 +331,7 @@ export default function VesselDetailPage() {
             {/* Actions */}
             <div className="flex flex-col gap-2.5 w-full">
               <button
-                onClick={() => { setNudgeDismissed(true); startEditing(); }}
+                onClick={() => setShowOnboarding(true)}
                 className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-semibold text-sm transition-colors"
               >
                 Continue Setup
