@@ -1579,7 +1579,7 @@ export function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels
           {/* Actions */}
           <div className="flex flex-col gap-2.5 w-full">
             <button
-              onClick={() => setNudgeDismissed(true)}
+              onClick={() => { setNudgeDismissed(true); startEditing(); }}
               className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-semibold text-sm transition-colors"
             >
               Continue Setup
