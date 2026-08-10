@@ -93,6 +93,7 @@ export function VesselOnboarding({ onComplete, onSkip, existingVesselId }: Vesse
   const createVessel = useMutation(api.vessels.createVessel);
   const updateVessel = useMutation(api.vessels.updateVessel);
   const addEquipment = useMutation(api.vesselEquipment.createEquipment);
+  const logEngineHours = useMutation((api as any).engineHours.logEngineHours);
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const saveVesselImage = useMutation(api.storage.saveVesselImage);
 
@@ -137,6 +138,8 @@ export function VesselOnboarding({ onComplete, onSkip, existingVesselId }: Vesse
     engineModel: "",
     engineHorsepower: "",
     
+    engineHours: "",
+
     // Batteries
     hasBatteries: true,
     batteryType: "",
@@ -261,20 +264,27 @@ export function VesselOnboarding({ onComplete, onSkip, existingVesselId }: Vesse
       // Step 2: Add equipment (if any selected)
       const equipmentPromises: Promise<any>[] = [];
 
-      // Add engine if specified
+      // Add engine first (awaited separately so we can log hours against it)
       if (equipmentData.hasEngine && equipmentData.engineType) {
-        equipmentPromises.push(
-          addEquipment({
+        const { equipmentId: engineEquipmentId } = await addEquipment({
+          vesselId,
+          category: "propulsion",
+          name: equipmentData.engineType,
+          manufacturer: equipmentData.engineMake || undefined,
+          model: equipmentData.engineModel || undefined,
+          notes: equipmentData.engineHorsepower
+            ? `${equipmentData.engineHorsepower} HP`
+            : undefined,
+        });
+
+        if (equipmentData.engineHours && parseFloat(equipmentData.engineHours) >= 0) {
+          await logEngineHours({
             vesselId,
-            category: "propulsion",
-            name: equipmentData.engineType,
-            manufacturer: equipmentData.engineMake || undefined,
-            model: equipmentData.engineModel || undefined,
-            notes: equipmentData.engineHorsepower
-              ? `${equipmentData.engineHorsepower} HP`
-              : undefined,
-          })
-        );
+            equipmentId: engineEquipmentId,
+            hours: parseFloat(equipmentData.engineHours),
+            serviceLabel: "Initial hours at vessel setup",
+          });
+        }
       }
 
       // Add batteries if specified
@@ -630,6 +640,14 @@ export function VesselOnboarding({ onComplete, onSkip, existingVesselId }: Vesse
                         className="text-sm"
                       />
                     </div>
+                    <GlassInput
+                      type="number"
+                      min="0"
+                      value={equipmentData.engineHours}
+                      onChange={(e) => updateEquipmentData("engineHours", e.target.value)}
+                      placeholder="Current Engine Hours (e.g., 342)"
+                      className="text-sm"
+                    />
                   </div>
                 )}
               </div>
@@ -826,11 +844,11 @@ export function VesselOnboarding({ onComplete, onSkip, existingVesselId }: Vesse
               {isSubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Creating...
+                  {existingVesselId ? "Saving..." : "Creating..."}
                 </>
               ) : (
                 <>
-                  Create Vessel
+                  {existingVesselId ? "Update Vessel" : "Create Vessel"}
                   <Check size={18} />
                 </>
               )}
