@@ -160,11 +160,17 @@ export const getVesselCompleteness = query({
       )
       .first();
 
+    const engineHoursEntry = await ctx.db
+      .query("engineHoursLog")
+      .withIndex("by_vessel", (q) => q.eq("vesselId", args.vesselId))
+      .first();
+
     const missing: string[] = [];
     if (!vessel.hullId) missing.push("Hull ID / HIN");
     if (!vessel.registrationNumber) missing.push("Registration Number");
     if (!vessel.imageStorageId) missing.push("Vessel Photo");
     if (!propulsionItems) missing.push("Engine / Propulsion Equipment");
+    if (!engineHoursEntry) missing.push("Engine Hours");
 
     return { isComplete: missing.length === 0, missing };
   },
