@@ -78,6 +78,29 @@ const ELECTRONICS_OPTIONS = [
 
 type Step = 1 | 2;
 
+interface EngineEntry {
+  make: string;
+  model: string;
+  horsepower: string;
+  hours: string;
+}
+
+function getEngineCount(engineType: string): number {
+  if (engineType.includes("Twin") || engineType.includes("twin")) return 2;
+  if (engineType.includes("Triple") || engineType.includes("triple")) return 3;
+  return 1;
+}
+
+function getEngineLabels(count: number): string[] {
+  if (count === 2) return ["Port Engine", "Starboard Engine"];
+  if (count === 3) return ["Port Engine", "Center Engine", "Starboard Engine"];
+  return ["Engine"];
+}
+
+function makeEngineEntries(count: number): EngineEntry[] {
+  return Array.from({ length: count }, () => ({ make: "", model: "", horsepower: "", hours: "" }));
+}
+
 export function VesselOnboarding({ onComplete, onSkip, existingVesselId }: VesselOnboardingProps) {
   const { mode } = useTheme();
   const [currentStep, setCurrentStep] = useState<Step>(1);
@@ -134,11 +157,7 @@ export function VesselOnboarding({ onComplete, onSkip, existingVesselId }: Vesse
     // Engine
     hasEngine: true,
     engineType: "",
-    engineMake: "",
-    engineModel: "",
-    engineHorsepower: "",
-    
-    engineHours: "",
+    engines: makeEngineEntries(1) as EngineEntry[],
 
     // Batteries
     hasBatteries: true,
@@ -160,6 +179,24 @@ export function VesselOnboarding({ onComplete, onSkip, existingVesselId }: Vesse
 
   const updateEquipmentData = (field: string, value: string | boolean | string[]) => {
     setEquipmentData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEngineTypeChange = (type: string) => {
+    const count = getEngineCount(type);
+    setEquipmentData((prev) => {
+      const next = makeEngineEntries(count);
+      // preserve any values already entered
+      prev.engines.forEach((e, i) => { if (i < count) next[i] = { ...e }; });
+      return { ...prev, engineType: type, engines: next };
+    });
+  };
+
+  const updateEngineEntry = (index: number, field: keyof EngineEntry, value: string) => {
+    setEquipmentData((prev) => {
+      const engines = [...prev.engines];
+      engines[index] = { ...engines[index], [field]: value };
+      return { ...prev, engines };
+    });
   };
 
   const toggleElectronic = (id: string) => {
@@ -264,26 +301,31 @@ export function VesselOnboarding({ onComplete, onSkip, existingVesselId }: Vesse
       // Step 2: Add equipment (if any selected)
       const equipmentPromises: Promise<any>[] = [];
 
-      // Add engine first (awaited separately so we can log hours against it)
+      // Add each engine (sequentially so we can log hours per engine)
       if (equipmentData.hasEngine && equipmentData.engineType) {
-        const { equipmentId: engineEquipmentId } = await addEquipment({
-          vesselId,
-          category: "propulsion",
-          name: equipmentData.engineType,
-          manufacturer: equipmentData.engineMake || undefined,
-          model: equipmentData.engineModel || undefined,
-          notes: equipmentData.engineHorsepower
-            ? `${equipmentData.engineHorsepower} HP`
-            : undefined,
-        });
-
-        if (equipmentData.engineHours && parseFloat(equipmentData.engineHours) >= 0) {
-          await logEngineHours({
+        const labels = getEngineLabels(equipmentData.engines.length);
+        for (let i = 0; i < equipmentData.engines.length; i++) {
+          const eng = equipmentData.engines[i];
+          const label = labels[i];
+          const name = equipmentData.engines.length > 1
+            ? `${equipmentData.engineType} — ${label}`
+            : equipmentData.engineType;
+          const { equipmentId: engineEquipmentId } = await addEquipment({
             vesselId,
-            equipmentId: engineEquipmentId,
-            hours: parseFloat(equipmentData.engineHours),
-            serviceLabel: "Initial hours at vessel setup",
+            category: "propulsion",
+            name,
+            manufacturer: eng.make || undefined,
+            model: eng.model || undefined,
+            notes: eng.horsepower ? `${eng.horsepower} HP` : undefined,
           });
+          if (eng.hours && parseFloat(eng.hours) >= 0) {
+            await logEngineHours({
+              vesselId,
+              equipmentId: engineEquipmentId,
+              hours: parseFloat(eng.hours),
+              serviceLabel: `Initial hours at vessel setup${equipmentData.engines.length > 1 ? ` — ${label}` : ""}`,
+            });
+          }
         }
       }
 
@@ -610,44 +652,64 @@ export function VesselOnboarding({ onComplete, onSkip, existingVesselId }: Vesse
                 </div>
 
                 {equipmentData.hasEngine && (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <GlassSelect
                       value={equipmentData.engineType}
-                      onChange={(e) => updateEquipmentData("engineType", e.target.value)}
+                      onChange={(e) => handleEngineTypeChange(e.target.value)}
                     >
                       <option value="">Select engine type...</option>
                       {ENGINE_TYPES.map((type) => (
                         <option key={type} value={type}>{type}</option>
                       ))}
                     </GlassSelect>
-                    <div className="grid grid-cols-3 gap-2">
-                      <GlassInput
-                        value={equipmentData.engineMake}
-                        onChange={(e) => updateEquipmentData("engineMake", e.target.value)}
-                        placeholder="Make (e.g., Yamaha)"
-                        className="text-sm"
-                      />
-                      <GlassInput
-                        value={equipmentData.engineModel}
-                        onChange={(e) => updateEquipmentData("engineModel", e.target.value)}
-                        placeholder="Model"
-                        className="text-sm"
-                      />
-                      <GlassInput
-                        value={equipmentData.engineHorsepower}
-                        onChange={(e) => updateEquipmentData("engineHorsepower", e.target.value)}
-                        placeholder="HP"
-                        className="text-sm"
-                      />
-                    </div>
-                    <GlassInput
-                      type="number"
-                      min="0"
-                      value={equipmentData.engineHours}
-                      onChange={(e) => updateEquipmentData("engineHours", e.target.value)}
-                      placeholder="Current Engine Hours (e.g., 342)"
-                      className="text-sm"
-                    />
+
+                    {equipmentData.engineType && (() => {
+                      const labels = getEngineLabels(equipmentData.engines.length);
+                      return equipmentData.engines.map((eng, i) => (
+                        <div
+                          key={i}
+                          className={`space-y-2 rounded-lg p-3 ${
+                            equipmentData.engines.length > 1
+                              ? mode === "dark" ? "bg-white/5 border border-white/10" : "bg-gray-50 border border-gray-200"
+                              : ""
+                          }`}
+                        >
+                          {equipmentData.engines.length > 1 && (
+                            <p className={`text-xs font-semibold uppercase tracking-wide ${mode === "dark" ? "text-blue-400" : "text-captain-600"}`}>
+                              {labels[i]}
+                            </p>
+                          )}
+                          <div className="grid grid-cols-3 gap-2">
+                            <GlassInput
+                              value={eng.make}
+                              onChange={(e) => updateEngineEntry(i, "make", e.target.value)}
+                              placeholder="Make (e.g., Yamaha)"
+                              className="text-sm"
+                            />
+                            <GlassInput
+                              value={eng.model}
+                              onChange={(e) => updateEngineEntry(i, "model", e.target.value)}
+                              placeholder="Model"
+                              className="text-sm"
+                            />
+                            <GlassInput
+                              value={eng.horsepower}
+                              onChange={(e) => updateEngineEntry(i, "horsepower", e.target.value)}
+                              placeholder="HP"
+                              className="text-sm"
+                            />
+                          </div>
+                          <GlassInput
+                            type="number"
+                            min="0"
+                            value={eng.hours}
+                            onChange={(e) => updateEngineEntry(i, "hours", e.target.value)}
+                            placeholder="Current Engine Hours (e.g., 342)"
+                            className="text-sm"
+                          />
+                        </div>
+                      ));
+                    })()}
                   </div>
                 )}
               </div>
