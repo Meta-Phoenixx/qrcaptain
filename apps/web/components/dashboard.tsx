@@ -1388,20 +1388,27 @@ function AddVesselModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// Tracks vessels where the user clicked "Remind Me Later" — resets on page reload
+const sessionDismissedVessels = new Set<string>();
+
 export function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels">; onClose: () => void }) {
   const { mode } = useTheme();
   const vessel = useQuery(api.vessels.getVessel, { vesselId });
   const workOrders = useQuery(api.workOrders.getVesselWorkOrders, { vesselId });
   const vesselImageUrl = useQuery(api.storage.getVesselImageUrl, { vesselId });
+  const completeness = useQuery((api as any).vessels.getVesselCompleteness, { vesselId });
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const saveVesselImage = useMutation(api.storage.saveVesselImage);
   const updateVessel = useMutation(api.vessels.updateVessel);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [selectedWorkOrderId, setSelectedWorkOrderId] = useState<Id<"workOrders"> | null>(null);
   const [showWorkOrderRequest, setShowWorkOrderRequest] = useState(false);
+  const [nudgeDismissed, setNudgeDismissed] = useState(() => sessionDismissedVessels.has(vesselId));
+
+  const showNudge = !nudgeDismissed && completeness !== undefined && !completeness?.isComplete;
 
   // Editing state
   const [isEditing, setIsEditing] = useState(false);
@@ -1531,6 +1538,69 @@ export function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels
 
   if (!vessel) {
     return null;
+  }
+
+  // ── Vessel setup nudge ────────────────────────────────────────────────────
+  if (showNudge && completeness) {
+    const isDark = mode === "dark";
+    return (
+      <GlassModal onClose={onClose} className="max-w-md">
+        <div className="p-6 flex flex-col items-center text-center gap-5">
+          {/* Icon */}
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center">
+            <svg className="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+            </svg>
+          </div>
+
+          {/* Heading */}
+          <div>
+            <h2 className={`text-lg font-bold font-heading ${isDark ? "text-white" : "text-gray-900"}`}>
+              Finish Setting Up <span className="text-amber-400">{vessel.name}</span>
+            </h2>
+            <p className={`text-sm mt-1.5 ${isDark ? "text-white/50" : "text-gray-500"}`}>
+              A complete vessel profile means your mechanic has everything they need before the first service visit.
+            </p>
+          </div>
+
+          {/* Missing fields */}
+          <div className={`w-full rounded-xl border p-4 text-left space-y-2 ${isDark ? "bg-white/[0.03] border-white/[0.07]" : "bg-gray-50 border-gray-200"}`}>
+            <p className={`text-xs font-semibold uppercase tracking-wider mb-3 ${isDark ? "text-white/40" : "text-gray-400"}`}>Still needed</p>
+            {completeness.missing.map((field: string) => (
+              <div key={field} className="flex items-center gap-2.5">
+                <div className="w-4 h-4 rounded-full border-2 border-amber-500/50 flex items-center justify-center flex-shrink-0">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                </div>
+                <span className={`text-sm ${isDark ? "text-white/70" : "text-gray-700"}`}>{field}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col gap-2.5 w-full">
+            <button
+              onClick={() => setNudgeDismissed(true)}
+              className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-semibold text-sm transition-colors"
+            >
+              Continue Setup
+            </button>
+            <button
+              onClick={() => {
+                sessionDismissedVessels.add(vesselId);
+                setNudgeDismissed(true);
+              }}
+              className={`w-full py-2.5 rounded-xl text-sm font-medium transition-colors ${isDark ? "text-white/40 hover:text-white/70 hover:bg-white/[0.04]" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"}`}
+            >
+              Remind Me Later
+            </button>
+          </div>
+
+          <p className={`text-xs ${isDark ? "text-white/20" : "text-gray-400"}`}>
+            This prompt will reappear each time you open this vessel until it&apos;s complete.
+          </p>
+        </div>
+      </GlassModal>
+    );
   }
 
   return (

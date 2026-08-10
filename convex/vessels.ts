@@ -141,6 +141,35 @@ export const getVessel = query({
   },
 });
 
+// Returns which required fields are still missing on a vessel profile.
+// "Required" for our purposes: hull ID (HIN), registration number, a photo,
+// and at least one propulsion equipment item.
+export const getVesselCompleteness = query({
+  args: { vesselId: v.id("vessels") },
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return null;
+
+    const vessel = await ctx.db.get(args.vesselId);
+    if (!vessel) return null;
+
+    const propulsionItems = await ctx.db
+      .query("vesselEquipment")
+      .withIndex("by_vessel_category", (q) =>
+        q.eq("vesselId", args.vesselId).eq("category", "propulsion")
+      )
+      .first();
+
+    const missing: string[] = [];
+    if (!vessel.hullId) missing.push("Hull ID / HIN");
+    if (!vessel.registrationNumber) missing.push("Registration Number");
+    if (!vessel.imageStorageId) missing.push("Vessel Photo");
+    if (!propulsionItems) missing.push("Engine / Propulsion Equipment");
+
+    return { isComplete: missing.length === 0, missing };
+  },
+});
+
 export const getAuthorizedVessels = query({
   args: {},
   handler: async (ctx) => {
