@@ -319,13 +319,13 @@ export default function VesselDetailPage() {
             {/* Actions */}
             <div className="flex flex-col gap-2.5 w-full">
               <button
-                onClick={() => setNudgeDismissed(true)}
+                onClick={() => { setNudgeDismissed(true); startEditing(); }}
                 className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-semibold text-sm transition-colors"
               >
                 Continue Setup
               </button>
               <button
-                onClick={() => { setNudgeDismissed(true); router.back(); }}
+                onClick={() => setNudgeDismissed(true)}
                 className="w-full py-2.5 rounded-xl text-sm font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.04] transition-colors"
               >
                 Remind Me Later
