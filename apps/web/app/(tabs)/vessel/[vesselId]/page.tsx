@@ -139,6 +139,7 @@ export default function VesselDetailPage() {
   const vessel = useQuery(a.vessels.getVessel, { vesselId });
   const workOrders = useQuery(a.workOrders.getVesselWorkOrders, { vesselId });
   const vesselImageUrl = useQuery(a.storage.getVesselImageUrl, { vesselId });
+  const completeness = useQuery(a.vessels.getVesselCompleteness, { vesselId });
 
   const generateUploadUrl = useMutation(a.storage.generateUploadUrl);
   const saveVesselImage = useMutation(a.storage.saveVesselImage);
@@ -147,6 +148,7 @@ export default function VesselDetailPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [nudgeDismissed, setNudgeDismissed] = useState(false);
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -275,6 +277,69 @@ export default function VesselDetailPage() {
 
   const inProgressOrders = (workOrders ?? []).filter((wo: any) => wo.status === "in_progress");
   const historyOrders = (workOrders ?? []).filter((wo: any) => wo.status !== "in_progress");
+
+  const showNudge = !nudgeDismissed && completeness !== undefined && completeness !== null && !completeness.isComplete;
+
+  if (showNudge && completeness) {
+    return (
+      <div className="flex min-h-screen bg-[#0f1929]">
+        {isOwner ? <OwnerSideNav /> : <FleetSideNav fleets={fleetList} selectedFleetId={selectedFleetId} onFleetChange={setSelectedFleetId} />}
+        <main className="flex-1 flex items-center justify-center px-4">
+          <div className="w-full max-w-md bg-[#0d1526] border border-white/[0.07] rounded-2xl p-8 flex flex-col items-center text-center gap-5">
+            {/* Icon */}
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center">
+              <svg className="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+            </div>
+
+            {/* Heading */}
+            <div>
+              <h2 className="text-lg font-bold font-heading text-white">
+                Finish Setting Up <span className="text-amber-400">{vessel.name}</span>
+              </h2>
+              <p className="text-sm mt-1.5 text-white/50">
+                A complete vessel profile means your mechanic has everything they need before the first service visit.
+              </p>
+            </div>
+
+            {/* Missing fields */}
+            <div className="w-full rounded-xl border border-white/[0.07] bg-white/[0.03] p-4 text-left space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider mb-3 text-white/40">Still needed</p>
+              {completeness.missing.map((field: string) => (
+                <div key={field} className="flex items-center gap-2.5">
+                  <div className="w-4 h-4 rounded-full border-2 border-amber-500/50 flex items-center justify-center flex-shrink-0">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                  </div>
+                  <span className="text-sm text-white/70">{field}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-2.5 w-full">
+              <button
+                onClick={() => setNudgeDismissed(true)}
+                className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-semibold text-sm transition-colors"
+              >
+                Continue Setup
+              </button>
+              <button
+                onClick={() => { setNudgeDismissed(true); router.back(); }}
+                className="w-full py-2.5 rounded-xl text-sm font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.04] transition-colors"
+              >
+                Remind Me Later
+              </button>
+            </div>
+
+            <p className="text-xs text-white/20">
+              This prompt will reappear each time you open this vessel until it&apos;s complete.
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <>
