@@ -101,6 +101,15 @@ function makeEngineEntries(count: number): EngineEntry[] {
   return Array.from({ length: count }, () => ({ make: "", model: "", horsepower: "", hours: "" }));
 }
 
+interface BatteryEntry {
+  make: string;
+  installedDate: string;
+}
+
+function makeBatteryEntries(count: number): BatteryEntry[] {
+  return Array.from({ length: count }, () => ({ make: "", installedDate: "" }));
+}
+
 export function VesselOnboarding({ onComplete, onSkip, existingVesselId }: VesselOnboardingProps) {
   const { mode } = useTheme();
   const [currentStep, setCurrentStep] = useState<Step>(1);
@@ -162,8 +171,7 @@ export function VesselOnboarding({ onComplete, onSkip, existingVesselId }: Vesse
     // Batteries
     hasBatteries: true,
     batteryType: "",
-    batteryCount: "1",
-    batteryMake: "",
+    batteries: makeBatteryEntries(1) as BatteryEntry[],
     
     // Electronics
     selectedElectronics: [] as string[],
@@ -196,6 +204,24 @@ export function VesselOnboarding({ onComplete, onSkip, existingVesselId }: Vesse
       const engines = [...prev.engines];
       engines[index] = { ...engines[index], [field]: value };
       return { ...prev, engines };
+    });
+  };
+
+  const handleBatteryCountChange = (delta: number) => {
+    setEquipmentData((prev) => {
+      const next = Math.min(10, Math.max(1, prev.batteries.length + delta));
+      if (next === prev.batteries.length) return prev;
+      const batteries = makeBatteryEntries(next);
+      prev.batteries.forEach((b, i) => { if (i < next) batteries[i] = { ...b }; });
+      return { ...prev, batteries };
+    });
+  };
+
+  const updateBatteryEntry = (index: number, field: keyof BatteryEntry, value: string) => {
+    setEquipmentData((prev) => {
+      const batteries = [...prev.batteries];
+      batteries[index] = { ...batteries[index], [field]: value };
+      return { ...prev, batteries };
     });
   };
 
@@ -329,17 +355,22 @@ export function VesselOnboarding({ onComplete, onSkip, existingVesselId }: Vesse
         }
       }
 
-      // Add batteries if specified
+      // Add each battery individually
       if (equipmentData.hasBatteries && equipmentData.batteryType) {
-        equipmentPromises.push(
-          addEquipment({
-            vesselId,
-            category: "electrical",
-            name: `${equipmentData.batteryType} Battery${parseInt(equipmentData.batteryCount) > 1 ? "s" : ""}`,
-            manufacturer: equipmentData.batteryMake || undefined,
-            notes: `Quantity: ${equipmentData.batteryCount}`,
-          })
-        );
+        for (let i = 0; i < equipmentData.batteries.length; i++) {
+          const bat = equipmentData.batteries[i];
+          const label = equipmentData.batteries.length > 1 ? ` #${i + 1}` : "";
+          const notes = bat.installedDate ? `Installed: ${bat.installedDate}` : undefined;
+          equipmentPromises.push(
+            addEquipment({
+              vesselId,
+              category: "electrical",
+              name: `${equipmentData.batteryType} Battery${label}`,
+              manufacturer: bat.make || undefined,
+              notes,
+            })
+          );
+        }
       }
 
       // Add electronics
@@ -745,32 +776,74 @@ export function VesselOnboarding({ onComplete, onSkip, existingVesselId }: Vesse
                 </div>
 
                 {equipmentData.hasBatteries && (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-2">
-                      <GlassSelect
-                        value={equipmentData.batteryType}
-                        onChange={(e) => updateEquipmentData("batteryType", e.target.value)}
-                      >
-                        <option value="">Select battery type...</option>
-                        {BATTERY_TYPES.map((type) => (
-                          <option key={type} value={type}>{type}</option>
-                        ))}
-                      </GlassSelect>
-                      <GlassInput
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={equipmentData.batteryCount}
-                        onChange={(e) => updateEquipmentData("batteryCount", e.target.value)}
-                        placeholder="# of batteries"
-                      />
+                  <div className="space-y-4">
+                    {/* Type + count stepper on one row */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <GlassSelect
+                          value={equipmentData.batteryType}
+                          onChange={(e) => updateEquipmentData("batteryType", e.target.value)}
+                        >
+                          <option value="">Select battery type...</option>
+                          {BATTERY_TYPES.map((type) => (
+                            <option key={type} value={type}>{type}</option>
+                          ))}
+                        </GlassSelect>
+                      </div>
+                      {/* Count stepper */}
+                      <div className={`flex items-center gap-1 rounded-lg px-2 py-1.5 ${mode === "dark" ? "bg-white/10" : "bg-gray-100"}`}>
+                        <button
+                          type="button"
+                          onClick={() => handleBatteryCountChange(-1)}
+                          disabled={equipmentData.batteries.length <= 1}
+                          className={`w-6 h-6 rounded flex items-center justify-center text-sm font-bold transition-opacity ${
+                            equipmentData.batteries.length <= 1 ? "opacity-30 cursor-not-allowed" : "hover:opacity-70"
+                          } ${mode === "dark" ? "text-white" : "text-gray-700"}`}
+                        >−</button>
+                        <span className={`w-6 text-center text-sm font-semibold ${mode === "dark" ? "text-white" : "text-gray-800"}`}>
+                          {equipmentData.batteries.length}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleBatteryCountChange(1)}
+                          disabled={equipmentData.batteries.length >= 10}
+                          className={`w-6 h-6 rounded flex items-center justify-center text-sm font-bold transition-opacity ${
+                            equipmentData.batteries.length >= 10 ? "opacity-30 cursor-not-allowed" : "hover:opacity-70"
+                          } ${mode === "dark" ? "text-white" : "text-gray-700"}`}
+                        >+</button>
+                      </div>
                     </div>
-                    <GlassInput
-                      value={equipmentData.batteryMake}
-                      onChange={(e) => updateEquipmentData("batteryMake", e.target.value)}
-                      placeholder="Brand (e.g., Optima, Interstate)"
-                      className="text-sm"
-                    />
+
+                    {/* Per-battery entries */}
+                    {equipmentData.batteries.map((bat, i) => (
+                      <div
+                        key={i}
+                        className={`space-y-2 rounded-lg p-3 ${
+                          equipmentData.batteries.length > 1
+                            ? mode === "dark" ? "bg-white/5 border border-white/10" : "bg-gray-50 border border-gray-200"
+                            : ""
+                        }`}
+                      >
+                        {equipmentData.batteries.length > 1 && (
+                          <p className={`text-xs font-semibold uppercase tracking-wide ${mode === "dark" ? "text-blue-400" : "text-captain-600"}`}>
+                            Battery {i + 1}
+                          </p>
+                        )}
+                        <GlassInput
+                          value={bat.make}
+                          onChange={(e) => updateBatteryEntry(i, "make", e.target.value)}
+                          placeholder="Brand (e.g., Optima, Interstate)"
+                          className="text-sm"
+                        />
+                        <GlassInput
+                          type="date"
+                          value={bat.installedDate}
+                          onChange={(e) => updateBatteryEntry(i, "installedDate", e.target.value)}
+                          placeholder="Install date (optional)"
+                          className="text-sm"
+                        />
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
