@@ -404,11 +404,11 @@ export function FleetDashboard({
       </div>
 
       {/* ── Top KPI strip ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col lg:flex-row gap-3 lg:items-stretch">
-        <div className="flex items-center justify-center p-4 rounded-2xl bg-white/[0.04] border border-white/[0.07] lg:w-48 lg:flex-shrink-0">
+      <div className="flex flex-col xl:flex-row gap-3 xl:items-stretch">
+        <div className="flex items-center justify-center p-4 rounded-2xl bg-white/[0.04] border border-white/[0.07] xl:w-48 xl:flex-shrink-0">
           <HealthDonut score={d?.healthScore ?? 0} trend={8} />
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 flex-1">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 flex-1">
           <KpiTile value={d?.approachingCount ?? 0} label="Service Due Soon" sub="within 14 days"
             color={d && d.approachingCount > 0 ? "yellow" : "gray"} onClick={() => setActiveFilter("approaching")} />
           <KpiTile value={d?.overdueCount ?? 0} label="Overdue" sub="needs attention"
@@ -420,7 +420,7 @@ export function FleetDashboard({
           <KpiTile value={d?.outOfServiceCount ?? 0} label="Out of Service" sub="not operational"
             color={d && d.outOfServiceCount > 0 ? "red" : "gray"} onClick={() => setActiveFilter("out_of_service")} />
         </div>
-        <div className="lg:flex-shrink-0">
+        <div className="xl:flex-shrink-0">
           <AssignedMechanicWidget mechanic={d?.primaryMechanic ?? null} />
         </div>
       </div>
@@ -466,7 +466,7 @@ export function FleetDashboard({
           </div>
 
           {/* ── Icon stats ────────────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
             <IconStat
               icon={<svg className="w-5 h-5 text-captain-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>}
               value={d.totalOpenWorkOrders} label="Open Work Orders"

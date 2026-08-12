@@ -72,7 +72,7 @@ export function FleetSideNav({
   return (
     <aside className="hidden lg:flex flex-col w-56 xl:w-60 flex-shrink-0 min-h-screen bg-[#0d1526] border-r border-white/[0.06]">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-white/[0.06]">
+      <button onClick={() => router.push("/home")} className="flex items-center gap-3 px-5 py-5 border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors text-left w-full">
         <div className="w-9 h-9 rounded-xl bg-captain-500/20 border border-captain-500/30 flex items-center justify-center flex-shrink-0">
           <svg className="w-5 h-5 text-captain-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9V3z" />
@@ -82,7 +82,7 @@ export function FleetSideNav({
           <p className="text-[10px] font-semibold text-white/40 uppercase tracking-widest leading-none">THE</p>
           <p className="text-sm font-bold text-white leading-tight font-heading">QR CAPTAIN</p>
         </div>
-      </div>
+      </button>
 
       {/* Nav items */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
