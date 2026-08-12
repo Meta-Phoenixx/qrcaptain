@@ -283,9 +283,11 @@ function QuickActions({ onAddVessel, onSettings }: { onAddVessel: () => void; on
         <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">Alerts &amp; Notifications</p>
       </div>
       <div className="p-3 flex flex-col gap-2">
-        <button onClick={onAddVessel} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-captain-500 hover:bg-captain-400 text-white text-sm font-semibold transition-colors">
-          + Add Vessel
-        </button>
+        {!isMechanic && (
+          <button onClick={onAddVessel} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-captain-500 hover:bg-captain-400 text-white text-sm font-semibold transition-colors">
+            + Add Vessel
+          </button>
+        )}
         <div className="grid grid-cols-2 lg:grid-cols-1 gap-1.5">
           {actions.map((a) => (
             <button key={a.label} onClick={a.action} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.05] text-white/60 hover:text-white/90 text-xs sm:text-sm transition-colors text-left">

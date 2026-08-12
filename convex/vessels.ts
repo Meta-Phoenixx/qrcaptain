@@ -4,6 +4,7 @@ import { Doc } from "./_generated/dataModel";
 import {
   getAuthenticatedUser,
   requireRole,
+  requireOwnerClass,
   requireVesselOwnerOrAdmin,
 } from "./lib/auth";
 import { logAudit } from "./lib/audit";
@@ -285,7 +286,7 @@ export const createVessel = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { userId } = await requireRole(ctx, "owner");
+    const { userId } = await requireOwnerClass(ctx);
 
     requireMaxLength(args.name, "Vessel name", 200);
     requireMaxLength(args.make, "Make", 100);
