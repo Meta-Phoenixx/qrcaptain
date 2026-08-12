@@ -10,6 +10,8 @@ import { FleetCreateModal } from "./fleet-create-modal";
 import { FleetVesselTable } from "./fleet-vessel-table";
 import { FleetSettingsPanel } from "./fleet-settings-panel";
 import { FleetAddVesselModal } from "./fleet-add-vessel-modal";
+import { NotificationBell, NotificationsPanel } from "./notifications";
+import { WorkOrderEditor } from "./work-order-editor";
 
 // ─── Arc helper ───────────────────────────────────────────────────────────────
 function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: number) {
@@ -267,11 +269,13 @@ function IconStat({ icon, value, label, sub, linkLabel, onLink }: {
 // ─── Quick actions ────────────────────────────────────────────────────────────
 function QuickActions({ onAddVessel, onSettings }: { onAddVessel: () => void; onSettings: () => void }) {
   const router = useRouter();
+  const currentUser = useQuery(api.users.currentUser);
+  const isMechanic = currentUser?.role === "mechanic";
   const actions = [
     { label: "Create Work Order", icon: "📋", action: () => router.push("/work-orders") },
     { label: "Log Engine Hours",  icon: "⏱",  action: () => router.push("/vessels")     },
     { label: "Schedule Service",  icon: "📅", action: () => router.push("/maintenance") },
-    { label: "Invite Mechanic",   icon: "👤", action: onSettings                        },
+    ...(!isMechanic ? [{ label: "Invite Mechanic", icon: "👤", action: onSettings }] : []),
   ];
   return (
     <div className="rounded-2xl bg-white/[0.03] border border-white/[0.07] overflow-hidden w-full lg:w-60 lg:flex-shrink-0">
@@ -313,8 +317,11 @@ export function FleetDashboard({
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showAddVessel, setShowAddVessel] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [viewingWorkOrderId, setViewingWorkOrderId] = useState<Id<"workOrders"> | null>(null);
 
   const a = api as any;
+  const currentUser = useQuery(api.users.currentUser);
   const dashboard = useQuery(a.fleetDashboard.getFleetDashboard, selectedFleetId ? { fleetId: selectedFleetId } : "skip");
   const d = dashboard;
 
@@ -344,17 +351,45 @@ export function FleetDashboard({
           <p className="text-xs sm:text-sm text-white/40 mt-0.5">Real-time health and service status across your fleet</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button className="relative p-2 sm:p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-colors text-white/50 hover:text-white">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            {d && (d.overdueCount + d.approachingCount) > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center">
-                {Math.min(d.overdueCount + d.approachingCount, 9)}
-              </span>
-            )}
-          </button>
-          {selectedFleetId && (
+          {/* Notification bell */}
+          <div className="relative">
+            <NotificationBell onClick={() => setShowNotifications((o) => !o)} />
+            <NotificationsPanel
+              isOpen={showNotifications}
+              onClose={() => setShowNotifications(false)}
+              onViewWorkOrder={(workOrderId) => {
+                setShowNotifications(false);
+                setViewingWorkOrderId(workOrderId);
+              }}
+              onRespondToRequest={(workOrderId) => {
+                setShowNotifications(false);
+                setViewingWorkOrderId(workOrderId);
+              }}
+              onViewVessel={(vesselId) => {
+                setShowNotifications(false);
+                router.push(`/vessel/${vesselId}`);
+              }}
+              onViewAnnouncement={() => {
+                setShowNotifications(false);
+                router.push("/alerts");
+              }}
+              onViewMessage={() => {
+                setShowNotifications(false);
+                router.push("/alerts");
+              }}
+              onViewQuote={(workOrderId) => {
+                setShowNotifications(false);
+                setViewingWorkOrderId(workOrderId);
+              }}
+              onLeaveRating={(workOrderId) => {
+                setShowNotifications(false);
+                setViewingWorkOrderId(workOrderId);
+              }}
+            />
+          </div>
+
+          {/* Settings — only visible to fleet managers and admins, not mechanics */}
+          {selectedFleetId && currentUser?.role !== "mechanic" && (
             <button onClick={() => setShowSettings(true)} className="p-2 sm:p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-colors text-white/50 hover:text-white">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -483,6 +518,9 @@ export function FleetDashboard({
       )}
       {showAddVessel && selectedFleetId && (
         <FleetAddVesselModal fleetId={selectedFleetId} onClose={() => setShowAddVessel(false)} />
+      )}
+      {viewingWorkOrderId && (
+        <WorkOrderEditor workOrderId={viewingWorkOrderId} onClose={() => setViewingWorkOrderId(null)} />
       )}
     </div>
   );
