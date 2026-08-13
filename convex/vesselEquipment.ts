@@ -317,10 +317,7 @@ export const updateEquipment = mutation({
     const vessel = await checkVesselAccess(ctx, equipment.vesselId, userId);
     if (!vessel) throw Errors.accessDenied();
 
-    // Only owners and admins can update equipment
-    if (user.role !== "owner" && user.role !== "admin") {
-      throw Errors.accessDenied();
-    }
+    // Vessel access already verified above — mechanics, fleet managers, owners, and admins may all update equipment
 
     const { equipmentId, ...updates } = args;
     const filteredUpdates = Object.fromEntries(
