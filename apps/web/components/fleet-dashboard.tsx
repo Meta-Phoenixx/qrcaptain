@@ -12,6 +12,7 @@ import { FleetSettingsPanel } from "./fleet-settings-panel";
 import { FleetAddVesselModal } from "./fleet-add-vessel-modal";
 import { NotificationBell, NotificationsPanel } from "./notifications";
 import { WorkOrderEditor } from "./work-order-editor";
+import { GeneralMessaging } from "./general-messaging";
 
 // ─── Arc helper ───────────────────────────────────────────────────────────────
 function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: number) {
@@ -66,42 +67,64 @@ function KpiTile({ value, label, sub, color, onClick }: {
 
 // ─── Assigned mechanic widget ─────────────────────────────────────────────────
 function AssignedMechanicWidget({ mechanic }: {
-  mechanic: { name: string; company: string | null; photoUrl: string | null } | null;
+  mechanic: { id?: Id<"users">; name: string; company: string | null; photoUrl: string | null } | null;
 }) {
+  const [messaging, setMessaging] = useState(false);
   return (
-    <div className="flex flex-col items-center justify-center gap-3 p-4 rounded-2xl bg-white/[0.04] border border-white/[0.07] min-w-[160px]">
-      <p className="text-[10px] uppercase tracking-widest text-white/40 font-medium">Assigned Mechanic</p>
-      {mechanic ? (
-        <>
-          <div className="relative">
-            {mechanic.photoUrl ? (
-              <img src={mechanic.photoUrl} alt={mechanic.name} className="w-14 h-14 rounded-full object-cover border-2 border-captain-500/30" />
-            ) : (
-              <div className="w-14 h-14 rounded-full bg-captain-500/20 border-2 border-captain-500/30 flex items-center justify-center">
-                <svg className="w-7 h-7 text-captain-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    <>
+      <div className="flex flex-col items-center justify-center gap-3 p-4 rounded-2xl bg-white/[0.04] border border-white/[0.07] min-w-[160px]">
+        <p className="text-[10px] uppercase tracking-widest text-white/40 font-medium">Assigned Mechanic</p>
+        {mechanic ? (
+          <>
+            <div className="relative">
+              {mechanic.photoUrl ? (
+                <img src={mechanic.photoUrl} alt={mechanic.name} className="w-14 h-14 rounded-full object-cover border-2 border-captain-500/30" />
+              ) : (
+                <div className="w-14 h-14 rounded-full bg-captain-500/20 border-2 border-captain-500/30 flex items-center justify-center">
+                  <svg className="w-7 h-7 text-captain-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+              )}
+              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#0f1929]" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-white leading-tight">{mechanic.name}</p>
+              {mechanic.company && <p className="text-xs text-white/40 mt-0.5">{mechanic.company}</p>}
+            </div>
+            {mechanic.id && (
+              <button
+                onClick={() => setMessaging(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-captain-500/15 hover:bg-captain-500/25 text-captain-300 text-xs font-medium transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
-              </div>
+                Message
+              </button>
             )}
-            <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-[#0f1929]" />
-          </div>
-          <div className="text-center">
-            <p className="text-sm font-semibold text-white leading-tight">{mechanic.name}</p>
-            {mechanic.company && <p className="text-xs text-white/40 mt-0.5">{mechanic.company}</p>}
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="w-14 h-14 rounded-full bg-white/[0.04] border-2 border-dashed border-white/20 flex items-center justify-center">
-            <svg className="w-6 h-6 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-            </svg>
-          </div>
-          <p className="text-xs text-white/30 text-center">No mechanic<br/>assigned</p>
-        </>
+          </>
+        ) : (
+          <>
+            <div className="w-14 h-14 rounded-full bg-white/[0.04] border-2 border-dashed border-white/20 flex items-center justify-center">
+              <svg className="w-6 h-6 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+              </svg>
+            </div>
+            <p className="text-xs text-white/30 text-center">No mechanic<br/>assigned</p>
+          </>
+        )}
+      </div>
+      {messaging && mechanic?.id && (
+        <GeneralMessaging
+          recipientId={mechanic.id}
+          recipientName={mechanic.name}
+          recipientCompany={mechanic.company ?? undefined}
+          onClose={() => setMessaging(false)}
+        />
       )}
-    </div>
+    </>
   );
 }
 
@@ -304,6 +327,20 @@ function QuickActions({ onAddVessel, onSettings }: { onAddVessel: () => void; on
   );
 }
 
+// ─── Message viewer (fetches sender info then opens GeneralMessaging) ─────────
+function MessageViewer({ messageId, onClose }: { messageId: Id<"messages">; onClose: () => void }) {
+  const msg = useQuery(api.messages.getMessageById, { messageId });
+  if (!msg) return null;
+  return (
+    <GeneralMessaging
+      recipientId={msg.otherUserId as Id<"users">}
+      recipientName={msg.otherUserName}
+      recipientCompany={msg.otherUserCompany ?? undefined}
+      onClose={onClose}
+    />
+  );
+}
+
 // ─── Main dashboard ───────────────────────────────────────────────────────────
 export function FleetDashboard({
   selectedFleetId,
@@ -321,6 +358,7 @@ export function FleetDashboard({
   const [showAddVessel, setShowAddVessel] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [viewingWorkOrderId, setViewingWorkOrderId] = useState<Id<"workOrders"> | null>(null);
+  const [viewingMessageId, setViewingMessageId] = useState<Id<"messages"> | null>(null);
 
   const a = api as any;
   const currentUser = useQuery(api.users.currentUser);
@@ -375,9 +413,9 @@ export function FleetDashboard({
                 setShowNotifications(false);
                 router.push("/alerts");
               }}
-              onViewMessage={() => {
+              onViewMessage={(messageId) => {
                 setShowNotifications(false);
-                router.push("/alerts");
+                setViewingMessageId(messageId as Id<"messages">);
               }}
               onViewQuote={(workOrderId) => {
                 setShowNotifications(false);
@@ -523,6 +561,9 @@ export function FleetDashboard({
       )}
       {viewingWorkOrderId && (
         <WorkOrderEditor workOrderId={viewingWorkOrderId} onClose={() => setViewingWorkOrderId(null)} />
+      )}
+      {viewingMessageId && (
+        <MessageViewer messageId={viewingMessageId} onClose={() => setViewingMessageId(null)} />
       )}
     </div>
   );
