@@ -172,6 +172,7 @@ export const getFleetDashboard = query({
         openWorkOrderCount: openWorkOrders.length,
         openReportCount: openReports.length,
         hasMechanic: !!effectiveMechAuth,
+        mechanicId: mechUser?._id ?? null,
         mechanicName: mechUser ? `${mechUser.firstName ?? ""} ${mechUser.lastName ?? ""}`.trim() : null,
         mechanicCompany: mechUser?.companyName ?? null,
         mechanicPhotoUrl: mechPhotoUrl,
@@ -213,11 +214,11 @@ export const getFleetDashboard = query({
     const coveredVessels = vesselSummaries.filter((v) => v.hasMechanic).length;
 
     // Primary assigned mechanic (most frequently assigned across the fleet)
-    const mechCount: Record<string, { count: number; name: string; company: string | null; photoUrl: string | null }> = {};
+    const mechCount: Record<string, { count: number; id: string; name: string; company: string | null; photoUrl: string | null }> = {};
     for (const v of vesselSummaries) {
-      if (v.mechanicName) {
-        const key = v.mechanicName;
-        if (!mechCount[key]) mechCount[key] = { count: 0, name: v.mechanicName, company: v.mechanicCompany ?? null, photoUrl: v.mechanicPhotoUrl ?? null };
+      if (v.mechanicName && v.mechanicId) {
+        const key = v.mechanicId;
+        if (!mechCount[key]) mechCount[key] = { count: 0, id: v.mechanicId, name: v.mechanicName, company: v.mechanicCompany ?? null, photoUrl: v.mechanicPhotoUrl ?? null };
         mechCount[key].count++;
       }
     }

@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import { AppSideNav } from "@/components/app-side-nav";
+import { GeneralMessaging } from "@/components/general-messaging";
+import { WorkOrderEditor } from "@/components/work-order-editor";
 
 const TYPE_LABELS: Record<string, string> = {
   fleet_service_overdue:    "Service Overdue",
@@ -47,10 +49,26 @@ function timeAgo(ts: number) {
   return `${d}d ago`;
 }
 
+// Sub-component: fetch message sender then open GeneralMessaging
+function AlertMessageViewer({ messageId, onClose }: { messageId: Id<"messages">; onClose: () => void }) {
+  const msg = useQuery(api.messages.getMessageById, { messageId });
+  if (!msg) return null;
+  return (
+    <GeneralMessaging
+      recipientId={msg.otherUserId as Id<"users">}
+      recipientName={msg.otherUserName}
+      recipientCompany={(msg as any).otherUserCompany ?? undefined}
+      onClose={onClose}
+    />
+  );
+}
+
 export default function AlertsPage() {
   const router = useRouter();
   const [selectedFleetId, setSelectedFleetId] = useState<Id<"fleets"> | null>(null);
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [viewingMessageId, setViewingMessageId] = useState<Id<"messages"> | null>(null);
+  const [viewingWorkOrderId, setViewingWorkOrderId] = useState<Id<"workOrders"> | null>(null);
 
   const a = api as any;
   const fleetList  = useQuery(a.fleetDashboard.listAllFleetsDashboard) ?? [];
@@ -59,6 +77,47 @@ export default function AlertsPage() {
   const markAll    = useMutation(api.notifications.markAllAsRead);
   const deleteN    = useMutation(api.notifications.deleteNotification);
   const clearRead  = useMutation(api.notifications.clearReadNotifications);
+
+  function handleNotificationClick(n: any) {
+    if (!n.isRead) markRead({ notificationId: n._id });
+    if (!n.relatedId) return;
+
+    switch (n.type) {
+      case "new_message":
+        if (n.relatedType === "workOrder") {
+          setViewingWorkOrderId(n.relatedId as Id<"workOrders">);
+        } else {
+          setViewingMessageId(n.relatedId as Id<"messages">);
+        }
+        break;
+      case "work_order_started":
+      case "work_order_completed":
+      case "work_order_updated":
+      case "work_order_requested":
+      case "quote_submitted":
+      case "quote_accepted":
+      case "quote_declined":
+      case "request_declined":
+        setViewingWorkOrderId(n.relatedId as Id<"workOrders">);
+        break;
+      case "fleet_service_overdue":
+      case "fleet_service_approaching":
+      case "fleet_vessel_status":
+        router.push("/fleet");
+        break;
+      case "access_request":
+      case "access_approved":
+      case "access_denied":
+      case "access_revoked":
+        router.push("/vessels");
+        break;
+      case "new_announcement":
+        // no deep link — already on alerts
+        break;
+      default:
+        break;
+    }
+  }
 
   if (fleetList.length > 0 && !selectedFleetId) setSelectedFleetId(fleetList[0]._id);
 
@@ -144,7 +203,7 @@ export default function AlertsPage() {
                       ? "border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.04]"
                       : "border-captain-500/20 bg-captain-500/[0.05] hover:bg-captain-500/[0.08]"
                     }`}
-                  onClick={() => !n.isRead && markRead({ notificationId: n._id })}
+                  onClick={() => handleNotificationClick(n)}
                 >
                   {/* Type dot */}
                   <div className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${n.isRead ? "bg-white/10" : color.dot}`} />
@@ -178,6 +237,13 @@ export default function AlertsPage() {
           )}
         </div>
       </main>
+
+      {viewingMessageId && (
+        <AlertMessageViewer messageId={viewingMessageId} onClose={() => setViewingMessageId(null)} />
+      )}
+      {viewingWorkOrderId && (
+        <WorkOrderEditor workOrderId={viewingWorkOrderId} onClose={() => setViewingWorkOrderId(null)} />
+      )}
     </div>
   );
 }

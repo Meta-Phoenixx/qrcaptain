@@ -238,10 +238,7 @@ export const createEquipment = mutation({
     const vessel = await checkVesselAccess(ctx, args.vesselId, userId);
     if (!vessel) throw Errors.notFound("Vessel");
 
-    // Only owners and admins can add equipment
-    if (user.role !== "owner" && user.role !== "admin") {
-      throw Errors.accessDenied();
-    }
+    // Vessel access already verified above — mechanics, fleet managers, owners, and admins may add equipment
 
     const equipmentId = await ctx.db.insert("vesselEquipment", {
       vesselId: args.vesselId,
