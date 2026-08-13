@@ -102,6 +102,14 @@ export default defineSchema({
     isAvailabilityManuallySet: v.optional(v.boolean()),   // True if manually set (vs auto-calculated)
     maxConcurrentJobs: v.optional(v.number()),            // Threshold for auto-calculation
 
+    // ============ FLEET MANAGER-SPECIFIC FIELDS ============
+
+    taxExempt: v.optional(v.boolean()),
+    exemptionCertificateNumber: v.optional(v.string()),
+    exemptionEffectiveDate: v.optional(v.number()),
+    exemptionExpirationDate: v.optional(v.number()),
+    exemptionCategory: v.optional(v.string()),
+
     // Admin impersonation — set when an admin is viewing the app as another user
     impersonatingAs: v.optional(v.id("users")),
   })

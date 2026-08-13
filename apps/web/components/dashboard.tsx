@@ -17,6 +17,7 @@ import { NotificationBell, NotificationsPanel } from "./notifications";
 import { AccessRequestModal, PendingAccessRequests } from "./access-request-modal";
 import { AuthorizedVessels } from "./authorized-vessels";
 import { MechanicOnboarding } from "./mechanic-onboarding";
+import { FleetManagerOnboarding } from "./fleet-manager-onboarding";
 import { MechanicProfile } from "./mechanic-profile";
 import { OwnerOnboarding } from "./owner-onboarding";
 import { VesselOnboarding } from "./vessel-onboarding";
@@ -309,12 +310,15 @@ export function Dashboard() {
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-4 py-8">
         {user.role === "owner" && (
-          <OwnerDashboard 
+          <OwnerDashboard
             onViewRequest={setSelectedRequestId}
           />
         )}
         {user.role === "mechanic" && <MechanicDashboard />}
         {user.role === "admin" && <AdminDashboard />}
+        {user.role === "fleet_manager" && !user.onboardingCompleted && (
+          <FleetManagerOnboarding />
+        )}
       </main>
 
       {/* Access Request Modal */}
