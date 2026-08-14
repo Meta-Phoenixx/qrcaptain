@@ -651,7 +651,10 @@ export function LandingPage() {
   }
 
   const handleViewDashboard = () => {
-    // Set preference to go directly to dashboard
+    if (user?.role === "mechanic") {
+      router.push("/work-orders");
+      return;
+    }
     if (typeof window !== "undefined") {
       localStorage.setItem("qr-captain-prefer-dashboard", "true");
     }
