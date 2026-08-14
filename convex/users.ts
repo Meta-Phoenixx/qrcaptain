@@ -4,6 +4,8 @@ import { getAuthenticatedUser, requireAuth, requireRole, requireAdmin } from "./
 import { logAudit } from "./lib/audit";
 import { Errors } from "./lib/errors";
 
+declare const process: { env: Record<string, string | undefined> };
+
 // Check if an email is already registered (used during sign-up to prevent silent sign-in)
 export const emailExists = query({
   args: { email: v.string() },
@@ -114,6 +116,39 @@ export const promoteToAdmin = mutation({
     }
 
     return { message: `Promoted ${updated.length} user(s) to admin`, userIds: updated };
+  },
+});
+
+// Admin: change any user's role (including promoting to admin)
+export const adminChangeUserRole = mutation({
+  args: {
+    targetUserId: v.id("users"),
+    newRole: v.union(
+      v.literal("owner"),
+      v.literal("mechanic"),
+      v.literal("fleet_manager"),
+      v.literal("admin"),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const { userId: actorId } = await requireAdmin(ctx);
+
+    const target = await ctx.db.get(args.targetUserId);
+    if (!target) throw Errors.notFound("User");
+
+    const before = { role: target.role };
+    await ctx.db.patch(args.targetUserId, { role: args.newRole });
+
+    await logAudit(ctx, {
+      action: "admin.user_role_changed" as const,
+      actorId,
+      targetId: args.targetUserId,
+      targetType: "users",
+      before,
+      after: { role: args.newRole },
+    });
+
+    return { success: true, previousRole: target.role, newRole: args.newRole };
   },
 });
 
@@ -637,6 +672,76 @@ export const getAdminStats = query({
       activeWorkOrders: workOrders.filter((wo) => wo.status === "in_progress").length,
       completedWorkOrders: workOrders.filter((wo) => wo.status === "completed").length,
     };
+  },
+});
+
+// Admin-initiated password reset: sends OTP email via Resend on behalf of user
+export const adminRequestPasswordReset = mutation({
+  args: { targetUserId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { userId: actorId } = await requireAdmin(ctx);
+
+    const target = await ctx.db.get(args.targetUserId);
+    if (!target || !target.email) throw new Error("User not found or has no email");
+
+    const apiKey = process.env.AUTH_RESEND_KEY;
+    const fromEmail = process.env.AUTH_EMAIL ?? "QR Captain <noreply@qrcaptain.com>";
+
+    if (!apiKey) {
+      console.log(`[DEV] Admin password reset requested for ${target.email} — no Resend key, skipping send`);
+      return { success: true, email: target.email };
+    }
+
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: [target.email],
+        subject: "Reset your QR Captain password",
+        html: `
+          <div style="font-family: system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+              <h1 style="font-size: 24px; font-weight: bold; margin: 0 0 8px;">QR Captain</h1>
+              <p style="color: #666; margin: 0;">Password Reset</p>
+            </div>
+            <p style="color: #333; margin: 0 0 16px;">
+              Your account administrator has requested a password reset for your QR Captain account.
+            </p>
+            <p style="color: #333; margin: 0 0 24px;">
+              Please visit the QR Captain sign-in page and use the <strong>Forgot Password</strong> link to set a new password for your account (<strong>${target.email}</strong>).
+            </p>
+            <div style="text-align: center; margin-bottom: 24px;">
+              <a href="${process.env.SITE_URL ?? "https://theqrcaptain.com"}/signin"
+                style="display: inline-block; background: #0ea5e9; color: white; font-weight: bold; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px;">
+                Go to Sign In
+              </a>
+            </div>
+            <p style="color: #999; font-size: 13px; text-align: center; margin: 0;">
+              If you did not expect this email, please contact support at support@theqrcaptain.com.
+            </p>
+          </div>
+        `,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.error(`[Resend] Failed to send admin password reset to ${target.email}:`, err);
+      throw new Error(`Failed to send email: ${err}`);
+    }
+
+    await logAudit(ctx, {
+      action: "admin.password_reset_requested" as const,
+      actorId,
+      targetId: args.targetUserId,
+      after: { email: target.email },
+    });
+
+    return { success: true, email: target.email };
   },
 });
 
