@@ -35,9 +35,9 @@ export const listVesselDocuments = query({
             .withIndex("by_vessel_mechanic", (q) => q.eq("vesselId", args.vesselId).eq("mechanicId", userId))
             .filter((q) => q.eq(q.field("isActive"), true))
             .first();
-          if (!auth) throw Errors.forbidden();
+          if (!auth) throw Errors.accessDenied();
         } else {
-          throw Errors.forbidden();
+          throw Errors.accessDenied();
         }
       }
     }
@@ -78,9 +78,9 @@ export const addVesselDocument = mutation({
             .withIndex("by_vessel_mechanic", (q) => q.eq("vesselId", args.vesselId).eq("mechanicId", userId))
             .filter((q) => q.eq(q.field("isActive"), true))
             .first();
-          if (!auth) throw Errors.forbidden();
+          if (!auth) throw Errors.accessDenied();
         } else {
-          throw Errors.forbidden();
+          throw Errors.accessDenied();
         }
       }
     }
@@ -112,7 +112,7 @@ export const deleteVesselDocument = mutation({
 
     // Only uploader, vessel owner, or admin can delete
     if (user.role !== "admin" && vessel.ownerId !== userId && doc.uploadedBy !== userId) {
-      throw Errors.forbidden();
+      throw Errors.accessDenied();
     }
 
     await ctx.storage.delete(doc.storageId);
