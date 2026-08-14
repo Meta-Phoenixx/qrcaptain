@@ -12,6 +12,7 @@ import { FleetSettingsPanel } from "./fleet-settings-panel";
 import { FleetAddVesselModal } from "./fleet-add-vessel-modal";
 import { NotificationBell, NotificationsPanel } from "./notifications";
 import { WorkOrderEditor } from "./work-order-editor";
+import { WorkOrderRequestForm } from "./work-order-request-form";
 import { GeneralMessaging } from "./general-messaging";
 
 // ─── Arc helper ───────────────────────────────────────────────────────────────
@@ -353,6 +354,7 @@ export function FleetDashboard({
 }) {
   const router = useRouter();
   const [showCreateFleet, setShowCreateFleet] = useState(false);
+  const [showRequestService, setShowRequestService] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsInitialTab, setSettingsInitialTab] = useState<"info" | "mechanics" | "danger">("info");
@@ -438,8 +440,8 @@ export function FleetDashboard({
               </svg>
             </button>
           )}
-          <button onClick={() => setShowCreateFleet(true)} className="flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-captain-500 hover:bg-captain-400 text-white text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap">
-            + New Fleet
+          <button onClick={() => setShowRequestService(true)} className="flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-captain-500 hover:bg-captain-400 text-white text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap">
+            + Request Service
           </button>
         </div>
       </div>
@@ -563,6 +565,12 @@ export function FleetDashboard({
       )}
       {showAddVessel && selectedFleetId && (
         <FleetAddVesselModal fleetId={selectedFleetId} onClose={() => setShowAddVessel(false)} />
+      )}
+      {showRequestService && (
+        <WorkOrderRequestForm
+          onCancel={() => setShowRequestService(false)}
+          onSuccess={() => setShowRequestService(false)}
+        />
       )}
       {viewingWorkOrderId && (
         <WorkOrderEditor workOrderId={viewingWorkOrderId} onClose={() => setViewingWorkOrderId(null)} />
