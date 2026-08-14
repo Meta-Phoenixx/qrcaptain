@@ -165,7 +165,11 @@ export const saveMechanicProfilePhoto = mutation({
 export const saveMechanicCompanyLogo = mutation({
   args: { storageId: v.id("_storage") },
   handler: async (ctx, args) => {
-    const { userId, user } = await requireRole(ctx, "mechanic");
+    const { userId } = await requireAuth(ctx);
+    const user = await ctx.db.get(userId);
+    if (!user || (user.role !== "mechanic" && user.role !== "fleet_manager")) {
+      throw new Error("Access denied");
+    }
 
     if (user.companyLogoStorageId) {
       await ctx.storage.delete(user.companyLogoStorageId);
