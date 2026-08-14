@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { GlassCard, GlassButton, GlassBadge, GlassInput, GlassSelect } from "./ui/glass";
 import { useTheme } from "./providers/theme-provider";
@@ -1066,7 +1066,7 @@ function UsersTab({ mode }: { mode: string }) {
     expandedUserId ? { userId: expandedUserId } : "skip"
   );
   const startImpersonation = useMutation(a.admin.startImpersonation);
-  const requestPasswordReset = useMutation(a.users.adminRequestPasswordReset);
+  const requestPasswordReset = useAction(a.adminActions.adminRequestPasswordReset);
   const changeUserRole = useMutation(a.users.adminChangeUserRole);
 
   const dark = mode === "dark";
