@@ -1057,6 +1057,8 @@ function UsersTab({ mode }: { mode: string }) {
   const [roleFilter, setRoleFilter] = useState("");
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [impersonating, setImpersonating] = useState<string | null>(null);
+  const [resetStates, setResetStates] = useState<Record<string, "idle" | "loading" | "sent" | "error">>({});
+  const [roleChangeStates, setRoleChangeStates] = useState<Record<string, boolean>>({});
 
   const users = useQuery(a.admin.listAllUsers, { role: roleFilter || undefined, search: search || undefined }) ?? [];
   const expandedDetails = useQuery(
@@ -1064,6 +1066,8 @@ function UsersTab({ mode }: { mode: string }) {
     expandedUserId ? { userId: expandedUserId } : "skip"
   );
   const startImpersonation = useMutation(a.admin.startImpersonation);
+  const requestPasswordReset = useMutation(a.users.adminRequestPasswordReset);
+  const changeUserRole = useMutation(a.users.adminChangeUserRole);
 
   const dark = mode === "dark";
 
@@ -1071,11 +1075,35 @@ function UsersTab({ mode }: { mode: string }) {
     setImpersonating(userId);
     try {
       await startImpersonation({ targetUserId: userId });
-      // Redirect to the target user's home page
       router.replace("/my-dashboard");
     } catch (e) {
       console.error(e);
       setImpersonating(null);
+    }
+  }
+
+  async function handlePasswordReset(userId: string) {
+    setResetStates((prev) => ({ ...prev, [userId]: "loading" }));
+    try {
+      await requestPasswordReset({ targetUserId: userId });
+      setResetStates((prev) => ({ ...prev, [userId]: "sent" }));
+      setTimeout(() => setResetStates((prev) => ({ ...prev, [userId]: "idle" })), 4000);
+    } catch (e) {
+      console.error(e);
+      setResetStates((prev) => ({ ...prev, [userId]: "error" }));
+      setTimeout(() => setResetStates((prev) => ({ ...prev, [userId]: "idle" })), 4000);
+    }
+  }
+
+  async function handleRoleChange(userId: string, newRole: string) {
+    if (!confirm(`Change this user's role to "${newRole}"? This takes effect immediately.`)) return;
+    setRoleChangeStates((prev) => ({ ...prev, [userId]: true }));
+    try {
+      await changeUserRole({ targetUserId: userId, newRole: newRole as any });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRoleChangeStates((prev) => ({ ...prev, [userId]: false }));
     }
   }
 
@@ -1198,6 +1226,69 @@ function UsersTab({ mode }: { mode: string }) {
                       </div>
                     ) : (
                       <div className="space-y-4 mt-2">
+                        {/* Admin Actions */}
+                        <div className={`rounded-xl border p-4 space-y-3 ${dark ? "border-white/[0.07] bg-white/[0.02]" : "border-gray-200 bg-white"}`}>
+                          <p className={`text-[10px] font-semibold uppercase tracking-widest ${dark ? "text-white/30" : "text-gray-400"}`}>Admin Actions</p>
+
+                          <div className="flex flex-wrap gap-2 items-center">
+                            {/* Password Reset */}
+                            {(() => {
+                              const state = resetStates[expandedUserId!] ?? "idle";
+                              return (
+                                <button
+                                  onClick={() => handlePasswordReset(expandedUserId!)}
+                                  disabled={state === "loading" || state === "sent"}
+                                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-60 ${
+                                    state === "sent"
+                                      ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25"
+                                      : state === "error"
+                                      ? "bg-red-500/15 text-red-400 border border-red-500/25"
+                                      : dark
+                                      ? "bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20"
+                                      : "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
+                                  }`}
+                                >
+                                  {state === "loading" ? (
+                                    <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                                  ) : state === "sent" ? (
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
+                                  ) : (
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                                  )}
+                                  {state === "sent" ? "Email Sent" : state === "error" ? "Failed — Retry" : "Send Password Reset"}
+                                </button>
+                              );
+                            })()}
+
+                            {/* Role Change */}
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-xs ${dark ? "text-white/30" : "text-gray-400"}`}>Change role:</span>
+                              <select
+                                defaultValue=""
+                                disabled={roleChangeStates[expandedUserId!]}
+                                onChange={(e) => {
+                                  if (e.target.value) handleRoleChange(expandedUserId!, e.target.value);
+                                  e.target.value = "";
+                                }}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs border outline-none transition-colors disabled:opacity-50 ${
+                                  dark
+                                    ? "bg-white/[0.06] border-white/[0.10] text-white"
+                                    : "bg-white border-gray-200 text-gray-800"
+                                }`}
+                              >
+                                <option value="" disabled>Select role…</option>
+                                <option value="owner">Owner</option>
+                                <option value="mechanic">Mechanic</option>
+                                <option value="fleet_manager">Fleet Manager</option>
+                                <option value="admin">Admin</option>
+                              </select>
+                              {roleChangeStates[expandedUserId!] && (
+                                <svg className="w-3.5 h-3.5 animate-spin text-captain-400" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
                         {/* Profile fields */}
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                           {[
