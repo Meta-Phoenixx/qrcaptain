@@ -887,6 +887,32 @@ export default defineSchema({
     .index("by_invoice", ["invoiceId"]),
 
   // ============================================
+  // VESSEL DOCUMENTS
+  // ============================================
+  vesselDocuments: defineTable({
+    vesselId: v.id("vessels"),
+    uploadedBy: v.id("users"),
+    storageId: v.id("_storage"),
+    fileName: v.string(),
+    fileType: v.string(),        // MIME type
+    fileSizeBytes: v.optional(v.number()),
+    category: v.union(
+      v.literal("registration"),
+      v.literal("insurance"),
+      v.literal("title"),
+      v.literal("survey"),
+      v.literal("manual"),
+      v.literal("warranty"),
+      v.literal("invoice"),
+      v.literal("other")
+    ),
+    notes: v.optional(v.string()),
+    uploadedAt: v.number(),
+  })
+    .index("by_vessel", ["vesselId"])
+    .index("by_vessel_category", ["vesselId", "category"]),
+
+  // ============================================
   // AUDIT LOGS (immutable record of important actions)
   // ============================================
   auditLogs: defineTable({
