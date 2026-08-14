@@ -184,7 +184,7 @@ export default function FleetManagerOnboardingPage() {
       form.exemptionEffectiveDate &&
       form.exemptionExpirationDate &&
       form.exemptionCategory.trim() &&
-      /^[a-zA-Z0-9\s]+$/.test(form.exemptionCategory.trim())
+      /^[a-zA-Z0-9\s()]+$/.test(form.exemptionCategory.trim())
     );
   }
 
@@ -573,11 +573,11 @@ export default function FleetManagerOnboardingPage() {
                 </div>
                 <div>
                   <label className={labelCls}>
-                    Exemption Category * <span className="text-white/25 font-normal">(letters and numbers)</span>
+                    Exemption Category * <span className="text-white/25 font-normal">(letters, numbers, and parentheses)</span>
                   </label>
                   <input
                     value={form.exemptionCategory}
-                    onChange={(e) => set("exemptionCategory", e.target.value.replace(/[^a-zA-Z0-9\s]/g, ""))}
+                    onChange={(e) => set("exemptionCategory", e.target.value.replace(/[^a-zA-Z0-9\s()]/g, ""))}
                     placeholder="e.g. Nonprofit Organizations"
                     className={inputCls}
                   />
