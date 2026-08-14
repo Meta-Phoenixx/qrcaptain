@@ -440,9 +440,11 @@ export function FleetDashboard({
               </svg>
             </button>
           )}
-          <button onClick={() => setShowRequestService(true)} className="flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-captain-500 hover:bg-captain-400 text-white text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap">
-            + Request Service
-          </button>
+          {currentUser?.role !== "mechanic" && (
+            <button onClick={() => setShowRequestService(true)} className="flex items-center gap-1.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-captain-500 hover:bg-captain-400 text-white text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap">
+              + Request Service
+            </button>
+          )}
         </div>
       </div>
 
