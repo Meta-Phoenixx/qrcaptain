@@ -113,7 +113,7 @@ export const saveVesselImage = mutation({
     if (user.role !== "admin" && vessel.ownerId !== userId) throw Errors.accessDenied();
 
     if (vessel.imageStorageId) {
-      await ctx.storage.delete(vessel.imageStorageId);
+      try { await ctx.storage.delete(vessel.imageStorageId); } catch {}
     }
 
     await ctx.db.patch(args.vesselId, { imageStorageId: args.storageId });
@@ -137,7 +137,7 @@ export const saveUserProfilePhoto = mutation({
     const { userId, user } = await requireAuth(ctx);
 
     if (user.profilePhotoStorageId) {
-      await ctx.storage.delete(user.profilePhotoStorageId);
+      try { await ctx.storage.delete(user.profilePhotoStorageId); } catch {}
     }
 
     await ctx.db.patch(userId, { profilePhotoStorageId: args.storageId });
@@ -153,7 +153,7 @@ export const saveMechanicProfilePhoto = mutation({
     const { userId, user } = await requireAuth(ctx);
 
     if (user.profilePhotoStorageId) {
-      await ctx.storage.delete(user.profilePhotoStorageId);
+      try { await ctx.storage.delete(user.profilePhotoStorageId); } catch {}
     }
 
     await ctx.db.patch(userId, { profilePhotoStorageId: args.storageId });
@@ -168,7 +168,11 @@ export const saveMechanicCompanyLogo = mutation({
     const { userId, user } = await requireRole(ctx, "mechanic");
 
     if (user.companyLogoStorageId) {
-      await ctx.storage.delete(user.companyLogoStorageId);
+      try {
+        await ctx.storage.delete(user.companyLogoStorageId);
+      } catch {
+        // old storage object already gone — safe to ignore
+      }
     }
 
     await ctx.db.patch(userId, { companyLogoStorageId: args.storageId });
@@ -185,7 +189,11 @@ export const saveFleetManagerCompanyLogo = mutation({
     if (!user || user.role !== "fleet_manager") throw new Error("Access denied");
 
     if (user.companyLogoStorageId) {
-      await ctx.storage.delete(user.companyLogoStorageId);
+      try {
+        await ctx.storage.delete(user.companyLogoStorageId);
+      } catch {
+        // old storage object already gone — safe to ignore
+      }
     }
 
     await ctx.db.patch(userId, { companyLogoStorageId: args.storageId });
