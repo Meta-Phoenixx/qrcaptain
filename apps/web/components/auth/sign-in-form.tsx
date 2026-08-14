@@ -2,7 +2,7 @@
 
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { GlassCard, GlassInput, GlassButton } from "../ui/glass";
 import { useTheme } from "../providers/theme-provider";
 
@@ -45,14 +45,7 @@ export function SignInForm() {
   const [resetEmail, setResetEmail] = useState("");
   const { mode } = useTheme();
 
-  const [emailAlreadyExists, setEmailAlreadyExists] = useState<boolean | undefined>(undefined);
-
   const isSignUp = false; // Sign-up disabled — invite/waitlist only
-
-  // Email-exists check not needed while sign-up is closed
-  useEffect(() => {
-    setEmailAlreadyExists(undefined);
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -159,7 +152,6 @@ export function SignInForm() {
     setView(newView);
     setError(null);
     setSuccessMessage(null);
-    setSignUpEmail("");
   };
 
   const labelClass = `block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`;
@@ -319,103 +311,6 @@ export function SignInForm() {
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {isSignUp && (
-          <>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="firstName"
-                  className={labelClass}
-                >
-                  First Name
-                </label>
-                <GlassInput
-                  id="firstName"
-                  name="firstName"
-                  type="text"
-                  required={isSignUp}
-                  placeholder="John"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="lastName"
-                  className={labelClass}
-                >
-                  Last Name
-                </label>
-                <GlassInput
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  required={isSignUp}
-                  placeholder="Smith"
-                />
-              </div>
-            </div>
-            <div>
-              <label
-                htmlFor="role"
-                className={labelClass}
-              >
-                I am a...
-              </label>
-              <GlassSelect
-                id="role"
-                name="role"
-                required={isSignUp}
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
-              >
-                <option value="owner">Boat Owner</option>
-                <option value="mechanic">Marine Mechanic</option>
-                <option value="fleet_manager">Fleet Manager</option>
-              </GlassSelect>
-            </div>
-
-            {/* Additional required fields for mechanics */}
-            {isMechanic && (
-              <>
-                <div className={`pt-2 border-t ${mode === 'dark' ? "border-white/10" : "border-gray-100"}`}>
-                  <p className={`text-xs mb-3 ${mode === 'dark' ? "text-gray-400" : "text-gray-500"}`}>
-                    As a marine mechanic, we need a few more details to set up your account.
-                  </p>
-                </div>
-                <div>
-                  <label
-                    htmlFor="companyName"
-                    className={labelClass}
-                  >
-                    Business Name <span className="text-red-500">*</span>
-                  </label>
-                  <GlassInput
-                    id="companyName"
-                    name="companyName"
-                    type="text"
-                    required
-                    placeholder="ABC Marine Services"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="phone"
-                    className={labelClass}
-                  >
-                    Phone Number <span className="text-red-500">*</span>
-                  </label>
-                  <GlassInput
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    required
-                    placeholder="(555) 123-4567"
-                  />
-                </div>
-              </>
-            )}
-          </>
-        )}
-
         <div>
           <label
             htmlFor="email"
@@ -429,21 +324,7 @@ export function SignInForm() {
             type="email"
             required
             placeholder="you@example.com"
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              if (isSignUp) {
-                setSignUpEmail(e.target.value);
-                // Clear the "already exists" error when user changes email
-                if (error?.includes("already exists")) {
-                  setError(null);
-                }
-              }
-            }}
           />
-          {isSignUp && emailAlreadyExists && (
-            <p className="mt-1 text-sm text-red-400">
-              This email is already registered. Please sign in instead.
-            </p>
-          )}
         </div>
 
         <div>
