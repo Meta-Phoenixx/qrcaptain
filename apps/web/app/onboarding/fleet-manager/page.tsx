@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
@@ -46,15 +46,19 @@ const FLEET_TYPES: { value: FleetType; label: string; icon: string }[] = [
 
 const STEPS: Step[] = ["logo", "business_info", "tax_exempt", "create_fleet"];
 
-function stepIndex(step: Step, taxExempt: boolean | null) {
-  const base: Step[] = ["logo", "business_info", "tax_exempt"];
-  if (taxExempt === true) base.push("tax_exemption");
-  base.push("create_fleet");
-  return base.indexOf(step);
+function buildSteps(taxExempt: boolean | null, hasExistingFleet: boolean): Step[] {
+  const steps: Step[] = ["logo", "business_info", "tax_exempt"];
+  if (taxExempt === true) steps.push("tax_exemption");
+  if (!hasExistingFleet) steps.push("create_fleet");
+  return steps;
 }
 
-function totalSteps(taxExempt: boolean | null) {
-  return taxExempt === true ? 5 : 4;
+function stepIndex(step: Step, taxExempt: boolean | null, hasExistingFleet: boolean) {
+  return buildSteps(taxExempt, hasExistingFleet).indexOf(step);
+}
+
+function totalSteps(taxExempt: boolean | null, hasExistingFleet: boolean) {
+  return buildSteps(taxExempt, hasExistingFleet).length;
 }
 
 export default function FleetManagerOnboardingPage() {
@@ -87,6 +91,9 @@ export default function FleetManagerOnboardingPage() {
     fleetType: "",
     fleetDescription: "",
   });
+
+  const existingFleets = useQuery((api as any).fleetDashboard.listAllFleetsDashboard) ?? [];
+  const hasExistingFleet = Array.isArray(existingFleets) && existingFleets.length > 0;
 
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const completeOnboarding = useMutation((api as any).users.completeFleetManagerOnboarding);
@@ -180,12 +187,14 @@ export default function FleetManagerOnboardingPage() {
         ...(form.logoStorageId && { companyLogoStorageId: form.logoStorageId }),
       });
 
-      // 2. Create first fleet
-      await createFleet({
-        name: form.fleetName.trim(),
-        ...(form.fleetType && { fleetType: form.fleetType as FleetType }),
-        ...(form.fleetDescription.trim() && { description: form.fleetDescription.trim() }),
-      });
+      // 2. Create first fleet (only if they don't already have one)
+      if (!hasExistingFleet) {
+        await createFleet({
+          name: form.fleetName.trim(),
+          ...(form.fleetType && { fleetType: form.fleetType as FleetType }),
+          ...(form.fleetDescription.trim() && { description: form.fleetDescription.trim() }),
+        });
+      }
 
       router.replace("/fleet");
     } catch (e: any) {
@@ -194,8 +203,8 @@ export default function FleetManagerOnboardingPage() {
     }
   }
 
-  const currentIndex = stepIndex(step, form.taxExempt);
-  const total = totalSteps(form.taxExempt);
+  const currentIndex = stepIndex(step, form.taxExempt, hasExistingFleet);
+  const total = totalSteps(form.taxExempt, hasExistingFleet);
 
   const inputCls =
     "w-full px-3 py-2.5 rounded-xl text-sm bg-white/[0.04] border border-white/[0.10] text-white placeholder-white/30 focus:border-captain-500/60 focus:bg-white/[0.06] outline-none transition-colors";
@@ -452,7 +461,7 @@ export default function FleetManagerOnboardingPage() {
                     </div>
                   </button>
                   <button
-                    onClick={() => { set("taxExempt", false); setStep("create_fleet"); }}
+                    onClick={() => { set("taxExempt", false); if (hasExistingFleet) handleFinish(); else setStep("create_fleet"); }}
                     className={`flex flex-col items-center gap-3 px-4 py-6 rounded-2xl border transition-all group
                       ${form.taxExempt === false
                         ? "border-white/20 bg-white/[0.06]"
@@ -548,11 +557,11 @@ export default function FleetManagerOnboardingPage() {
                     Back
                   </button>
                   <button
-                    onClick={() => { setError(null); setStep("create_fleet"); }}
-                    disabled={!exemptionReady()}
+                    onClick={() => { setError(null); if (hasExistingFleet) handleFinish(); else setStep("create_fleet"); }}
+                    disabled={!exemptionReady() || loading}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-captain-500 hover:bg-captain-400 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
                   >
-                    Continue
+                    {hasExistingFleet ? (loading ? "Saving…" : "Complete Setup") : "Continue"}
                   </button>
                 </div>
               </div>
