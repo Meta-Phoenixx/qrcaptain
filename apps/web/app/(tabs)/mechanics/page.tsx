@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { OwnerSideNav } from "@/components/owner-side-nav";
 import { FleetSideNav } from "@/components/fleet-side-nav";
+import { MechanicSideNav } from "@/components/mechanic-side-nav";
 import { MechanicDirectory } from "@/components/mechanic-directory";
 
 const a = api as any;
@@ -12,17 +13,20 @@ export default function MechanicsPage() {
   const user = useQuery(a.users.currentUser);
   const fleets = useQuery(a.fleets.listMyFleets) ?? [];
 
-  const isFleetManager = user?.role === "fleet_manager";
+  const role = user?.role;
 
-  const SideNav = isFleetManager ? (
-    <FleetSideNav
-      selectedFleetId={fleets[0]?._id ?? null}
-      fleets={fleets}
-      onFleetChange={() => {}}
-    />
-  ) : (
-    <OwnerSideNav />
-  );
+  const SideNav =
+    role === "mechanic" ? (
+      <MechanicSideNav />
+    ) : role === "fleet_manager" ? (
+      <FleetSideNav
+        selectedFleetId={fleets[0]?._id ?? null}
+        fleets={fleets}
+        onFleetChange={() => {}}
+      />
+    ) : (
+      <OwnerSideNav />
+    );
 
   if (user === undefined) {
     return (
