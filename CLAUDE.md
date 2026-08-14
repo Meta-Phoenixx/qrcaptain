@@ -53,8 +53,9 @@ pnpm type-check       # TypeScript checks across all apps
 npm test              # Run Jest tests
 npm test -- --testPathPattern=path/to/test  # Single test file
 
-# Convex deployment
-npx convex deploy     # Deploy backend (from convex/ directory)
+# Convex deployment — ALWAYS run from repo root
+pnpm deploy:convex           # Deploy to dev
+pnpm deploy:convex:prod      # Deploy to production (striped-greyhound-919)
 
 # Cleanup
 pnpm clean            # Remove turbo cache and node_modules
@@ -108,6 +109,7 @@ pnpm clean            # Remove turbo cache and node_modules
 - **Branch protection:** Never push directly to `main`. All changes go through a PR.
 - **Branch naming:** `feature/`, `fix/`, `refactor/`, `chore/` prefixes.
 - **Convex deployments:** Always develop and test against the **dev** Convex deployment first. Never run `npx convex deploy` against production without explicit confirmation.
+- **Convex deploy directory — CRITICAL:** ALWAYS run from the repo root. The `convex/` subdirectory's `package.json` is for dependencies only — deploying from inside it wipes all prod functions. Use `pnpm deploy:convex:prod` exclusively.
 - **Secrets:** Never commit `.env`, `.env.local`, or any file containing API keys. All secrets live in GitHub repository secrets or Vercel environment variables.
 
 ## Hard Rules

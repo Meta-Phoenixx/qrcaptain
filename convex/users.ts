@@ -47,10 +47,9 @@ export const currentUser = query({
   },
 });
 
-// Seed an admin user - run from Convex dashboard or CLI:
-//   npx convex run users:seedAdmin       (dev)
-//   npx convex run --prod users:seedAdmin (production)
-export const seedAdmin = mutation({
+// Seed an admin user — internal only, not client-callable.
+// Run via Convex dashboard or CLI with --run flag on the action wrapper.
+export const seedAdmin = internalMutation({
   args: {},
   handler: async (ctx) => {
     // Check if admin already exists

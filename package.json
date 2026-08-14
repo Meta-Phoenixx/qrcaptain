@@ -10,7 +10,9 @@
     "clean": "turbo clean && rm -rf node_modules",
     "dev:web": "turbo dev --filter=web",
     "dev:mobile": "turbo dev --filter=mobile",
-    "dev:convex": "npx convex dev"
+    "dev:convex": "npx convex dev",
+    "deploy:convex": "npx convex deploy",
+    "deploy:convex:prod": "CONVEX_DEPLOYMENT=prod:striped-greyhound-919 npx convex deploy"
   },
   "dependencies": {
     "@convex-dev/auth": "^0.0.71",

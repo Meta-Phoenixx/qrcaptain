@@ -7,7 +7,9 @@ export const { auth, signIn, signOut, store } = convexAuth({
     Password({
       reset: ResendOTPPasswordReset,
       profile(params) {
-        const role = (params.role as string) || "owner";
+        const ALLOWED_SIGNUP_ROLES = ["owner", "mechanic", "fleet_manager"];
+        const requestedRole = params.role as string;
+        const role = ALLOWED_SIGNUP_ROLES.includes(requestedRole) ? requestedRole : "owner";
         const isMechanic = role === "mechanic";
         
         // Parse firstName and lastName from params or name
