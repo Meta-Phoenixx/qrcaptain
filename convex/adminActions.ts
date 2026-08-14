@@ -69,7 +69,7 @@ export const adminRequestPasswordReset = action({
               Please visit the QR Captain sign-in page and use the <strong>Forgot Password</strong> link to set a new password for your account (<strong>${targetEmail}</strong>).
             </p>
             <div style="text-align: center; margin-bottom: 24px;">
-              <a href="${process.env.SITE_URL ?? "https://theqrcaptain.com"}/signin"
+              <a href="${process.env.FRONTEND_URL ?? "https://theqrcaptain.com"}/signin"
                 style="display: inline-block; background: #0ea5e9; color: white; font-weight: bold; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px;">
                 Go to Sign In
               </a>
