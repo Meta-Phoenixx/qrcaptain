@@ -281,7 +281,7 @@ export const getMyWorkOrderRequests = query({
       const target = await ctx.db.get(realUser.impersonatingAs);
       if (target) user = target;
     }
-    if (user.role !== "owner") return [];
+    if (user.role !== "owner" && user.role !== "fleet_manager") return [];
 
     let q = ctx.db
       .query("workOrders")
@@ -389,13 +389,20 @@ export const requestWorkOrder = mutation({
     equipmentId: v.optional(v.id("vesselEquipment")),
   },
   handler: async (ctx, args) => {
-    const { userId, user } = await requireRole(ctx, "owner");
+    const { userId, user } = await requireRole(ctx, "owner", "fleet_manager");
 
     requireMaxLength(args.description, "Description", 2000);
 
     const vessel = await ctx.db.get(args.vesselId);
     if (!vessel) throw Errors.notFound("Vessel");
-    if (vessel.ownerId !== userId) throw Errors.accessDenied();
+
+    if (user.role === "owner" && vessel.ownerId !== userId) throw Errors.accessDenied();
+    if (user.role === "fleet_manager") {
+      // Verify the vessel belongs to one of this fleet_manager's fleets
+      if (!vessel.fleetId) throw Errors.accessDenied();
+      const fleet = await ctx.db.get(vessel.fleetId);
+      if (!fleet || fleet.ownerId !== userId) throw Errors.accessDenied();
+    }
 
     const mechanic = await ctx.db.get(args.mechanicId);
     if (!mechanic || mechanic.role !== "mechanic") {
@@ -589,7 +596,7 @@ export const declineWorkOrderRequest = mutation({
 export const acceptQuote = mutation({
   args: { workOrderId: v.id("workOrders") },
   handler: async (ctx, args) => {
-    const { userId, user } = await requireRole(ctx, "owner");
+    const { userId, user } = await requireRole(ctx, "owner", "fleet_manager");
 
     const workOrder = await ctx.db.get(args.workOrderId);
     if (!workOrder) throw Errors.notFound("Work order");
@@ -597,7 +604,7 @@ export const acceptQuote = mutation({
     const vessel = await ctx.db.get(workOrder.vesselId);
     if (!vessel) throw Errors.notFound("Vessel");
 
-    if (vessel.ownerId !== userId && workOrder.requestedByOwnerId !== userId) {
+    if (workOrder.requestedByOwnerId !== userId) {
       throw Errors.accessDenied();
     }
 
@@ -639,7 +646,7 @@ export const declineQuote = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { userId, user } = await requireRole(ctx, "owner");
+    const { userId, user } = await requireRole(ctx, "owner", "fleet_manager");
 
     const workOrder = await ctx.db.get(args.workOrderId);
     if (!workOrder) throw Errors.notFound("Work order");
@@ -647,7 +654,7 @@ export const declineQuote = mutation({
     const vessel = await ctx.db.get(workOrder.vesselId);
     if (!vessel) throw Errors.notFound("Vessel");
 
-    if (vessel.ownerId !== userId && workOrder.requestedByOwnerId !== userId) {
+    if (workOrder.requestedByOwnerId !== userId) {
       throw Errors.accessDenied();
     }
 
