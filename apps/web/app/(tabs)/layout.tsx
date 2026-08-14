@@ -11,7 +11,9 @@ function FleetManagerOnboardingGate({ children }: { children: React.ReactNode })
   const me = useQuery((api as any).users.currentUser);
 
   const needsOnboarding =
-    me !== undefined && me?.role === "fleet_manager" && !me?.onboardingCompleted;
+    me !== undefined &&
+    me?.role === "fleet_manager" &&
+    (!me?.onboardingCompleted || !me?.companyName);
 
   useEffect(() => {
     if (needsOnboarding) router.replace("/onboarding/fleet-manager");

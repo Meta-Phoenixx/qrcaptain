@@ -17,7 +17,7 @@ export default function FleetPage() {
 
   useEffect(() => {
     if (me === undefined) return; // loading
-    if (me && !me.onboardingCompleted) {
+    if (me && (!me.onboardingCompleted || !me.companyName)) {
       router.replace("/onboarding/fleet-manager");
     }
   }, [me, router]);
