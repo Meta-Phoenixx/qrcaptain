@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import { PaymentRecorder } from "./payment-recorder";
 
 const a = api as any;
 
@@ -38,12 +39,15 @@ const LINE_TYPE_LABELS: Record<string, string> = {
 export function InvoiceViewer({
   invoiceId,
   onClose,
+  isMechanic = false,
 }: {
   invoiceId: Id<"invoices">;
   onClose: () => void;
+  isMechanic?: boolean;
 }) {
   const invoice = useQuery(a.invoices.getInvoice, { invoiceId });
   const markViewed = useMutation(a.invoices.markInvoiceViewed);
+  const [showPaymentRecorder, setShowPaymentRecorder] = useState(false);
 
   useEffect(() => {
     if (invoice && invoice.status === "sent") {
@@ -229,15 +233,32 @@ export function InvoiceViewer({
           )}
         </div>
 
-        <div className="px-6 py-4 border-t border-white/[0.06] flex-shrink-0">
+        <div className="px-6 py-4 border-t border-white/[0.06] flex-shrink-0 flex gap-3">
+          {isMechanic && invoice && ["sent", "viewed", "overdue"].includes(invoice.status) && (
+            <button
+              onClick={() => setShowPaymentRecorder(true)}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/25 text-emerald-300 transition-colors"
+            >
+              Record Payment
+            </button>
+          )}
           <button
             onClick={onClose}
-            className="w-full py-2.5 rounded-xl text-sm font-medium border border-white/[0.10] text-white/50 hover:text-white/80 hover:bg-white/[0.04] transition-colors"
+            className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-white/[0.10] text-white/50 hover:text-white/80 hover:bg-white/[0.04] transition-colors"
           >
             Close
           </button>
         </div>
       </div>
+
+      {showPaymentRecorder && invoice && (
+        <PaymentRecorder
+          invoiceId={invoiceId}
+          invoicesApi={a.invoices}
+          onClose={() => setShowPaymentRecorder(false)}
+          onRecorded={() => setShowPaymentRecorder(false)}
+        />
+      )}
     </div>
   );
 }

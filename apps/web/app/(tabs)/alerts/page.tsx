@@ -8,6 +8,7 @@ import { Id } from "../../../../../convex/_generated/dataModel";
 import { AppSideNav } from "@/components/app-side-nav";
 import { GeneralMessaging } from "@/components/general-messaging";
 import { WorkOrderEditor } from "@/components/work-order-editor";
+import { InvoiceViewer } from "@/components/invoice-viewer";
 
 const TYPE_LABELS: Record<string, string> = {
   fleet_service_overdue:    "Service Overdue",
@@ -23,6 +24,8 @@ const TYPE_LABELS: Record<string, string> = {
   access_requested:         "Access Requested",
   announcement:             "Announcement",
   new_message:              "New Message",
+  invoice_received:         "Invoice Received",
+  invoice_paid:             "Payment Confirmed",
 };
 
 const TYPE_COLORS: Record<string, { bg: string; dot: string; text: string }> = {
@@ -69,6 +72,7 @@ export default function AlertsPage() {
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [viewingMessageId, setViewingMessageId] = useState<Id<"messages"> | null>(null);
   const [viewingWorkOrderId, setViewingWorkOrderId] = useState<Id<"workOrders"> | null>(null);
+  const [viewingInvoiceId, setViewingInvoiceId] = useState<Id<"invoices"> | null>(null);
 
   const a = api as any;
   const fleetList  = useQuery(a.fleetDashboard.listAllFleetsDashboard) ?? [];
@@ -110,6 +114,10 @@ export default function AlertsPage() {
       case "access_denied":
       case "access_revoked":
         router.push("/vessels");
+        break;
+      case "invoice_received":
+      case "invoice_paid":
+        setViewingInvoiceId(n.relatedId as Id<"invoices">);
         break;
       case "new_announcement":
         // no deep link — already on alerts
@@ -243,6 +251,9 @@ export default function AlertsPage() {
       )}
       {viewingWorkOrderId && (
         <WorkOrderEditor workOrderId={viewingWorkOrderId} onClose={() => setViewingWorkOrderId(null)} />
+      )}
+      {viewingInvoiceId && (
+        <InvoiceViewer invoiceId={viewingInvoiceId} onClose={() => setViewingInvoiceId(null)} />
       )}
     </div>
   );
