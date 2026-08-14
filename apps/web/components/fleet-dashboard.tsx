@@ -290,7 +290,7 @@ function IconStat({ icon, value, label, sub, linkLabel, onLink }: {
 }
 
 // ─── Quick actions ────────────────────────────────────────────────────────────
-function QuickActions({ onAddVessel, onSettings }: { onAddVessel: () => void; onSettings: () => void }) {
+function QuickActions({ onAddVessel, onSettings, onInviteMechanic }: { onAddVessel: () => void; onSettings: () => void; onInviteMechanic: () => void }) {
   const router = useRouter();
   const currentUser = useQuery(api.users.currentUser);
   const isMechanic = currentUser?.role === "mechanic";
@@ -298,7 +298,7 @@ function QuickActions({ onAddVessel, onSettings }: { onAddVessel: () => void; on
     { label: "Create Work Order", icon: "📋", action: () => router.push("/work-orders") },
     { label: "Log Engine Hours",  icon: "⏱",  action: () => router.push("/vessels")     },
     { label: "Schedule Service",  icon: "📅", action: () => router.push("/maintenance") },
-    ...(!isMechanic ? [{ label: "Invite Mechanic", icon: "👤", action: onSettings }] : []),
+    ...(!isMechanic ? [{ label: "Invite Mechanic", icon: "👤", action: onInviteMechanic }] : []),
   ];
   return (
     <div className="rounded-2xl bg-white/[0.03] border border-white/[0.07] overflow-hidden w-full lg:w-60 lg:flex-shrink-0">
@@ -355,6 +355,7 @@ export function FleetDashboard({
   const [showCreateFleet, setShowCreateFleet] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<"info" | "mechanics" | "danger">("info");
   const [showAddVessel, setShowAddVessel] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [viewingWorkOrderId, setViewingWorkOrderId] = useState<Id<"workOrders"> | null>(null);
@@ -545,7 +546,11 @@ export function FleetDashboard({
                 onClearFilter={() => setActiveFilter(null)}
               />
             </div>
-            <QuickActions onAddVessel={() => setShowAddVessel(true)} onSettings={() => setShowSettings(true)} />
+            <QuickActions
+              onAddVessel={() => setShowAddVessel(true)}
+              onSettings={() => { setSettingsInitialTab("info"); setShowSettings(true); }}
+              onInviteMechanic={() => { setSettingsInitialTab("mechanics"); setShowSettings(true); }}
+            />
           </div>
         </>
       )}
@@ -554,7 +559,7 @@ export function FleetDashboard({
         <FleetCreateModal onSuccess={(id) => { setSelectedFleetId(id); setShowCreateFleet(false); }} onClose={() => setShowCreateFleet(false)} />
       )}
       {showSettings && selectedFleetId && (
-        <FleetSettingsPanel fleetId={selectedFleetId} onClose={() => setShowSettings(false)} />
+        <FleetSettingsPanel fleetId={selectedFleetId} onClose={() => setShowSettings(false)} initialTab={settingsInitialTab} />
       )}
       {showAddVessel && selectedFleetId && (
         <FleetAddVesselModal fleetId={selectedFleetId} onClose={() => setShowAddVessel(false)} />

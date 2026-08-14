@@ -169,6 +169,9 @@ export default defineSchema({
     )),
     imageStorageId: v.optional(v.id("_storage")),
     createdAt: v.number(),
+    deletionRequestedAt: v.optional(v.number()),
+    deletionRequestedBy: v.optional(v.id("users")),
+    deletionRequestReason: v.optional(v.string()),
   })
     .index("by_owner", ["ownerId"]),
 
