@@ -6,29 +6,20 @@ import { useState } from "react";
 import { GlassCard, GlassInput, GlassButton } from "../ui/glass";
 import { useTheme } from "../providers/theme-provider";
 
-// Map technical error messages to user-friendly ones
-function getErrorMessage(error: unknown, isSignUp: boolean): string {
-  // ... existing implementation ...
+function getErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
-  
+
   if (message.includes("InvalidAccountId") || message.includes("Account not found")) {
-    return "No account found with this email. Please sign up first.";
+    return "No account found with this email.";
   }
   if (message.includes("InvalidSecret") || message.includes("Invalid password")) {
     return "Incorrect password. Please try again.";
-  }
-  if (message.includes("AccountAlreadyExists") || message.includes("already exists")) {
-    return "An account with this email already exists. Please sign in instead.";
   }
   if (message.includes("TooManyRequests") || message.includes("rate limit")) {
     return "Too many attempts. Please wait a moment and try again.";
   }
   if (message.includes("InvalidEmail") || message.includes("email")) {
     return "Please enter a valid email address.";
-  }
-  
-  if (isSignUp) {
-    return "Could not create account. Please try again.";
   }
   return "Invalid email or password. Please try again.";
 }
@@ -45,8 +36,6 @@ export function SignInForm() {
   const [resetEmail, setResetEmail] = useState("");
   const { mode } = useTheme();
 
-  const isSignUp = false; // Sign-up disabled — invite/waitlist only
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
@@ -54,26 +43,13 @@ export function SignInForm() {
     setSuccessMessage(null);
 
     const formData = new FormData(e.currentTarget);
-    formData.set("flow", isSignUp ? "signUp" : "signIn");
-    
-    if (isSignUp) {
-      // Block sign-up if the email is already registered
-      if (emailAlreadyExists) {
-        setError("An account with this email already exists. Please sign in instead.");
-        setIsLoading(false);
-        return;
-      }
-
-      const firstName = formData.get("firstName") as string;
-      const lastName = formData.get("lastName") as string;
-      formData.set("name", `${firstName} ${lastName}`.trim());
-    }
+    formData.set("flow", "signIn");
 
     try {
       await signIn("password", formData);
       router.push("/home");
     } catch (err) {
-      setError(getErrorMessage(err, isSignUp));
+      setError(getErrorMessage(err));
       setIsLoading(false);
     }
   };
@@ -307,7 +283,7 @@ export function SignInForm() {
   return (
     <GlassCard className="p-8">
       <h2 className={`mb-6 text-2xl font-bold font-heading ${mode === 'dark' ? "text-white" : "text-gray-900"}`}>
-        {isSignUp ? "Create Account" : "Welcome Back"}
+        Welcome Back
       </h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -335,15 +311,13 @@ export function SignInForm() {
             >
               Password
             </label>
-            {!isSignUp && (
-              <button
-                type="button"
-                onClick={() => switchView("forgotPassword")}
-                className={`text-xs transition-colors ${mode === 'dark' ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-700"}`}
-              >
-                Forgot password?
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => switchView("forgotPassword")}
+              className={`text-xs transition-colors ${mode === 'dark' ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-700"}`}
+            >
+              Forgot password?
+            </button>
           </div>
           <GlassInput
             id="password"
@@ -366,7 +340,7 @@ export function SignInForm() {
           disabled={isLoading}
           className="w-full mt-4"
         >
-          {isLoading ? "Please wait..." : isSignUp ? "Create Account" : "Sign In"}
+          {isLoading ? "Please wait..." : "Sign In"}
         </GlassButton>
       </form>
 
