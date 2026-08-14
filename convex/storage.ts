@@ -165,11 +165,7 @@ export const saveMechanicProfilePhoto = mutation({
 export const saveMechanicCompanyLogo = mutation({
   args: { storageId: v.id("_storage") },
   handler: async (ctx, args) => {
-    const { userId } = await requireAuth(ctx);
-    const user = await ctx.db.get(userId);
-    if (!user || (user.role !== "mechanic" && user.role !== "fleet_manager")) {
-      throw new Error("Access denied");
-    }
+    const { userId, user } = await requireRole(ctx, "mechanic");
 
     if (user.companyLogoStorageId) {
       await ctx.storage.delete(user.companyLogoStorageId);
@@ -178,6 +174,37 @@ export const saveMechanicCompanyLogo = mutation({
     await ctx.db.patch(userId, { companyLogoStorageId: args.storageId });
 
     return { success: true };
+  },
+});
+
+export const saveFleetManagerCompanyLogo = mutation({
+  args: { storageId: v.id("_storage") },
+  handler: async (ctx, args) => {
+    const { userId } = await requireAuth(ctx);
+    const user = await ctx.db.get(userId);
+    if (!user || user.role !== "fleet_manager") throw new Error("Access denied");
+
+    if (user.companyLogoStorageId) {
+      await ctx.storage.delete(user.companyLogoStorageId);
+    }
+
+    await ctx.db.patch(userId, { companyLogoStorageId: args.storageId });
+
+    return { success: true };
+  },
+});
+
+export const getFleetManagerCompanyLogoUrl = query({
+  args: { userId: v.optional(v.id("users")) },
+  handler: async (ctx, args) => {
+    const currentUser = await getAuthenticatedUser(ctx);
+    const targetUserId = args.userId ?? currentUser?._id;
+    if (!targetUserId) return null;
+
+    const user = await ctx.db.get(targetUserId);
+    if (!user || !user.companyLogoStorageId) return null;
+
+    return ctx.storage.getUrl(user.companyLogoStorageId);
   },
 });
 

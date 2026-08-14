@@ -21,7 +21,7 @@ export default function FleetManagerProfilePage() {
   const a = api as any;
   const me = useQuery(a.users.currentUser);
   const fleetList = useQuery(a.fleetDashboard.listAllFleetsDashboard) ?? [];
-  const logoUrl = useQuery(a.storage.getMechanicCompanyLogoUrl, {});
+  const logoUrl = useQuery(a.storage.getFleetManagerCompanyLogoUrl, {});
   const [selectedFleetId, setSelectedFleetId] = useState<Id<"fleets"> | null>(null);
 
   // Logo upload
@@ -30,7 +30,7 @@ export default function FleetManagerProfilePage() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
-  const saveLogo = useMutation(a.storage.saveMechanicCompanyLogo);
+  const saveLogo = useMutation(a.storage.saveFleetManagerCompanyLogo);
 
   if (fleetList.length > 0 && !selectedFleetId) setSelectedFleetId(fleetList[0]._id);
 
