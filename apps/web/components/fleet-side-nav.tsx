@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
+import { FleetAddVesselModal } from "./fleet-add-vessel-modal";
 
 const NAV_ITEMS = [
   { label: "Command Center", href: "/fleet",       icon: (
@@ -53,6 +54,7 @@ export function FleetSideNav({
   const router = useRouter();
   const [fleetOpen, setFleetOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [addVesselOpen, setAddVesselOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const { signOut } = useAuthActions();
   const a = api as any;
@@ -73,6 +75,7 @@ export function FleetSideNav({
   const initials = me ? `${me.firstName?.[0] ?? ""}${me.lastName?.[0] ?? ""}`.toUpperCase() : "?";
 
   return (
+    <>
     <aside className="hidden lg:flex flex-col w-56 xl:w-60 flex-shrink-0 min-h-screen bg-[#0d1526] border-r border-white/[0.06]">
       {/* Logo */}
       <button onClick={() => router.push("/fleet")} className="flex items-center gap-3 px-5 py-5 border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors text-left w-full">
@@ -91,19 +94,32 @@ export function FleetSideNav({
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {NAV_ITEMS.map((item) => {
           const active = pathname === item.href || (item.href !== "/fleet" && item.href !== "/vessels" && pathname.startsWith(item.href));
+          const isVessels = item.href === "/vessels";
           return (
-            <button
-              key={item.href}
-              onClick={() => router.push(item.href)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left
-                ${active
-                  ? "bg-captain-500/15 text-captain-300 border border-captain-500/20"
-                  : "text-white/50 hover:text-white/80 hover:bg-white/[0.04]"
-                }`}
-            >
-              <span className={active ? "text-captain-400" : "text-white/35"}>{item.icon}</span>
-              {item.label}
-            </button>
+            <div key={item.href} className="relative group/nav">
+              <button
+                onClick={() => router.push(item.href)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left
+                  ${active
+                    ? "bg-captain-500/15 text-captain-300 border border-captain-500/20"
+                    : "text-white/50 hover:text-white/80 hover:bg-white/[0.04]"
+                  } ${isVessels ? "pr-9" : ""}`}
+              >
+                <span className={active ? "text-captain-400" : "text-white/35"}>{item.icon}</span>
+                {item.label}
+              </button>
+              {isVessels && selectedFleetId && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setAddVesselOpen(true); }}
+                  title="Add vessel"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg flex items-center justify-center opacity-0 group-hover/nav:opacity-100 hover:!opacity-100 transition-opacity bg-captain-500/15 hover:bg-captain-500/30 text-captain-400"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                  </svg>
+                </button>
+              )}
+            </div>
           );
         })}
       </nav>
@@ -214,5 +230,13 @@ export function FleetSideNav({
         </div>
       </div>
     </aside>
+
+    {addVesselOpen && selectedFleetId && (
+      <FleetAddVesselModal
+        fleetId={selectedFleetId}
+        onClose={() => setAddVesselOpen(false)}
+      />
+    )}
+    </>
   );
 }

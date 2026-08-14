@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import { AppSideNav } from "@/components/app-side-nav";
+import { FleetAddVesselModal } from "@/components/fleet-add-vessel-modal";
 import { useAllAccessibleVessels, type AccessibleVessel } from "@/hooks/useAllAccessibleVessels";
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; dot: string; label: string }> = {
@@ -79,6 +80,7 @@ export default function VesselsPage() {
   const [selectedFleetId, setSelectedFleetId] = useState<Id<"fleets"> | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [addVesselOpen, setAddVesselOpen] = useState(false);
 
   const a = api as any;
   const fleetList = useQuery(a.fleetDashboard.listAllFleetsDashboard) ?? [];
@@ -110,6 +112,19 @@ export default function VesselsPage() {
             <div>
               <h1 className="text-2xl font-bold text-white font-heading tracking-tight">Vessels</h1>
               <p className="text-sm text-white/40 mt-0.5">{totalCount} vessel{totalCount !== 1 ? "s" : ""} accessible</p>
+            </div>
+            <div className="flex items-center gap-3 ml-auto">
+              {selectedFleetId && (
+                <button
+                  onClick={() => setAddVesselOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-captain-500/15 border border-captain-500/20 text-captain-300 text-sm font-medium hover:bg-captain-500/25 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Vessel
+                </button>
+              )}
             </div>
             <div className="relative flex-1 max-w-xs">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -189,6 +204,13 @@ export default function VesselsPage() {
           )}
         </div>
       </main>
+
+      {addVesselOpen && selectedFleetId && (
+        <FleetAddVesselModal
+          fleetId={selectedFleetId}
+          onClose={() => setAddVesselOpen(false)}
+        />
+      )}
     </div>
   );
 }
