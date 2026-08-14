@@ -2,6 +2,9 @@
   "name": "convex-backend",
   "version": "0.1.0",
   "private": true,
+  "scripts": {
+    "deploy": "echo '\\n❌ ERROR: Do not run convex deploy from this directory.\\n   Run from the repo root: pnpm deploy:convex\\n' && exit 1"
+  },
   "dependencies": {
     "convex": "^1.17.0",
     "@convex-dev/auth": "^0.0.71"
