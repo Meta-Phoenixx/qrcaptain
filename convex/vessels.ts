@@ -50,6 +50,17 @@ export const listMyVessels = query({
         authorizations.map((auth) => ctx.db.get(auth.vesselId))
       );
       vessels = vesselResults.filter(Boolean) as Doc<"vessels">[];
+    } else if (user.role === "fleet_manager") {
+      const fleets = await ctx.db
+        .query("fleets")
+        .withIndex("by_owner", (q) => q.eq("ownerId", userId))
+        .collect();
+      const vesselResults = await Promise.all(
+        fleets.map((f) =>
+          ctx.db.query("vessels").withIndex("by_fleet", (q) => q.eq("fleetId", f._id)).collect()
+        )
+      );
+      vessels = vesselResults.flat();
     } else if (user.role === "admin") {
       vessels = await ctx.db.query("vessels").collect();
     }
