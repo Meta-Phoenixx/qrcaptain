@@ -510,6 +510,7 @@ export const completeFleetManagerOnboarding = mutation({
     exemptionEffectiveDate: v.optional(v.number()),
     exemptionExpirationDate: v.optional(v.number()),
     exemptionCategory: v.optional(v.string()),
+    companyLogoStorageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const { userId } = await requireAuth(ctx);
@@ -526,6 +527,10 @@ export const completeFleetManagerOnboarding = mutation({
       onboardingCompleted: true,
       onboardingCompletedAt: Date.now(),
     };
+
+    if (args.companyLogoStorageId) {
+      patch.companyLogoStorageId = args.companyLogoStorageId;
+    }
 
     if (args.taxExempt) {
       patch.exemptionCertificateNumber = args.exemptionCertificateNumber;
