@@ -32,16 +32,17 @@ export function WorkOrderRequestForm({
   const currentUser = useQuery((api as any).users.currentUser);
   const isFleetManager = currentUser?.role === "fleet_manager";
 
-  // Get owner's preferred mechanics (owner role only)
+  // Get owner's preferred mechanics — skip for fleet_manager
   const preferredMechanics = useQuery(
-    isFleetManager ? "skip" : (api.preferredMechanics.getPreferredMechanics as any)
+    (api as any).preferredMechanics.getPreferredMechanics,
+    isFleetManager ? "skip" : {}
   );
 
   // For fleet_manager: get mechanics from their first fleet
-  const fleets = useQuery(isFleetManager ? (api as any).fleets.listMyFleets : "skip") ?? [];
-  const firstFleetId = isFleetManager ? fleets[0]?._id : undefined;
+  const fleets = useQuery((api as any).fleets.listMyFleets, isFleetManager ? {} : "skip") ?? [];
+  const firstFleetId = isFleetManager ? (fleets[0]?._id ?? null) : null;
   const fleetDetails = useQuery(
-    firstFleetId ? (api as any).fleets.getFleet : "skip",
+    (api as any).fleets.getFleet,
     firstFleetId ? { fleetId: firstFleetId } : "skip"
   );
   const fleetMechanics = fleetDetails?.mechanics ?? [];
