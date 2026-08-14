@@ -15,6 +15,7 @@ import { WorkOrderEditor } from "@/components/work-order-editor";
 import { WorkOrderRequestForm } from "@/components/work-order-request-form";
 import { GlassButton, GlassBadge, GlassInput, GlassSelect } from "@/components/ui/glass";
 import { VesselOnboarding } from "@/components/vessel-onboarding";
+import { VesselDocuments } from "@/components/vessel-documents";
 
 const a = api as any;
 
@@ -541,6 +542,9 @@ export default function VesselDetailPage() {
 
             {/* ── Equipment Manifest ───────────────────────────────────── */}
             <EquipmentManifest vesselId={vesselId} />
+
+            {/* ── Documents ────────────────────────────────────────────── */}
+            <VesselDocuments vesselId={vesselId} />
 
             {/* ── Work In Progress ─────────────────────────────────────── */}
             {inProgressOrders.length > 0 && (
