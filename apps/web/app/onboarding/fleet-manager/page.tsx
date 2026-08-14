@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "../../../../../convex/_generated/api";
@@ -92,8 +92,20 @@ export default function FleetManagerOnboardingPage() {
     fleetDescription: "",
   });
 
+  const me = useQuery((api as any).users.currentUser);
   const existingFleets = useQuery((api as any).fleetDashboard.listAllFleetsDashboard) ?? [];
   const hasExistingFleet = Array.isArray(existingFleets) && existingFleets.length > 0;
+
+  // Pre-populate name/phone from existing profile once loaded
+  useEffect(() => {
+    if (!me) return;
+    setForm((prev) => ({
+      ...prev,
+      firstName: prev.firstName || me.firstName || "",
+      lastName: prev.lastName || me.lastName || "",
+      phone: prev.phone || me.phone || "",
+    }));
+  }, [me]);
 
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const completeOnboarding = useMutation((api as any).users.completeFleetManagerOnboarding);
