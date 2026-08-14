@@ -17,10 +17,11 @@ export default function FleetPage() {
 
   useEffect(() => {
     if (me === undefined) return; // loading
-    if (me && me.role !== "fleet_manager") {
+    if (me && me.role !== "fleet_manager" && me.role !== "mechanic" && me.role !== "admin") {
       router.replace("/home");
       return;
     }
+    // Only fleet_managers need to complete onboarding before accessing this page
     if (me && me.role === "fleet_manager" && (!me.onboardingCompleted || !me.companyName)) {
       router.replace("/onboarding/fleet-manager");
     }
