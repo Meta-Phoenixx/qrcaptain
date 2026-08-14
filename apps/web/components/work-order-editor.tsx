@@ -8,6 +8,7 @@ import { GlassCard, GlassButton, GlassBadge, GlassInput, GlassSelect, GlassModal
 import { useTheme } from "./providers/theme-provider";
 import { PartsEntry } from "./parts-entry";
 import { MessageCircle, Send } from "lucide-react";
+import { InvoiceBuilder } from "./invoice-builder";
 
 interface WorkOrderEditorProps {
   workOrderId: Id<"workOrders">;
@@ -52,6 +53,7 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showInvoiceBuilder, setShowInvoiceBuilder] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoCaption, setPhotoCaption] = useState("");
   const [photoType, setPhotoType] = useState<PhotoType>("during");
@@ -1065,13 +1067,24 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
           </div>
         )}
 
-        {/* Footer for completed/other status - just a close button */}
+        {/* Footer for completed/other status */}
         {(workOrder.status !== "in_progress" || currentUser?.role !== "mechanic") && (
           <div className={`flex-shrink-0 border-t px-6 py-4 ${mode === 'dark' ? "border-white/10" : "border-gray-200"}`}>
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between gap-3">
+              {workOrder.status === "completed" && currentUser?.role === "mechanic" && (
+                <button
+                  onClick={() => setShowInvoiceBuilder(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-captain-500/15 hover:bg-captain-500/25 border border-captain-500/30 text-captain-300 text-sm font-medium transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Create Invoice
+                </button>
+              )}
               <button
                 onClick={onClose}
-                className={`px-4 py-2.5 border rounded-lg transition-colors font-medium ${
+                className={`ml-auto px-4 py-2.5 border rounded-lg transition-colors font-medium ${
                   mode === 'dark'
                     ? "border-white/10 text-gray-300 hover:bg-white/5"
                     : "border-gray-300 text-gray-700 hover:bg-gray-50"
@@ -1081,6 +1094,13 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
               </button>
             </div>
           </div>
+        )}
+
+        {showInvoiceBuilder && (
+          <InvoiceBuilder
+            workOrderId={workOrderId}
+            onClose={() => setShowInvoiceBuilder(false)}
+          />
         )}
 
         {/* Complete Confirmation Modal */}

@@ -9,10 +9,13 @@ import { useRouter } from "next/navigation";
 import { GlassCard, GlassButton, GlassBadge } from "./ui/glass";
 import { useTheme } from "./providers/theme-provider";
 
-// Fleet manager redirect (inline — avoids a circular dep with fleet-dashboard)
-function FleetManagerRedirect() {
+// Fleet manager redirect — gates on onboarding completion
+function FleetManagerRedirect({ onboardingCompleted }: { onboardingCompleted?: boolean }) {
   const router = useRouter();
-  useEffect(() => { router.replace("/fleet"); }, [router]);
+  useEffect(() => {
+    if (onboardingCompleted === undefined) return; // still loading
+    router.replace(onboardingCompleted ? "/fleet" : "/onboarding/fleet-manager");
+  }, [router, onboardingCompleted]);
   return null;
 }
 
@@ -745,7 +748,7 @@ export function LandingPage() {
         )}
         {user.role === "fleet_manager" && (
           <div className={mode === 'dark' ? "text-white" : "text-gray-900"}>
-            <FleetManagerRedirect />
+            <FleetManagerRedirect onboardingCompleted={(user as any).onboardingCompleted} />
           </div>
         )}
         {user.role === "mechanic" && (

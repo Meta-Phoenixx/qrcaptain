@@ -491,6 +491,59 @@ export const completeOwnerOnboarding = mutation({
   },
 });
 
+// Complete fleet manager onboarding
+export const completeFleetManagerOnboarding = mutation({
+  args: {
+    firstName: v.string(),
+    lastName: v.string(),
+    phone: v.string(),
+    companyName: v.string(),
+    businessAddress: v.object({
+      street: v.string(),
+      city: v.string(),
+      state: v.string(),
+      zipCode: v.string(),
+      country: v.optional(v.string()),
+    }),
+    taxExempt: v.boolean(),
+    exemptionCertificateNumber: v.optional(v.string()),
+    exemptionEffectiveDate: v.optional(v.number()),
+    exemptionExpirationDate: v.optional(v.number()),
+    exemptionCategory: v.optional(v.string()),
+    companyLogoStorageId: v.optional(v.id("_storage")),
+  },
+  handler: async (ctx, args) => {
+    const { userId } = await requireAuth(ctx);
+    const user = await ctx.db.get(userId);
+    if (!user || user.role !== "fleet_manager") throw new Error("Access denied");
+
+    const patch: Record<string, any> = {
+      firstName: args.firstName,
+      lastName: args.lastName,
+      phone: args.phone,
+      companyName: args.companyName,
+      businessAddress: args.businessAddress,
+      taxExempt: args.taxExempt,
+      onboardingCompleted: true,
+      onboardingCompletedAt: Date.now(),
+    };
+
+    if (args.companyLogoStorageId) {
+      patch.companyLogoStorageId = args.companyLogoStorageId;
+    }
+
+    if (args.taxExempt) {
+      patch.exemptionCertificateNumber = args.exemptionCertificateNumber;
+      patch.exemptionEffectiveDate = args.exemptionEffectiveDate;
+      patch.exemptionExpirationDate = args.exemptionExpirationDate;
+      patch.exemptionCategory = args.exemptionCategory;
+    }
+
+    await ctx.db.patch(userId, patch);
+    return { success: true };
+  },
+});
+
 // Skip owner onboarding
 export const skipOwnerOnboarding = mutation({
   args: {},

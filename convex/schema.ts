@@ -102,6 +102,14 @@ export default defineSchema({
     isAvailabilityManuallySet: v.optional(v.boolean()),   // True if manually set (vs auto-calculated)
     maxConcurrentJobs: v.optional(v.number()),            // Threshold for auto-calculation
 
+    // ============ FLEET MANAGER-SPECIFIC FIELDS ============
+
+    taxExempt: v.optional(v.boolean()),
+    exemptionCertificateNumber: v.optional(v.string()),
+    exemptionEffectiveDate: v.optional(v.number()),
+    exemptionExpirationDate: v.optional(v.number()),
+    exemptionCategory: v.optional(v.string()),
+
     // Admin impersonation — set when an admin is viewing the app as another user
     impersonatingAs: v.optional(v.id("users")),
   })
@@ -579,7 +587,11 @@ export default defineSchema({
       v.literal("fleet_mechanic_authorized"),// Mechanic authorized/deauthorized for fleet
       v.literal("fleet_vessel_status"),      // Vessel status changed
       v.literal("insurance_expiring"),       // Vessel insurance expires within 30 days
-      v.literal("insurance_missing")         // Vessel has no insurance on file
+      v.literal("insurance_missing"),        // Vessel has no insurance on file
+
+      // Invoicing
+      v.literal("invoice_received"),         // Customer received a new invoice
+      v.literal("invoice_paid")              // Mechanic confirmed payment
     ),
     title: v.string(),
     message: v.string(),
@@ -761,6 +773,117 @@ export default defineSchema({
   })
     .index("by_email", ["email"])
     .index("by_created", ["createdAt"]),
+
+  // ============================================
+  // INVOICES
+  // ============================================
+  invoices: defineTable({
+    // Core identifiers
+    invoiceNumber: v.string(),                    // e.g. "INV-2026-00042" — unique, sequential per mechanic
+    workOrderId: v.id("workOrders"),
+    vesselId: v.id("vessels"),
+    mechanicId: v.id("users"),                    // Issuing mechanic
+    customerId: v.id("users"),                    // Owner or fleet_manager receiving the invoice
+
+    // Lifecycle status
+    status: v.union(
+      v.literal("draft"),                         // Being built, not yet sent
+      v.literal("sent"),                          // Sent to customer
+      v.literal("viewed"),                        // Customer has opened it
+      v.literal("paid"),                          // Marked as paid
+      v.literal("overdue"),                       // Past due date, unpaid
+      v.literal("void")                           // Cancelled
+    ),
+
+    // Dates
+    issuedAt: v.optional(v.number()),             // When sent to customer
+    dueAt: v.optional(v.number()),                // Payment due date
+    paidAt: v.optional(v.number()),               // When marked paid
+    viewedAt: v.optional(v.number()),
+
+    // Payment tracking (no payment processing in-app — just recording)
+    paymentMethod: v.optional(v.string()),        // "check", "cash", "Zelle", "wire", etc.
+    paymentReference: v.optional(v.string()),     // Check number, transfer reference, etc.
+    paymentNotes: v.optional(v.string()),
+
+    // Line-item subtotals (mirrored from line items for quick display)
+    subtotalParts: v.number(),                    // Sum of all parts line items
+    subtotalLabor: v.number(),                    // Sum of standard repair labor
+    subtotalFabrication: v.number(),              // Sum of fabrication labor (may be taxed differently)
+    subtotalDiagnostic: v.number(),               // Diagnostic / sea trial / travel fees
+    subtotalDiscount: v.number(),                 // Discount applied (positive = reduces total)
+    subtotalNonTaxable: v.number(),               // Any explicitly non-taxable items
+
+    // Tax block
+    taxState: v.string(),                         // 2-letter state code where service performed
+    taxRate: v.number(),                          // Combined state+local rate actually applied (e.g. 0.07)
+    taxableAmount: v.number(),                    // Amount on which tax is calculated
+    taxAmount: v.number(),                        // Calculated tax dollar amount
+
+    // Tax exemption (sourced from customer's profile or affidavit on file)
+    customerTaxExempt: v.boolean(),
+    exemptionCertNumber: v.optional(v.string()),
+    exemptionType: v.optional(v.string()),        // "nonprofit", "interstate_commerce", "out_of_state_vessel", "commercial_fishing", "resale", "other"
+    exemptionAffidavitOnFile: v.optional(v.boolean()),
+
+    // Totals
+    total: v.number(),                            // subtotals + tax - discount
+    amountPaid: v.number(),                       // Running total of payments recorded
+    balance: v.number(),                          // total - amountPaid
+
+    // Notes and terms
+    notes: v.optional(v.string()),                // Mechanic's notes on the invoice
+    paymentTerms: v.optional(v.string()),         // "Net 30", "Due on receipt", etc.
+    warrantyTerms: v.optional(v.string()),
+
+    // Mechanic's business snapshot at time of invoice (for immutable record)
+    mechanicBusinessName: v.optional(v.string()),
+    mechanicBusinessAddress: v.optional(v.string()),
+    mechanicPhone: v.optional(v.string()),
+    mechanicEmail: v.optional(v.string()),
+    mechanicDealerRegNumber: v.optional(v.string()), // FL DOR / state dealer registration
+    mechanicLicenseNumber: v.optional(v.string()),
+
+    // Vessel snapshot at time of invoice
+    vesselHIN: v.optional(v.string()),             // Hull Identification Number
+    vesselDocNumber: v.optional(v.string()),       // USCG doc # or state reg #
+    vesselSnapshot: v.optional(v.string()),        // JSON: name, make, model, year, type
+
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_mechanic", ["mechanicId"])
+    .index("by_customer", ["customerId"])
+    .index("by_work_order", ["workOrderId"])
+    .index("by_mechanic_status", ["mechanicId", "status"])
+    .index("by_invoice_number", ["invoiceNumber"]),
+
+  // Individual line items for an invoice (parts and labor, each as a row)
+  invoiceLineItems: defineTable({
+    invoiceId: v.id("invoices"),
+    workOrderId: v.id("workOrders"),              // For traceability
+
+    lineType: v.union(
+      v.literal("part"),
+      v.literal("labor_repair"),
+      v.literal("labor_fabrication"),
+      v.literal("diagnostic"),
+      v.literal("sea_trial"),
+      v.literal("travel"),
+      v.literal("discount"),
+      v.literal("other")
+    ),
+
+    description: v.string(),
+    partNumber: v.optional(v.string()),
+    quantity: v.number(),
+    unitPrice: v.number(),
+    total: v.number(),                             // quantity * unitPrice
+
+    isTaxable: v.boolean(),                        // Per-line taxability flag
+    sortOrder: v.number(),                         // Display order on invoice
+  })
+    .index("by_invoice", ["invoiceId"]),
 
   // ============================================
   // AUDIT LOGS (immutable record of important actions)
