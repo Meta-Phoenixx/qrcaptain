@@ -7,6 +7,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "../../../convex/_generated/api";
 import { Id } from "../../../convex/_generated/dataModel";
 import { FleetAddVesselModal } from "./fleet-add-vessel-modal";
+import { FleetCreateModal } from "./fleet-create-modal";
 
 const NAV_ITEMS = [
   { label: "Command Center", href: "/fleet",       icon: (
@@ -55,6 +56,7 @@ export function FleetSideNav({
   const [fleetOpen, setFleetOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [addVesselOpen, setAddVesselOpen] = useState(false);
+  const [createFleetOpen, setCreateFleetOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const { signOut } = useAuthActions();
   const a = api as any;
@@ -123,6 +125,19 @@ export function FleetSideNav({
           );
         })}
       </nav>
+
+      {/* Add New Fleet */}
+      <div className="px-3 pb-3 border-t border-white/[0.06] pt-3">
+        <button
+          onClick={() => setCreateFleetOpen(true)}
+          className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-semibold text-captain-300 hover:text-captain-200 bg-captain-500/10 hover:bg-captain-500/20 border border-captain-500/20 hover:border-captain-500/35 transition-colors"
+        >
+          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+          </svg>
+          New Fleet
+        </button>
+      </div>
 
       {/* Fleet selector */}
       <div className="px-3 pb-3 border-t border-white/[0.06] pt-3">
@@ -235,6 +250,12 @@ export function FleetSideNav({
       <FleetAddVesselModal
         fleetId={selectedFleetId}
         onClose={() => setAddVesselOpen(false)}
+      />
+    )}
+    {createFleetOpen && (
+      <FleetCreateModal
+        onSuccess={(id) => { onFleetChange(id); setCreateFleetOpen(false); }}
+        onClose={() => setCreateFleetOpen(false)}
       />
     )}
     </>

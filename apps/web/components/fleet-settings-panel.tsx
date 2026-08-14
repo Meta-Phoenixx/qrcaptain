@@ -14,12 +14,14 @@ type Tab = "info" | "mechanics" | "danger";
 export function FleetSettingsPanel({
   fleetId,
   onClose,
+  initialTab = "info",
 }: {
   fleetId: Id<"fleets">;
   onClose: () => void;
+  initialTab?: Tab;
 }) {
   const { mode } = useTheme();
-  const [activeTab, setActiveTab] = useState<Tab>("info");
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
 
   const isDark = mode === "dark";
   const textPrimary = isDark ? "text-white" : "text-gray-900";
@@ -136,15 +138,25 @@ function MechanicsTab({ fleetId, isDark, textPrimary, textSecondary }: { fleetId
   const revokeMechanic = useMutation(a.fleets.revokeMechanicFromFleet);
 
   const [mechanicSearch, setMechanicSearch] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [searching, setSearching] = useState(false);
   const [revoking, setRevoking] = useState<Id<"users"> | null>(null);
   const [authorizing, setAuthorizing] = useState<Id<"users"> | null>(null);
 
-  const searchMechanics = useQuery(
+  const hasSearch = mechanicSearch.trim().length >= 2;
+
+  // Live search results when user types 2+ chars
+  const searchResults = useQuery(
     a.mechanicDirectory.searchMechanics,
-    mechanicSearch.trim().length >= 2 ? { searchTerm: mechanicSearch.trim() } : "skip"
+    hasSearch ? { searchTerm: mechanicSearch.trim() } : "skip"
   );
+
+  // Full browse list when no search term
+  const allMechanics = useQuery(
+    a.mechanicDirectory.listAllMechanicsForFleet,
+    !hasSearch ? {} : "skip"
+  );
+
+  const displayList: any[] = hasSearch ? (searchResults ?? []) : (allMechanics ?? []);
+  const isLoading = hasSearch ? searchResults === undefined : allMechanics === undefined;
 
   const divider = isDark ? "border-white/10" : "border-gray-200";
 
@@ -179,7 +191,7 @@ function MechanicsTab({ fleetId, isDark, textPrimary, textSecondary }: { fleetId
         ) : currentMechanics.length === 0 ? (
           <p className={`text-sm ${textSecondary}`}>No mechanics authorized yet.</p>
         ) : (
-          <GlassCard className={`p-0 overflow-hidden`}>
+          <GlassCard className="p-0 overflow-hidden">
             {currentMechanics.map((m: any, i: number) => (
               <div key={m._id} className={`flex items-center justify-between px-4 py-3 ${i > 0 ? `border-t ${divider}` : ""}`}>
                 <div>
@@ -201,25 +213,36 @@ function MechanicsTab({ fleetId, isDark, textPrimary, textSecondary }: { fleetId
       </div>
 
       <div>
-        <h3 className={`text-sm font-semibold mb-3 ${textPrimary}`}>Add Mechanic</h3>
+        <h3 className={`text-sm font-semibold mb-1 ${textPrimary}`}>Add Mechanic</h3>
+        <p className={`text-xs mb-3 ${textSecondary}`}>
+          {hasSearch ? `Showing results for "${mechanicSearch.trim()}"` : "All registered mechanics — scroll to browse or search by name."}
+        </p>
         <GlassInput
-          label="Search by name or company"
           value={mechanicSearch}
           onChange={(e) => setMechanicSearch(e.target.value)}
-          placeholder="Type at least 2 characters…"
+          placeholder="Search by name or company…"
         />
-        {searchMechanics && searchMechanics.length > 0 && (
-          <GlassCard className="p-0 overflow-hidden mt-2">
-            {searchMechanics.map((m: any, i: number) => {
+
+        <div className={`mt-2 rounded-xl border overflow-hidden max-h-64 overflow-y-auto ${isDark ? "border-white/10" : "border-gray-200"}`}>
+          {isLoading ? (
+            <div className="flex justify-center py-6">
+              <div className="w-5 h-5 border-2 border-captain-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : displayList.length === 0 ? (
+            <p className={`text-sm text-center py-6 ${textSecondary}`}>
+              {hasSearch ? "No mechanics match that search." : "No mechanics registered yet."}
+            </p>
+          ) : (
+            displayList.map((m: any, i: number) => {
               const isAlreadyAdded = currentMechanics.some((cm: any) => cm._id === m._id);
               return (
-                <div key={m._id} className={`flex items-center justify-between px-4 py-3 ${i > 0 ? `border-t ${divider}` : ""}`}>
+                <div key={m._id} className={`flex items-center justify-between px-4 py-3 ${i > 0 ? `border-t ${divider}` : ""} ${isDark ? "bg-white/2" : "bg-white"}`}>
                   <div>
                     <p className={`text-sm font-medium ${textPrimary}`}>{m.firstName} {m.lastName}</p>
                     {m.companyName && <p className={`text-xs ${textSecondary}`}>{m.companyName}</p>}
                   </div>
                   {isAlreadyAdded ? (
-                    <span className={`text-xs ${textSecondary}`}>Already added</span>
+                    <span className={`text-xs ${textSecondary}`}>Added</span>
                   ) : (
                     <GlassButton
                       variant="secondary"
@@ -232,73 +255,78 @@ function MechanicsTab({ fleetId, isDark, textPrimary, textSecondary }: { fleetId
                   )}
                 </div>
               );
-            })}
-          </GlassCard>
-        )}
-        {mechanicSearch.trim().length >= 2 && searchMechanics && searchMechanics.length === 0 && (
-          <p className={`text-sm mt-2 ${textSecondary}`}>No mechanics found.</p>
-        )}
+            })
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
 function DangerTab({ fleetId, onClose, isDark, textPrimary, textSecondary }: { fleetId: Id<"fleets">; onClose: () => void; isDark: boolean; textPrimary: string; textSecondary: string }) {
-  const deleteFleet = useMutation(a.fleets.deleteFleet);
-  const [confirming, setConfirming] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const fleet = useQuery(a.fleets.getFleet, { fleetId });
+  const requestDeletion = useMutation(a.fleets.requestFleetDeletion);
+  const [reason, setReason] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleDelete() {
-    setDeleting(true);
+  const alreadyRequested = !!(fleet?.deletionRequestedAt);
+
+  async function handleRequest() {
+    setSubmitting(true);
     setError(null);
     try {
-      await deleteFleet({ fleetId });
-      onClose();
+      await requestDeletion({ fleetId, reason: reason.trim() || undefined });
+      setSubmitted(true);
     } catch (e: any) {
-      setError(e?.message ?? "Failed to delete fleet");
-      setDeleting(false);
+      setError(e?.message ?? "Failed to submit request");
+    } finally {
+      setSubmitting(false);
     }
   }
 
   return (
     <div className="space-y-4">
       <div className={`rounded-xl border p-4 ${isDark ? "border-red-500/30 bg-red-500/5" : "border-red-200 bg-red-50"}`}>
-        <h3 className={`text-sm font-semibold mb-1 ${isDark ? "text-red-300" : "text-red-700"}`}>Delete Fleet</h3>
+        <h3 className={`text-sm font-semibold mb-1 ${isDark ? "text-red-300" : "text-red-700"}`}>Request Fleet Deletion</h3>
         <p className={`text-sm mb-4 ${isDark ? "text-red-300/70" : "text-red-600/80"}`}>
-          This permanently removes the fleet. Vessels in this fleet will be unassigned but not deleted.
+          Fleet deletion must be approved by a QR Captain admin. Submit a request below and our team will follow up within 1–2 business days. Vessels will be unassigned but not deleted.
         </p>
 
-        {!confirming ? (
-          <GlassButton
-            variant="ghost"
-            className="text-red-400 hover:text-red-300 border border-red-500/30 hover:border-red-500/60"
-            onClick={() => setConfirming(true)}
-          >
-            Delete Fleet
-          </GlassButton>
+        {alreadyRequested || submitted ? (
+          <div className={`rounded-lg p-3 text-sm ${isDark ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-300" : "bg-yellow-50 border border-yellow-200 text-yellow-800"}`}>
+            ✓ Deletion request submitted. An admin will review and contact you.
+          </div>
         ) : (
           <div className="space-y-3">
-            <p className={`text-sm font-medium ${isDark ? "text-red-300" : "text-red-700"}`}>
-              Are you sure? This cannot be undone.
-            </p>
-            <div className="flex gap-3">
-              <GlassButton
-                variant="ghost"
-                className="text-red-400 border border-red-500/40 hover:bg-red-500/10"
-                onClick={handleDelete}
-                disabled={deleting}
-              >
-                {deleting ? "Deleting…" : "Yes, Delete"}
-              </GlassButton>
-              <GlassButton variant="ghost" onClick={() => setConfirming(false)} disabled={deleting}>
-                Cancel
-              </GlassButton>
+            <div>
+              <label className={`block text-xs font-medium mb-1 ${isDark ? "text-red-300/70" : "text-red-600"}`}>
+                Reason (optional)
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Why do you want to delete this fleet?"
+                rows={3}
+                className={`w-full rounded-lg px-3 py-2 text-sm resize-none outline-none transition-colors ${
+                  isDark
+                    ? "bg-white/5 border border-white/10 text-white placeholder-white/30 focus:border-red-500/40"
+                    : "bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:border-red-300"
+                }`}
+              />
             </div>
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            <GlassButton
+              variant="ghost"
+              className="text-red-400 hover:text-red-300 border border-red-500/30 hover:border-red-500/60"
+              onClick={handleRequest}
+              disabled={submitting}
+            >
+              {submitting ? "Submitting…" : "Submit Deletion Request"}
+            </GlassButton>
           </div>
         )}
-
-        {error && <p className="text-sm text-red-400 mt-2">{error}</p>}
       </div>
     </div>
   );

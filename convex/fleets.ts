@@ -98,6 +98,31 @@ export const deleteFleet = mutation({
   },
 });
 
+// Fleet owners submit a deletion request; only admins can execute deleteFleet
+export const requestFleetDeletion = mutation({
+  args: { fleetId: v.id("fleets"), reason: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const { userId, user } = await requireAuth(ctx);
+    const fleet = await ctx.db.get(args.fleetId);
+    if (!fleet) throw new Error("Fleet not found");
+    if (fleet.ownerId !== userId) throw new Error("Access denied");
+
+    await ctx.db.patch(args.fleetId, {
+      deletionRequestedAt: Date.now(),
+      deletionRequestedBy: userId,
+      deletionRequestReason: args.reason,
+    });
+
+    await logAudit(ctx, {
+      action: "fleet.deletion_requested",
+      actorId: userId,
+      targetId: args.fleetId as string,
+      targetType: "fleets",
+      after: JSON.stringify({ reason: args.reason }),
+    });
+  },
+});
+
 export const listMyFleets = query({
   args: {},
   handler: async (ctx) => {

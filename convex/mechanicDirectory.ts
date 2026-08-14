@@ -413,6 +413,56 @@ export const updateMechanicMetrics = internalMutation({
   },
 });
 
+// List all onboarded mechanics (for browsing without a search term)
+export const listAllMechanicsForFleet = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return [];
+
+    const limit = args.limit || 50;
+
+    const mechanics = await ctx.db
+      .query("users")
+      .withIndex("by_role", (q) => q.eq("role", "mechanic"))
+      .filter((q) => q.eq(q.field("onboardingCompleted"), true))
+      .collect();
+
+    const seen = new Set<string>();
+    const unique = mechanics.filter((m) => {
+      if (seen.has(m._id)) return false;
+      seen.add(m._id);
+      return true;
+    });
+
+    const results = await Promise.all(
+      unique.slice(0, limit).map(async (mechanic) => {
+        const imageUrl = await getUserImageUrl(ctx, mechanic);
+        const metrics = await ctx.db
+          .query("mechanicMetrics")
+          .withIndex("by_mechanic", (q) => q.eq("mechanicId", mechanic._id))
+          .first();
+        return {
+          _id: mechanic._id,
+          companyName: mechanic.companyName,
+          firstName: mechanic.firstName,
+          lastName: mechanic.lastName,
+          imageUrl,
+          availabilityStatus: mechanic.availabilityStatus || "available",
+          avgOverallRating: metrics?.avgOverallRating || null,
+          totalRatings: metrics?.totalRatings || 0,
+        };
+      })
+    );
+
+    return results.sort((a, b) =>
+      (a.lastName ?? "").localeCompare(b.lastName ?? "")
+    );
+  },
+});
+
 // Search mechanics by name or company
 export const searchMechanics = query({
   args: {

@@ -132,35 +132,33 @@ export function WorkOrderRequestForm({
             </div>
           )}
 
-          {/* Vessel Selection */}
-          <div>
-            <label className={`block text-sm font-medium mb-1.5 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
-              Select Vessel <span className="text-red-500">*</span>
-            </label>
-            <GlassSelect
-              value={selectedVesselId}
-              onChange={(e) => {
-                setSelectedVesselId(e.target.value);
-                setSelectedEquipmentId("");
-                // Reset mechanic if they don't have access to new vessel
-                if (selectedMechanicId) {
-                  const hasAccess = preferredMechanics?.find((m: any) => m?.mechanicId === selectedMechanicId)
-                    ?.vesselAuthorizations?.some((a: any) => a?.vesselId === e.target.value && a?.isAuthorized);
-                  if (!hasAccess) {
-                    setSelectedMechanicId("");
+          {/* Vessel Selection — hidden when vessel is pre-selected (e.g. from vessel detail page) */}
+          {!preSelectedVesselId && (
+            <div>
+              <label className={`block text-sm font-medium mb-1.5 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
+                Select Vessel <span className="text-red-500">*</span>
+              </label>
+              <GlassSelect
+                value={selectedVesselId}
+                onChange={(e) => {
+                  setSelectedVesselId(e.target.value);
+                  setSelectedEquipmentId("");
+                  if (selectedMechanicId) {
+                    const hasAccess = preferredMechanics?.find((m: any) => m?.mechanicId === selectedMechanicId)
+                      ?.vesselAuthorizations?.some((a: any) => a?.vesselId === e.target.value && a?.isAuthorized);
+                    if (!hasAccess) setSelectedMechanicId("");
                   }
-                }
-              }}
-              disabled={!!preSelectedVesselId}
-            >
-              <option value="">Choose a vessel...</option>
-              {vessels?.map((vessel) => (
-                <option key={vessel._id} value={vessel._id}>
-                  {vessel.name} - {vessel.year} {vessel.make} {vessel.model}
-                </option>
-              ))}
-            </GlassSelect>
-          </div>
+                }}
+              >
+                <option value="">Choose a vessel...</option>
+                {vessels?.map((vessel) => (
+                  <option key={vessel._id} value={vessel._id}>
+                    {vessel.name} - {vessel.year} {vessel.make} {vessel.model}
+                  </option>
+                ))}
+              </GlassSelect>
+            </div>
+          )}
 
           {/* Mechanic Selection */}
           <div>
