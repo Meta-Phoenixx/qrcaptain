@@ -283,7 +283,18 @@ export const getFleetDashboard = query({
 export const listAllFleetsDashboard = query({
   args: {},
   handler: async (ctx) => {
-    const { userId, user } = await requireAuth(ctx);
+    const { userId: realUserId, user: realUser } = await requireAuth(ctx);
+
+    // When admin is impersonating another user, query as that user instead
+    let userId = realUserId;
+    let user = realUser;
+    if (realUser.role === "admin" && realUser.impersonatingAs) {
+      const impersonated = await ctx.db.get(realUser.impersonatingAs);
+      if (impersonated) {
+        userId = impersonated._id;
+        user = impersonated;
+      }
+    }
 
     const ownerFleets = await ctx.db.query("fleets").collect();
     type Fleet = (typeof ownerFleets)[number];
