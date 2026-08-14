@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Id } from "@convex/_generated/dataModel";
+import { useRouter } from "next/navigation";
 import { OwnerSideNav } from "@/components/owner-side-nav";
 import { WorkOrderRequestForm } from "@/components/work-order-request-form";
 import { QuoteViewer } from "@/components/quote-viewer";
@@ -27,6 +28,15 @@ const STATUS_STYLES: Record<string, { label: string; dot: string; text: string; 
 };
 
 export default function MyWorkOrdersPage() {
+  const router = useRouter();
+  const currentUser = useQuery(a.users.currentUser);
+
+  useEffect(() => {
+    if (currentUser && currentUser.role === "fleet_manager") {
+      router.replace("/fleet");
+    }
+  }, [currentUser, router]);
+
   const allRequests = useQuery(a.workOrders.getMyWorkOrderRequests, {}) ?? [];
   const [activeTab, setActiveTab] = useState("all");
   const [showRequest, setShowRequest] = useState(false);

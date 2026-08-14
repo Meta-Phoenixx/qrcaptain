@@ -51,7 +51,8 @@ export type AuditAction =
   | "admin.impersonation_started"
   | "admin.impersonation_ended"
   | "admin.user_role_changed"
-  | "admin.password_reset_requested";
+  | "admin.password_reset_requested"
+  | "admin.user_deleted";
 
 interface AuditParams {
   action: AuditAction;

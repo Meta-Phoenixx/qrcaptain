@@ -5,6 +5,7 @@ import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Id } from "@convex/_generated/dataModel";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { OwnerSideNav } from "@/components/owner-side-nav";
 import { VesselDetailModal } from "@/components/dashboard";
 import { WorkOrderRequestForm } from "@/components/work-order-request-form";
@@ -71,6 +72,14 @@ function Section({ title, href, children }: { title: string; href?: string; chil
 
 export default function OwnerDashboardPage() {
   const router = useRouter();
+  const currentUser = useQuery(a.users.currentUser);
+
+  useEffect(() => {
+    if (currentUser && currentUser.role === "fleet_manager") {
+      router.replace("/fleet");
+    }
+  }, [currentUser, router]);
+
   const vessels     = useQuery(a.vessels.listMyVessels) ?? [];
   const mechanics   = useQuery(a.accessRequests.getMechanicsForOwner) ?? [];
   const pendingQuotes   = useQuery(a.workOrders.getMyWorkOrderRequests, { status: "quoted" }) ?? [];

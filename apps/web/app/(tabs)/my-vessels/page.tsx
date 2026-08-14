@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Id } from "@convex/_generated/dataModel";
@@ -111,6 +111,15 @@ function Field({ label, name, required, placeholder, type = "text" }: { label: s
 import { useMutation } from "convex/react";
 
 export default function MyVesselsPage() {
+  const router = useRouter();
+  const currentUser = useQuery(a.users.currentUser);
+
+  useEffect(() => {
+    if (currentUser && currentUser.role === "fleet_manager") {
+      router.replace("/fleet");
+    }
+  }, [currentUser, router]);
+
   const vessels = useQuery(a.vessels.listMyVessels) ?? [];
   const pendingQuotes = useQuery(a.workOrders.getMyWorkOrderRequests, { status: "quoted" }) ?? [];
   const pendingRequests = useQuery(a.workOrders.getMyWorkOrderRequests, { status: "quote_requested" }) ?? [];
