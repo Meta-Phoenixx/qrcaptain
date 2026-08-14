@@ -40,6 +40,7 @@ export type AuditAction =
   | "fleet.vessel_removed"
   | "fleet.mechanic_authorized"
   | "fleet.mechanic_revoked"
+  | "fleet.deletion_requested"
   | "vessel.status_updated"
   | "vessel.insurance_saved"
   | "engine_hours.logged"
