@@ -3,12 +3,26 @@
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { OwnerSideNav } from "@/components/owner-side-nav";
+import { FleetSideNav } from "@/components/fleet-side-nav";
 import { MechanicDirectory } from "@/components/mechanic-directory";
 
 const a = api as any;
 
 export default function MechanicsPage() {
   const user = useQuery(a.users.currentUser);
+  const fleets = useQuery(a.fleets.getMyFleets) ?? [];
+
+  const isFleetManager = user?.role === "fleet_manager";
+
+  const SideNav = isFleetManager ? (
+    <FleetSideNav
+      selectedFleetId={fleets[0]?._id ?? null}
+      fleets={fleets}
+      onFleetChange={() => {}}
+    />
+  ) : (
+    <OwnerSideNav />
+  );
 
   if (user === undefined) {
     return (
@@ -23,7 +37,7 @@ export default function MechanicsPage() {
 
   return (
     <div className="flex min-h-screen bg-[#0f1929]">
-      <OwnerSideNav />
+      {SideNav}
 
       <main className="flex-1 min-w-0 overflow-x-hidden">
         <div className="px-6 pt-8 pb-6 border-b border-white/[0.06]">

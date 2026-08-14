@@ -1059,6 +1059,7 @@ function UsersTab({ mode }: { mode: string }) {
   const [impersonating, setImpersonating] = useState<string | null>(null);
   const [resetStates, setResetStates] = useState<Record<string, "idle" | "loading" | "sent" | "error">>({});
   const [roleChangeStates, setRoleChangeStates] = useState<Record<string, boolean>>({});
+  const [deleteStates, setDeleteStates] = useState<Record<string, "idle" | "loading">>({});
 
   const users = useQuery(a.admin.listAllUsers, { role: roleFilter || undefined, search: search || undefined }) ?? [];
   const expandedDetails = useQuery(
@@ -1068,6 +1069,7 @@ function UsersTab({ mode }: { mode: string }) {
   const startImpersonation = useMutation(a.admin.startImpersonation);
   const requestPasswordReset = useAction(a.adminActions.adminRequestPasswordReset);
   const changeUserRole = useMutation(a.users.adminChangeUserRole);
+  const deleteUser = useMutation(a.users.adminDeleteUser);
 
   const dark = mode === "dark";
 
@@ -1092,6 +1094,20 @@ function UsersTab({ mode }: { mode: string }) {
       console.error(e);
       setResetStates((prev) => ({ ...prev, [userId]: "error" }));
       setTimeout(() => setResetStates((prev) => ({ ...prev, [userId]: "idle" })), 4000);
+    }
+  }
+
+  async function handleDeleteUser(userId: string, userName: string) {
+    if (!confirm(`Permanently delete account for "${userName}"? This cannot be undone.`)) return;
+    setDeleteStates((prev) => ({ ...prev, [userId]: "loading" }));
+    try {
+      await deleteUser({ targetUserId: userId as any });
+      setExpandedUserId(null);
+    } catch (e) {
+      console.error(e);
+      alert("Failed to delete user. Please try again.");
+    } finally {
+      setDeleteStates((prev) => ({ ...prev, [userId]: "idle" }));
     }
   }
 
@@ -1286,6 +1302,22 @@ function UsersTab({ mode }: { mode: string }) {
                                 <svg className="w-3.5 h-3.5 animate-spin text-captain-400" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
                               )}
                             </div>
+
+                            {/* Delete Account */}
+                            {u.role !== "admin" && (
+                              <button
+                                onClick={() => handleDeleteUser(expandedUserId!, `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || u.email)}
+                                disabled={deleteStates[expandedUserId!] === "loading"}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors text-xs font-medium ml-auto disabled:opacity-50"
+                              >
+                                {deleteStates[expandedUserId!] === "loading" ? (
+                                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                                ) : (
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                )}
+                                Delete Account
+                              </button>
+                            )}
                           </div>
                         </div>
 

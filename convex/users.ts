@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { getAuthenticatedUser, requireAuth, requireRole, requireAdmin } from "./lib/auth";
-import { logAudit } from "./lib/audit";
+import { logAudit, AuditAction } from "./lib/audit";
 import { Errors } from "./lib/errors";
 
 declare const process: { env: Record<string, string | undefined> };
@@ -148,6 +148,31 @@ export const adminChangeUserRole = mutation({
     });
 
     return { success: true, previousRole: target.role, newRole: args.newRole };
+  },
+});
+
+export const adminDeleteUser = mutation({
+  args: { targetUserId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { userId: actorId } = await requireAdmin(ctx);
+
+    const target = await ctx.db.get(args.targetUserId);
+    if (!target) throw Errors.notFound("User");
+    if (target._id === actorId) throw new Error("Cannot delete your own account");
+
+    const before = { email: target.email, role: target.role };
+
+    await ctx.db.delete(args.targetUserId);
+
+    await logAudit(ctx, {
+      action: "admin.user_deleted" as AuditAction,
+      actorId,
+      targetId: args.targetUserId,
+      targetType: "users",
+      before,
+    });
+
+    return { success: true };
   },
 });
 
