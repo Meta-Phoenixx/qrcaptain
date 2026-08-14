@@ -157,7 +157,7 @@ export default function FleetManagerOnboardingPage() {
   function exemptionReady() {
     return (
       form.exemptionCertificateNumber.trim() &&
-      /^[\d-]+$/.test(form.exemptionCertificateNumber.trim()) &&
+      /^[a-zA-Z0-9-]+$/.test(form.exemptionCertificateNumber.trim()) &&
       form.exemptionEffectiveDate &&
       form.exemptionExpirationDate &&
       form.exemptionCategory.trim() &&
@@ -517,11 +517,11 @@ export default function FleetManagerOnboardingPage() {
 
                 <div>
                   <label className={labelCls}>
-                    Certificate Number * <span className="text-white/25 font-normal">(digits and dashes only)</span>
+                    Certificate Number * <span className="text-white/25 font-normal">(letters, digits, and dashes)</span>
                   </label>
                   <input
                     value={form.exemptionCertificateNumber}
-                    onChange={(e) => set("exemptionCertificateNumber", e.target.value.replace(/[^0-9-]/g, ""))}
+                    onChange={(e) => set("exemptionCertificateNumber", e.target.value.replace(/[^a-zA-Z0-9-]/g, ""))}
                     placeholder="85-8012345678C-0"
                     className={inputCls}
                     autoFocus
