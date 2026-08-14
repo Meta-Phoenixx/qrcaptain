@@ -3,9 +3,7 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { useConvex } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
-import { GlassCard, GlassInput, GlassButton, GlassSelect } from "../ui/glass";
+import { GlassCard, GlassInput, GlassButton } from "../ui/glass";
 import { useTheme } from "../providers/theme-provider";
 
 // Map technical error messages to user-friendly ones
@@ -35,7 +33,7 @@ function getErrorMessage(error: unknown, isSignUp: boolean): string {
   return "Invalid email or password. Please try again.";
 }
 
-type AuthView = "signIn" | "signUp" | "forgotPassword" | "resetCode";
+type AuthView = "signIn" | "forgotPassword" | "resetCode";
 
 export function SignInForm() {
   const { signIn } = useAuthActions();
@@ -44,29 +42,17 @@ export function SignInForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [selectedRole, setSelectedRole] = useState("owner");
-  const [signUpEmail, setSignUpEmail] = useState("");
   const [resetEmail, setResetEmail] = useState("");
   const { mode } = useTheme();
 
-  const convex = useConvex();
   const [emailAlreadyExists, setEmailAlreadyExists] = useState<boolean | undefined>(undefined);
 
-  const isSignUp = view === "signUp";
+  const isSignUp = false; // Sign-up disabled — invite/waitlist only
 
-  // Check if email already exists (only during sign-up with a valid-looking email).
-  // Uses imperative API so a query failure degrades gracefully instead of crashing the page.
+  // Email-exists check not needed while sign-up is closed
   useEffect(() => {
-    if (!isSignUp || !signUpEmail.includes("@")) {
-      setEmailAlreadyExists(undefined);
-      return;
-    }
-    let cancelled = false;
-    convex.query(api.users.emailExists, { email: signUpEmail })
-      .then((result) => { if (!cancelled) setEmailAlreadyExists(result); })
-      .catch(() => { if (!cancelled) setEmailAlreadyExists(false); });
-    return () => { cancelled = true; };
-  }, [isSignUp, signUpEmail, convex]);
+    setEmailAlreadyExists(undefined);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -176,7 +162,6 @@ export function SignInForm() {
     setSignUpEmail("");
   };
 
-  const isMechanic = isSignUp && selectedRole === "mechanic";
   const labelClass = `block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`;
 
   // ---------- Forgot Password: Step 1 - Enter email ----------
@@ -505,14 +490,9 @@ export function SignInForm() {
       </form>
 
       <div className="mt-6 text-center">
-        <button
-          onClick={() => switchView(isSignUp ? "signIn" : "signUp")}
-          className={`text-sm transition-colors ${mode === 'dark' ? "text-blue-400 hover:text-blue-300" : "text-blue-600 hover:text-blue-700"}`}
-        >
-          {isSignUp
-            ? "Already have an account? Sign in"
-            : "Don't have an account? Sign up"}
-        </button>
+        <p className={`text-xs ${mode === 'dark' ? "text-white/25" : "text-gray-400"}`}>
+          QR Captain is currently in private beta.
+        </p>
       </div>
     </GlassCard>
   );
