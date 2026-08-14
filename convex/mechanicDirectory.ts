@@ -40,7 +40,6 @@ export const listMechanics = query({
     let mechanics = await ctx.db
       .query("users")
       .withIndex("by_role", (q) => q.eq("role", "mechanic"))
-      .filter((q) => q.eq(q.field("onboardingCompleted"), true))
       .collect();
 
     // Apply filters
@@ -427,7 +426,6 @@ export const listAllMechanicsForFleet = query({
     const mechanics = await ctx.db
       .query("users")
       .withIndex("by_role", (q) => q.eq("role", "mechanic"))
-      .filter((q) => q.eq(q.field("onboardingCompleted"), true))
       .collect();
 
     const seen = new Set<string>();
@@ -482,7 +480,6 @@ export const searchMechanics = query({
     const mechanics = await ctx.db
       .query("users")
       .withIndex("by_role", (q) => q.eq("role", "mechanic"))
-      .filter((q) => q.eq(q.field("onboardingCompleted"), true))
       .collect();
 
     // Deduplicate by _id before filtering (index can return same doc twice with multiple authAccounts)
@@ -542,7 +539,6 @@ export const getFeaturedMechanics = query({
     let mechanics = await ctx.db
       .query("users")
       .withIndex("by_role", (q) => q.eq("role", "mechanic"))
-      .filter((q) => q.eq(q.field("onboardingCompleted"), true))
       .collect();
 
     // Filter to only available or limited availability mechanics
