@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 
-type FleetType = "charter" | "fishing" | "racing" | "leisure" | "commercial";
+type FleetType = "charter" | "fishing" | "racing" | "leisure" | "commercial" | "sailing";
 
 type Step = "logo" | "business_info" | "tax_exempt" | "tax_exemption" | "create_fleet";
 
@@ -39,10 +39,13 @@ interface FormData {
 const FLEET_TYPES: { value: FleetType; label: string; icon: string }[] = [
   { value: "charter", label: "Charter", icon: "⚓" },
   { value: "fishing", label: "Fishing", icon: "🎣" },
+  { value: "sailing", label: "Sailing", icon: "⛵" },
   { value: "racing", label: "Racing", icon: "🏁" },
   { value: "leisure", label: "Leisure", icon: "🌅" },
   { value: "commercial", label: "Commercial", icon: "🚢" },
 ];
+
+const DRAFT_KEY = "fm_onboarding_draft";
 
 const STEPS: Step[] = ["logo", "business_info", "tax_exempt", "create_fleet"];
 
@@ -65,31 +68,43 @@ export default function FleetManagerOnboardingPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [step, setStep] = useState<Step>("logo");
+  const [step, setStep] = useState<Step>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
+      return (saved.step as Step) || "logo";
+    } catch { return "logo"; }
+  });
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [form, setForm] = useState<FormData>({
-    logoFile: null,
-    logoPreview: null,
-    logoStorageId: null,
-    firstName: "",
-    lastName: "",
-    phone: "",
-    companyName: "",
-    street: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    taxExempt: null,
-    exemptionCertificateNumber: "",
-    exemptionEffectiveDate: "",
-    exemptionExpirationDate: "",
-    exemptionCategory: "",
-    fleetName: "",
-    fleetType: "",
-    fleetDescription: "",
+  const [form, setForm] = useState<FormData>(() => {
+    const defaults: FormData = {
+      logoFile: null,
+      logoPreview: null,
+      logoStorageId: null,
+      firstName: "",
+      lastName: "",
+      phone: "",
+      companyName: "",
+      street: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      taxExempt: null,
+      exemptionCertificateNumber: "",
+      exemptionEffectiveDate: "",
+      exemptionExpirationDate: "",
+      exemptionCategory: "",
+      fleetName: "",
+      fleetType: "",
+      fleetDescription: "",
+    };
+    try {
+      const saved = JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
+      if (saved.form) return { ...defaults, ...saved.form, logoFile: null, logoPreview: null, logoStorageId: null };
+    } catch {}
+    return defaults;
   });
 
   const me = useQuery((api as any).users.currentUser);
@@ -106,6 +121,14 @@ export default function FleetManagerOnboardingPage() {
       phone: prev.phone || me.phone || "",
     }));
   }, [me]);
+
+  // Autosave step + text fields to localStorage on every change
+  useEffect(() => {
+    try {
+      const { logoFile, logoPreview, logoStorageId, ...saveable } = form;
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ step, form: saveable }));
+    } catch {}
+  }, [step, form]);
 
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const completeOnboarding = useMutation((api as any).users.completeFleetManagerOnboarding);
@@ -208,6 +231,7 @@ export default function FleetManagerOnboardingPage() {
         });
       }
 
+      localStorage.removeItem(DRAFT_KEY);
       router.replace("/fleet");
     } catch (e: any) {
       setError(e?.message ?? "Something went wrong. Please try again.");
@@ -595,7 +619,7 @@ export default function FleetManagerOnboardingPage() {
 
                 <div>
                   <label className={labelCls}>Fleet Type</label>
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-6 gap-2">
                     {FLEET_TYPES.map((ft) => (
                       <button
                         key={ft.value}

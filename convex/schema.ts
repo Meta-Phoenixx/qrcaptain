@@ -165,6 +165,7 @@ export default defineSchema({
       v.literal("racing"),
       v.literal("leisure"),
       v.literal("commercial"),
+      v.literal("sailing"),
     )),
     imageStorageId: v.optional(v.id("_storage")),
     createdAt: v.number(),
