@@ -21,21 +21,23 @@ export default function FleetManagerProfilePage() {
   const a = api as any;
   const me = useQuery(a.users.currentUser);
   const fleetList = useQuery(a.fleetDashboard.listAllFleetsDashboard) ?? [];
-  const logoUrl = useQuery(a.storage.getMechanicCompanyLogoUrl, {});
+  const logoUrl = useQuery(a.storage.getFleetManagerCompanyLogoUrl, {});
   const [selectedFleetId, setSelectedFleetId] = useState<Id<"fleets"> | null>(null);
 
   // Logo upload
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState<string | null>(null);
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
-  const saveLogo = useMutation(a.storage.saveMechanicCompanyLogo);
+  const saveLogo = useMutation(a.storage.saveFleetManagerCompanyLogo);
 
   if (fleetList.length > 0 && !selectedFleetId) setSelectedFleetId(fleetList[0]._id);
 
   const handleLogoSelect = useCallback(async (file: File) => {
     const preview = URL.createObjectURL(file);
     setLogoPreview(preview);
+    setLogoError(null);
     setUploading(true);
     try {
       const uploadUrl = await generateUploadUrl();
@@ -47,8 +49,9 @@ export default function FleetManagerProfilePage() {
       if (!res.ok) throw new Error("Upload failed");
       const { storageId } = await res.json();
       await saveLogo({ storageId: storageId as Id<"_storage"> });
-    } catch {
+    } catch (e: any) {
       setLogoPreview(null);
+      setLogoError(e?.message ?? "Logo upload failed. Please try again.");
     } finally {
       setUploading(false);
     }
@@ -141,6 +144,7 @@ export default function FleetManagerProfilePage() {
                     onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoSelect(f); }}
                   />
                   <p className="text-[10px] text-white/20 text-center mt-2">Click to update</p>
+                  {logoError && <p className="text-[10px] text-red-400 text-center mt-1">{logoError}</p>}
                 </div>
 
                 {/* Core info */}
