@@ -10,7 +10,7 @@ const a = api as any;
 
 export default function MechanicsPage() {
   const user = useQuery(a.users.currentUser);
-  const fleets = useQuery(a.fleets.getMyFleets) ?? [];
+  const fleets = useQuery(a.fleets.listMyFleets) ?? [];
 
   const isFleetManager = user?.role === "fleet_manager";
 

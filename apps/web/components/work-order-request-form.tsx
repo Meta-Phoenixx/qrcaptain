@@ -29,9 +29,23 @@ export function WorkOrderRequestForm({
   const [error, setError] = useState<string | null>(null);
   const { mode } = useTheme();
 
-  // Get owner's preferred mechanics
-  const preferredMechanics = useQuery(api.preferredMechanics.getPreferredMechanics);
-  
+  const currentUser = useQuery((api as any).users.currentUser);
+  const isFleetManager = currentUser?.role === "fleet_manager";
+
+  // Get owner's preferred mechanics (owner role only)
+  const preferredMechanics = useQuery(
+    isFleetManager ? "skip" : (api.preferredMechanics.getPreferredMechanics as any)
+  );
+
+  // For fleet_manager: get mechanics from their first fleet
+  const fleets = useQuery(isFleetManager ? (api as any).fleets.listMyFleets : "skip") ?? [];
+  const firstFleetId = isFleetManager ? fleets[0]?._id : undefined;
+  const fleetDetails = useQuery(
+    firstFleetId ? (api as any).fleets.getFleet : "skip",
+    firstFleetId ? { fleetId: firstFleetId } : "skip"
+  );
+  const fleetMechanics = fleetDetails?.mechanics ?? [];
+
   // Get owner's vessels
   const vessels = useQuery(api.vessels.listMyVessels);
 
@@ -44,8 +58,10 @@ export function WorkOrderRequestForm({
   // Request work order mutation
   const requestWorkOrder = useMutation(api.workOrders.requestWorkOrder);
 
-  // Show all preferred mechanics - authorization will be granted automatically when work order is created
-  const availableMechanics = preferredMechanics || [];
+  // Show all available mechanics depending on role
+  const availableMechanics = isFleetManager
+    ? fleetMechanics.map((m: any) => ({ mechanic: m, mechanicId: m._id }))
+    : (preferredMechanics || []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,7 +159,7 @@ export function WorkOrderRequestForm({
                 onChange={(e) => {
                   setSelectedVesselId(e.target.value);
                   setSelectedEquipmentId("");
-                  if (selectedMechanicId) {
+                  if (selectedMechanicId && !isFleetManager) {
                     const hasAccess = preferredMechanics?.find((m: any) => m?.mechanicId === selectedMechanicId)
                       ?.vesselAuthorizations?.some((a: any) => a?.vesselId === e.target.value && a?.isAuthorized);
                     if (!hasAccess) setSelectedMechanicId("");
@@ -165,10 +181,10 @@ export function WorkOrderRequestForm({
             <label className={`block text-sm font-medium mb-1.5 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
               Select Mechanic <span className="text-red-500">*</span>
             </label>
-            {!preferredMechanics || preferredMechanics.length === 0 ? (
+            {availableMechanics.length === 0 ? (
               <div className={`p-4 rounded-lg text-center ${mode === 'dark' ? "bg-white/5" : "bg-gray-50"}`}>
                 <p className={`text-sm mb-2 ${mode === 'dark' ? "text-gray-400" : "text-gray-600"}`}>
-                  You don&apos;t have any preferred mechanics yet.
+                  {isFleetManager ? "No mechanics are assigned to your fleet yet." : "You don't have any preferred mechanics yet."}
                 </p>
                 <a
                   href="/mechanics"
@@ -184,9 +200,13 @@ export function WorkOrderRequestForm({
                 disabled={!!preSelectedMechanicId}
               >
                 <option value="">Choose a mechanic...</option>
-                {availableMechanics.filter((m): m is NonNullable<typeof m> => m != null).map((mechanic) => (
+                {(availableMechanics as any[]).filter((m) => m != null).map((mechanic: any) => (
                   <option key={mechanic.mechanicId} value={mechanic.mechanicId}>
-                    {mechanic.companyName || (mechanic.firstName && mechanic.lastName ? `${mechanic.firstName} ${mechanic.lastName}` : "Unknown")}
+                    {mechanic.mechanic?.companyName || mechanic.companyName || (
+                      (mechanic.mechanic?.firstName || mechanic.firstName) && (mechanic.mechanic?.lastName || mechanic.lastName)
+                        ? `${mechanic.mechanic?.firstName || mechanic.firstName} ${mechanic.mechanic?.lastName || mechanic.lastName}`
+                        : "Unknown"
+                    )}
                     {mechanic.avgOverallRating ? ` (${mechanic.avgOverallRating.toFixed(1)} wrenches)` : ""}
                   </option>
                 ))}
