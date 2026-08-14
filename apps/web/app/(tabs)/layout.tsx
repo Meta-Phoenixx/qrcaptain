@@ -4,7 +4,7 @@ import { Authenticated, Unauthenticated, AuthLoading, useQuery } from "convex/re
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
-import { api } from "../../../convex/_generated/api";
+import { api } from "../../../../convex/_generated/api";
 
 function FleetManagerOnboardingGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
