@@ -6,6 +6,7 @@ import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import { OwnerSideNav } from "@/components/owner-side-nav";
 import { AppSideNav } from "@/components/app-side-nav";
+import { MechanicSideNav } from "@/components/mechanic-side-nav";
 import { InvoiceBuilder } from "@/components/invoice-builder";
 import { InvoiceViewer } from "@/components/invoice-viewer";
 import { PaymentRecorder } from "@/components/payment-recorder";
@@ -320,7 +321,7 @@ export default function InvoicesPage() {
   if (isMechanic) {
     return (
       <div className="flex min-h-screen bg-[#0f1929]">
-        <OwnerSideNav />
+        <MechanicSideNav />
         <MechanicInvoicesPage />
       </div>
     );

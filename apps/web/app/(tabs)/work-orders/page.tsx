@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
-import { FleetSideNav } from "@/components/fleet-side-nav";
+import { MechanicSideNav } from "@/components/mechanic-side-nav";
 import { WorkOrderEditor } from "@/components/work-order-editor";
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; dot: string; label: string }> = {
@@ -38,15 +38,10 @@ function timeAgo(ts: number) {
 }
 
 export default function WorkOrdersPage() {
-  const [selectedFleetId, setSelectedFleetId] = useState<Id<"fleets"> | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [openWorkOrderId, setOpenWorkOrderId] = useState<Id<"workOrders"> | null>(null);
 
-  const a = api as any;
-  const fleetList  = useQuery(a.fleetDashboard.listAllFleetsDashboard) ?? [];
-  const myOrders   = useQuery(api.workOrders.getMyWorkOrders, statusFilter !== "all" ? { status: statusFilter as any } : {}) ?? [];
-
-  if (fleetList.length > 0 && !selectedFleetId) setSelectedFleetId(fleetList[0]._id);
+  const myOrders = useQuery(api.workOrders.getMyWorkOrders, statusFilter !== "all" ? { status: statusFilter as any } : {}) ?? [];
 
   const STATUS_TABS: { key: StatusFilter; label: string }[] = [
     { key: "all",             label: "All"             },
@@ -58,11 +53,7 @@ export default function WorkOrdersPage() {
 
   return (
     <div className="flex min-h-screen bg-[#0f1929]">
-      <FleetSideNav
-        selectedFleetId={selectedFleetId}
-        fleets={fleetList}
-        onFleetChange={setSelectedFleetId}
-      />
+      <MechanicSideNav />
 
       <main className="flex-1 min-w-0 overflow-x-hidden">
         {/* Header */}
