@@ -8,11 +8,12 @@ import { PartsAutocomplete, PartSuggestion } from "./parts-autocomplete";
 import { useTheme } from "./providers/theme-provider";
 
 interface PartEntry {
-  id: string; // temporary client-side ID
+  id: string;
   name: string;
   partNumber: string;
   manufacturer: string;
   category: string;
+  equipmentId?: Id<"vesselEquipment">;
   quantity: number;
   unitCost: number;
   serialNumber?: string;
@@ -45,6 +46,7 @@ export function PartsEntry({ workOrderId, vesselId, onPartAdded }: PartsEntryPro
   const [searchQuery, setSearchQuery] = useState("");
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
   const [newPart, setNewPart] = useState<Partial<PartEntry>>({
     quantity: 1,
     unitCost: 0,
@@ -56,32 +58,35 @@ export function PartsEntry({ workOrderId, vesselId, onPartAdded }: PartsEntryPro
   const recentParts = useQuery(api.parts.getRecentParts, { limit: 10 });
   const vesselHistory = useQuery(api.parts.getVesselPartHistory, { vesselId, limit: 10 });
   const workOrderParts = useQuery(api.workOrders.getWorkOrder, { workOrderId });
+  const vesselEngines = useQuery(api.vesselEquipment.listByCategory, { vesselId, category: "propulsion" });
 
   // Mutations
   const addPart = useMutation(api.workOrders.addPart);
   const removePart = useMutation(api.workOrders.removePart);
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
 
+  const defaultEngineId = vesselEngines?.[0]?._id;
+
   // Handle part selection from autocomplete
   const handlePartSelect = (part: PartSuggestion) => {
     if (part.isNew) {
-      // Open manual entry with pre-filled name
       setNewPart({
         name: part.name,
         partNumber: "",
         manufacturer: "",
         category: "general",
+        equipmentId: defaultEngineId,
         quantity: 1,
         unitCost: 0,
       });
       setShowManualEntry(true);
     } else {
-      // Pre-fill with selected part data
       setNewPart({
         name: part.name,
         partNumber: part.partNumber,
         manufacturer: part.manufacturer,
         category: part.category || "general",
+        equipmentId: defaultEngineId,
         quantity: 1,
         unitCost: part.averagePrice || 0,
       });
@@ -101,6 +106,7 @@ export function PartsEntry({ workOrderId, vesselId, onPartAdded }: PartsEntryPro
       partNumber: part.partNumber || "",
       manufacturer: part.manufacturer || "",
       category: part.category || "general",
+      equipmentId: defaultEngineId,
       quantity: 1,
       unitCost: 0,
     });
@@ -139,6 +145,7 @@ export function PartsEntry({ workOrderId, vesselId, onPartAdded }: PartsEntryPro
     if (!newPart.name || !newPart.quantity) return;
 
     setIsAdding(true);
+    setAddError(null);
     try {
       await addPart({
         workOrderId,
@@ -147,6 +154,7 @@ export function PartsEntry({ workOrderId, vesselId, onPartAdded }: PartsEntryPro
         serialNumber: newPart.serialNumber || undefined,
         manufacturer: newPart.manufacturer || undefined,
         category: newPart.category || undefined,
+        equipmentId: newPart.equipmentId || undefined,
         quantity: newPart.quantity,
         unitCost: newPart.unitCost || undefined,
         warrantyExpiry: newPart.warrantyExpiry || undefined,
@@ -159,12 +167,14 @@ export function PartsEntry({ workOrderId, vesselId, onPartAdded }: PartsEntryPro
         quantity: 1,
         unitCost: 0,
         category: "general",
+        equipmentId: vesselEngines?.[0]?._id,
       });
       setShowManualEntry(false);
       setSearchQuery("");
       onPartAdded?.();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to add part:", err);
+      setAddError(err?.message || "Failed to add part. Make sure the work order is In Progress.");
     } finally {
       setIsAdding(false);
     }
@@ -282,8 +292,8 @@ export function PartsEntry({ workOrderId, vesselId, onPartAdded }: PartsEntryPro
                   value={newPart.category || "general"}
                   onChange={(e) => setNewPart(prev => ({ ...prev, category: e.target.value }))}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${
-                    mode === 'dark' 
-                      ? "bg-black/20 border-white/10 text-white" 
+                    mode === 'dark'
+                      ? "bg-black/20 border-white/10 text-white"
                       : "bg-white border-gray-300 text-black"
                   }`}
                 >
@@ -292,6 +302,29 @@ export function PartsEntry({ workOrderId, vesselId, onPartAdded }: PartsEntryPro
                   ))}
                 </select>
               </div>
+
+              {/* Engine */}
+              {vesselEngines && vesselEngines.length > 0 && (
+                <div>
+                  <label className={`block text-sm font-medium mb-1 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>Engine</label>
+                  <select
+                    value={newPart.equipmentId || ""}
+                    onChange={(e) => setNewPart(prev => ({ ...prev, equipmentId: e.target.value as Id<"vesselEquipment"> || undefined }))}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${
+                      mode === 'dark'
+                        ? "bg-black/20 border-white/10 text-white"
+                        : "bg-white border-gray-300 text-black"
+                    }`}
+                  >
+                    <option value="">No engine selected</option>
+                    {vesselEngines.map((engine: any) => (
+                      <option key={engine._id} value={engine._id}>
+                        {engine.name || engine.make || "Engine"}{engine.model ? ` ${engine.model}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Serial Number */}
               <div>
@@ -391,6 +424,13 @@ export function PartsEntry({ workOrderId, vesselId, onPartAdded }: PartsEntryPro
                 </div>
               </div>
             </div>
+
+            {/* Error message */}
+            {addError && (
+              <div className="rounded-lg px-4 py-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                {addError}
+              </div>
+            )}
 
             {/* Add Button */}
             <div className="flex justify-end pt-2">

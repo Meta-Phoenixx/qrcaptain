@@ -903,6 +903,7 @@ export const addPart = mutation({
     serialNumber: v.optional(v.string()),
     manufacturer: v.optional(v.string()),
     category: v.optional(v.string()),
+    equipmentId: v.optional(v.id("vesselEquipment")),
     quantity: v.number(),
     unitCost: v.optional(v.number()),
     warrantyExpiry: v.optional(v.number()),
@@ -929,7 +930,7 @@ export const addPart = mutation({
     if (!workOrder) throw Errors.notFound("Work order");
     if (workOrder.mechanicId !== userId) throw Errors.accessDenied();
     if (workOrder.status !== "in_progress") {
-      throw Errors.validation("Cannot add parts to a completed work order");
+      throw Errors.validation("Parts can only be added when the work order is In Progress. Current status: " + workOrder.status);
     }
 
     if (args.partNumber && args.manufacturer) {
@@ -974,6 +975,7 @@ export const addPart = mutation({
       serialNumber: args.serialNumber,
       manufacturer: args.manufacturer,
       category: args.category,
+      equipmentId: args.equipmentId,
       quantity: args.quantity,
       unitCost: args.unitCost,
       warrantyExpiry: args.warrantyExpiry,

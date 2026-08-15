@@ -362,13 +362,14 @@ export default defineSchema({
     partNumber: v.optional(v.string()),
     serialNumber: v.optional(v.string()),
     manufacturer: v.optional(v.string()),
-    category: v.optional(v.string()),     // Part category
+    category: v.optional(v.string()),
+    equipmentId: v.optional(v.id("vesselEquipment")), // Engine/equipment this part belongs to
     quantity: v.number(),
     unitCost: v.optional(v.number()),
     warrantyExpiry: v.optional(v.number()),
     warrantyTerms: v.optional(v.string()),
-    photoStorageId: v.optional(v.id("_storage")), // Photo of the part
-    addedAt: v.optional(v.number()),      // When part was added
+    photoStorageId: v.optional(v.id("_storage")),
+    addedAt: v.optional(v.number()),
   }).index("by_work_order", ["workOrderId"]),
 
   // Photos attached to work orders
@@ -479,10 +480,11 @@ export default defineSchema({
   
   // Owner's preferred mechanic list (separate from vessel-level authorizations)
   preferredMechanics: defineTable({
-    ownerId: v.id("users"),           // The owner
-    mechanicId: v.id("users"),        // The preferred mechanic
-    addedAt: v.number(),              // When added to preferred list
-    notes: v.optional(v.string()),    // Owner's private notes about this mechanic
+    ownerId: v.id("users"),
+    mechanicId: v.id("users"),
+    addedAt: v.number(),
+    notes: v.optional(v.string()),
+    hourlyRate: v.optional(v.number()), // Pre-approved hourly rate for this mechanic
   })
     .index("by_owner", ["ownerId"])
     .index("by_mechanic", ["mechanicId"])
