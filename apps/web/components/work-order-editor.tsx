@@ -84,7 +84,14 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
 
   // Fetch work order data
   const workOrder = useQuery(api.workOrders.getWorkOrder, { workOrderId });
-  
+
+  // Fetch approved hourly rate for auto-population
+  const _wo = workOrder as any;
+  const approvedHourlyRate = useQuery(
+    api.preferredMechanics.getApprovedHourlyRate,
+    _wo ? { mechanicId: _wo.mechanicId, ownerId: _wo.ownerId } : "skip"
+  );
+
   // Check if user can rate
   const canRateResult = useQuery(api.ratings.canRateWorkOrder, { workOrderId });
   const currentUser = useQuery(api.users.currentUser);
@@ -154,7 +161,9 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
       setDiagnosis(workOrder.diagnosis || "");
       setWorkPerformed(workOrder.workPerformed || "");
       setLaborHours(workOrder.laborHours?.toString() || "");
-      setLaborRate(workOrder.laborRate?.toString() || "");
+      // Auto-populate labor rate: use stored rate, fall back to approved rate
+      const rate = workOrder.laborRate ?? approvedHourlyRate ?? undefined;
+      setLaborRate(rate?.toString() || "");
       // Initialize estimated completion date
       if (workOrder.estimatedCompletionDate) {
         const date = new Date(workOrder.estimatedCompletionDate);
@@ -163,7 +172,7 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
       // Mark as initialized to prevent re-initialization
       isInitializedRef.current = true;
     }
-  }, [workOrder?._id]);
+  }, [workOrder?._id, approvedHourlyRate]);
 
   // Autosave effect - debounced save when form values change
   // This must be before any early returns to satisfy React hooks rules
@@ -558,31 +567,16 @@ export function WorkOrderEditor({ workOrderId, onClose, onCompleted, initialTab 
                 </div>
               ) : null}
 
-              {/* Diagnosis */}
+              {/* Estimated Labor */}
               <div>
                 <label className={`block text-sm font-medium mb-1.5 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
-                  Diagnosis
+                  Estimated Labor
                 </label>
                 <textarea
                   value={diagnosis}
                   onChange={(e) => setDiagnosis(e.target.value)}
-                  placeholder="Describe what you found during inspection..."
+                  placeholder="Describe the estimated labor and work to be performed..."
                   rows={3}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 resize-none ${mode === 'dark' ? "bg-black/20 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-black placeholder-gray-400"}`}
-                />
-              </div>
-
-              {/* Work Performed */}
-              <div>
-                <label className={`block text-sm font-medium mb-1.5 ${mode === 'dark' ? "text-gray-300" : "text-gray-700"}`}>
-                  Work Performed <span className="text-red-500">*</span>
-                  <span className={`font-normal ml-1 ${mode === 'dark' ? "text-gray-500" : "text-gray-400"}`}>(required to complete)</span>
-                </label>
-                <textarea
-                  value={workPerformed}
-                  onChange={(e) => setWorkPerformed(e.target.value)}
-                  placeholder="Describe the work you performed..."
-                  rows={4}
                   className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-captain-500 focus:border-captain-500 resize-none ${mode === 'dark' ? "bg-black/20 border-white/10 text-white placeholder-gray-500" : "border-gray-300 text-black placeholder-gray-400"}`}
                 />
               </div>

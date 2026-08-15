@@ -68,14 +68,12 @@ function AlertMessageViewer({ messageId, onClose }: { messageId: Id<"messages">;
 
 export default function AlertsPage() {
   const router = useRouter();
-  const [selectedFleetId, setSelectedFleetId] = useState<Id<"fleets"> | null>(null);
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const [viewingMessageId, setViewingMessageId] = useState<Id<"messages"> | null>(null);
   const [viewingWorkOrderId, setViewingWorkOrderId] = useState<Id<"workOrders"> | null>(null);
   const [viewingInvoiceId, setViewingInvoiceId] = useState<Id<"invoices"> | null>(null);
 
   const a = api as any;
-  const fleetList  = useQuery(a.fleetDashboard.listAllFleetsDashboard) ?? [];
   const notifs     = useQuery(api.notifications.getMyNotifications, { limit: 50 }) ?? [];
   const markRead   = useMutation(api.notifications.markAsRead);
   const markAll    = useMutation(api.notifications.markAllAsRead);
@@ -127,18 +125,12 @@ export default function AlertsPage() {
     }
   }
 
-  if (fleetList.length > 0 && !selectedFleetId) setSelectedFleetId(fleetList[0]._id);
-
   const visible = filter === "unread" ? notifs.filter((n: any) => !n.isRead) : notifs;
   const unreadCount = notifs.filter((n: any) => !n.isRead).length;
 
   return (
     <div className="flex min-h-screen bg-[#0f1929]">
-      <AppSideNav
-        selectedFleetId={selectedFleetId}
-        fleets={fleetList}
-        onFleetChange={setSelectedFleetId}
-      />
+      <AppSideNav />
 
       <main className="flex-1 min-w-0 overflow-x-hidden">
         {/* Header */}

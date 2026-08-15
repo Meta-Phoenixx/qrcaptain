@@ -116,8 +116,9 @@ export const getPreferredMechanicById = query({
 export const addToPreferredList = mutation({
   args: {
     mechanicId: v.id("users"),
-    vesselIds: v.optional(v.array(v.id("vessels"))), // Vessels to authorize
+    vesselIds: v.optional(v.array(v.id("vessels"))),
     notes: v.optional(v.string()),
+    hourlyRate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { userId, user } = await requireRole(ctx, "owner");
@@ -144,6 +145,7 @@ export const addToPreferredList = mutation({
       mechanicId: args.mechanicId,
       addedAt: Date.now(),
       notes: args.notes,
+      hourlyRate: args.hourlyRate,
     });
 
     // Authorize for specified vessels
@@ -350,6 +352,59 @@ export const isPreferredMechanic = query({
       .first();
 
     return !!preferred;
+  },
+});
+
+// Get approved hourly rate — owner queries by mechanicId, mechanic queries by ownerId
+export const getApprovedHourlyRate = query({
+  args: { mechanicId: v.optional(v.id("users")), ownerId: v.optional(v.id("users")) },
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return null;
+
+    let ownerId: Id<"users">;
+    let mechanicId: Id<"users">;
+
+    if (user.role === "owner" && args.mechanicId) {
+      ownerId = user._id;
+      mechanicId = args.mechanicId;
+    } else if ((user.role === "mechanic" || user.role === "fleet_manager") && args.ownerId) {
+      ownerId = args.ownerId;
+      mechanicId = user._id;
+    } else {
+      return null;
+    }
+
+    const preferred = await ctx.db
+      .query("preferredMechanics")
+      .withIndex("by_owner_mechanic", (q) =>
+        q.eq("ownerId", ownerId).eq("mechanicId", mechanicId)
+      )
+      .first();
+
+    return preferred?.hourlyRate ?? null;
+  },
+});
+
+export const setApprovedHourlyRate = mutation({
+  args: {
+    mechanicId: v.id("users"),
+    hourlyRate: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { userId } = await requireRole(ctx, "owner");
+
+    const preferred = await ctx.db
+      .query("preferredMechanics")
+      .withIndex("by_owner_mechanic", (q) =>
+        q.eq("ownerId", userId).eq("mechanicId", args.mechanicId)
+      )
+      .first();
+
+    if (!preferred) throw Errors.notFound("Preferred mechanic record");
+
+    await ctx.db.patch(preferred._id, { hourlyRate: args.hourlyRate });
+    return { success: true };
   },
 });
 

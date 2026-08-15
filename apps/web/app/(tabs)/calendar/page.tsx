@@ -113,11 +113,7 @@ export default function CalendarPage() {
 
   return (
     <div className="flex min-h-screen bg-[#0f1929]">
-      <AppSideNav
-        selectedFleetId={selectedFleetId}
-        fleets={fleetList}
-        onFleetChange={(id) => { setSelectedFleetId(id); setSelectedDay(null); }}
-      />
+      <AppSideNav />
 
       <main className="flex-1 min-w-0 overflow-x-hidden">
         {/* Header */}

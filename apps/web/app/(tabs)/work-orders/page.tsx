@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
-import { MechanicSideNav } from "@/components/mechanic-side-nav";
+import { AppSideNav } from "@/components/app-side-nav";
 import { WorkOrderEditor } from "@/components/work-order-editor";
 
 const STATUS_CONFIG: Record<string, { bg: string; text: string; dot: string; label: string }> = {
@@ -41,7 +41,8 @@ export default function WorkOrdersPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [openWorkOrderId, setOpenWorkOrderId] = useState<Id<"workOrders"> | null>(null);
 
-  const myOrders = useQuery(api.workOrders.getMyWorkOrders, statusFilter !== "all" ? { status: statusFilter as any } : {}) ?? [];
+  const a = api as any;
+  const myOrders   = useQuery(api.workOrders.getMyWorkOrders, statusFilter !== "all" ? { status: statusFilter as any } : {}) ?? [];
 
   const STATUS_TABS: { key: StatusFilter; label: string }[] = [
     { key: "all",             label: "All"             },
@@ -53,7 +54,7 @@ export default function WorkOrdersPage() {
 
   return (
     <div className="flex min-h-screen bg-[#0f1929]">
-      <MechanicSideNav />
+      <AppSideNav />
 
       <main className="flex-1 min-w-0 overflow-x-hidden">
         {/* Header */}

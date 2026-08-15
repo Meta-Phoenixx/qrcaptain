@@ -34,11 +34,7 @@ export default function ReportsPage() {
 
   return (
     <div className="flex min-h-screen bg-[#0f1929]">
-      <AppSideNav
-        selectedFleetId={selectedFleetId}
-        fleets={fleetList}
-        onFleetChange={setSelectedFleetId}
-      />
+      <AppSideNav />
 
       <main className="flex-1 min-w-0 overflow-x-hidden">
         {/* Header */}
