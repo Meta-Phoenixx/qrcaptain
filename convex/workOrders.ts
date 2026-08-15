@@ -911,7 +911,9 @@ export const addPart = mutation({
     photoStorageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
-    const { userId } = await requireRole(ctx, "mechanic");
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) throw Errors.notAuthenticated();
+    const userId = user._id;
 
     requireMaxLength(args.name, "Part name", 200);
     if (args.partNumber !== undefined) requireMaxLength(args.partNumber, "Part number", 100);
@@ -928,9 +930,18 @@ export const addPart = mutation({
 
     const workOrder = await ctx.db.get(args.workOrderId);
     if (!workOrder) throw Errors.notFound("Work order");
-    if (workOrder.mechanicId !== userId) throw Errors.accessDenied();
-    if (workOrder.status !== "in_progress") {
-      throw Errors.validation("Parts can only be added when the work order is In Progress. Current status: " + workOrder.status);
+
+    // Mechanic must be the assigned mechanic; owner must be the vessel owner
+    const vessel = await ctx.db.get(workOrder.vesselId);
+    const isMechanic = user.role === "mechanic" && workOrder.mechanicId === userId;
+    const isOwner = (user.role === "owner" || user.role === "fleet_manager") &&
+      (workOrder.requestedByOwnerId === userId || vessel?.ownerId === userId || vessel?.fleetId !== undefined);
+    const isAdmin = user.role === "admin";
+    if (!isMechanic && !isOwner && !isAdmin) throw Errors.accessDenied();
+
+    const activeStatuses = ["in_progress", "quoted", "quote_requested"];
+    if (!activeStatuses.includes(workOrder.status)) {
+      throw Errors.validation("Parts can only be added to active work orders. Current status: " + workOrder.status);
     }
 
     if (args.partNumber && args.manufacturer) {

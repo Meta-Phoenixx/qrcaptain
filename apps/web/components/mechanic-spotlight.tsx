@@ -61,14 +61,22 @@ export function MechanicSpotlight({ mechanicId, onClose }: MechanicSpotlightProp
   const [activeTab, setActiveTab] = useState<"about" | "reviews" | "hours">("about");
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [showMessaging, setShowMessaging] = useState(false);
+  const [hourlyRateInput, setHourlyRateInput] = useState("");
+  const [rateSaving, setRateSaving] = useState(false);
+  const [rateSaved, setRateSaved] = useState(false);
   const { mode } = useTheme();
 
   // Fetch mechanic details
   const mechanic = useQuery(api.mechanicDirectory.getMechanicSpotlight, { mechanicId });
   const ratingsBreakdown = useQuery(api.ratings.getMechanicAverageRatings, { mechanicId });
+  const approvedRate = useQuery(
+    api.preferredMechanics.getApprovedHourlyRate,
+    mechanic?.isPreferred ? { mechanicId } : "skip"
+  );
 
   // Mutations
   const addToPreferred = useMutation(api.preferredMechanics.addToPreferredList);
+  const setApprovedHourlyRate = useMutation(api.preferredMechanics.setApprovedHourlyRate);
 
   const isLoading = mechanic === undefined;
 
@@ -113,9 +121,30 @@ export function MechanicSpotlight({ mechanicId, onClose }: MechanicSpotlightProp
   const handleAddToPreferred = async () => {
     try {
       await addToPreferred({ mechanicId });
-      // Could show a success toast here
     } catch (error) {
       console.error("Failed to add to preferred list:", error);
+    }
+  };
+
+  // Sync input when approved rate loads
+  if (approvedRate !== undefined && hourlyRateInput === "" && approvedRate !== null) {
+    setHourlyRateInput(approvedRate.toString());
+  }
+
+  const handleSaveRate = async () => {
+    setRateSaving(true);
+    try {
+      const rate = parseFloat(hourlyRateInput);
+      await setApprovedHourlyRate({
+        mechanicId,
+        hourlyRate: isNaN(rate) ? undefined : rate,
+      });
+      setRateSaved(true);
+      setTimeout(() => setRateSaved(false), 2000);
+    } catch (error) {
+      console.error("Failed to save hourly rate:", error);
+    } finally {
+      setRateSaving(false);
     }
   };
 
@@ -341,6 +370,50 @@ export function MechanicSpotlight({ mechanicId, onClose }: MechanicSpotlightProp
                     )}
                   </div>
                 </div>
+
+                {/* Approved Hourly Rate — only visible to owner who has this mechanic preferred */}
+                {mechanic.isPreferred && (
+                  <div className={`rounded-xl p-4 border ${mode === 'dark' ? "bg-captain-500/10 border-captain-500/20" : "bg-captain-50 border-captain-200"}`}>
+                    <h3 className={`text-sm font-semibold mb-1 ${mode === 'dark' ? "text-captain-300" : "text-captain-700"}`}>
+                      Approved Hourly Rate
+                    </h3>
+                    <p className={`text-xs mb-3 ${mode === 'dark' ? "text-captain-400/70" : "text-captain-600/70"}`}>
+                      This rate auto-populates on all work orders with this mechanic.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium ${mode === 'dark' ? "text-white/40" : "text-gray-500"}`}>$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={hourlyRateInput}
+                          onChange={(e) => { setHourlyRateInput(e.target.value); setRateSaved(false); }}
+                          placeholder="0.00"
+                          className={`w-full pl-7 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-captain-500 focus:border-captain-500 ${
+                            mode === 'dark'
+                              ? "bg-black/20 border-white/10 text-white placeholder-white/30"
+                              : "bg-white border-captain-200 text-gray-900 placeholder-gray-400"
+                          }`}
+                        />
+                      </div>
+                      <span className={`text-sm ${mode === 'dark' ? "text-white/40" : "text-gray-500"}`}>/hr</span>
+                      <button
+                        onClick={handleSaveRate}
+                        disabled={rateSaving}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+                          rateSaved
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                            : mode === 'dark'
+                              ? "bg-captain-500/20 text-captain-300 border border-captain-500/30 hover:bg-captain-500/30"
+                              : "bg-captain-600 text-white hover:bg-captain-700"
+                        }`}
+                      >
+                        {rateSaving ? "Saving…" : rateSaved ? "Saved ✓" : "Save"}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Languages */}
                 {mechanic.languagesSpoken && mechanic.languagesSpoken.length > 0 && (
