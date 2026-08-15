@@ -29,6 +29,7 @@ import { NotificationBell, NotificationsPanel } from "./notifications";
 import { MechanicSpotlight } from "./mechanic-spotlight";
 import { MechanicProfile } from "./mechanic-profile";
 import { OwnerProfile } from "./owner-profile";
+import { AppSideNav } from "./app-side-nav";
 
 // ============================================
 // PROFILE DROPDOWN (Shared with dashboard)
@@ -400,9 +401,11 @@ function OwnerLandingPage({
 function MechanicLandingPage({
   user,
   onViewDashboard,
+  onUpdateAvailability,
 }: {
   user: any;
   onViewDashboard: () => void;
+  onUpdateAvailability?: () => void;
 }) {
   const router = useRouter();
   const mechanicStats = useQuery(api.mechanicDirectory.getMechanicStats);
@@ -456,12 +459,12 @@ function MechanicLandingPage({
     {
       label: "Update Availability",
       icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-      onClick: () => router.push("/profile"),
+      onClick: () => onUpdateAvailability?.(),
     },
     {
       label: "View Dashboard",
       icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" /></svg>,
-      onClick: () => router.push("/home"),
+      onClick: () => router.push("/work-orders"),
     },
   ];
 
@@ -669,6 +672,25 @@ export function LandingPage() {
     setShowProfile(true);
   };
 
+  // Mechanic home renders inside AppSideNav layout (no top header)
+  if ((user as any).role === "mechanic") {
+    return (
+      <div className="flex min-h-screen bg-[#0f1929]">
+        <AppSideNav />
+        <main className="flex-1 min-w-0 overflow-x-hidden px-6 py-8">
+          <MechanicLandingPage
+            user={user}
+            onViewDashboard={handleViewDashboard}
+            onUpdateAvailability={() => setShowProfile(true)}
+          />
+        </main>
+        {showProfile && (
+          <MechanicProfile onClose={() => setShowProfile(false)} />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-transparent">
       {/* Header */}
@@ -759,6 +781,7 @@ export function LandingPage() {
             <MechanicLandingPage
               user={user}
               onViewDashboard={handleViewDashboard}
+              onUpdateAvailability={() => setShowProfile(true)}
             />
           </div>
         )}
