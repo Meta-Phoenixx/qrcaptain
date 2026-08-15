@@ -5,7 +5,7 @@ import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Id } from "@convex/_generated/dataModel";
 import { useRouter } from "next/navigation";
-import { OwnerSideNav } from "@/components/owner-side-nav";
+import { AppSideNav } from "@/components/app-side-nav";
 import { WorkOrderRequestForm } from "@/components/work-order-request-form";
 import { QuoteViewer } from "@/components/quote-viewer";
 
@@ -49,7 +49,7 @@ export default function MyWorkOrdersPage() {
   return (
     <>
       <div className="flex min-h-screen bg-[#0f1929]">
-        <OwnerSideNav />
+        <AppSideNav />
 
         <main className="flex-1 min-w-0 overflow-x-hidden">
           {/* Header */}

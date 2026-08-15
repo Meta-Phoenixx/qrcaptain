@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery } from "convex/react";
-import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
 import { AppSideNav } from "@/components/app-side-nav";
 import { VesselGroupPicker } from "@/components/vessel-group-picker";
@@ -10,19 +8,13 @@ import { ManifestViewer } from "@/components/manifest-viewer";
 import { useAllAccessibleVessels } from "@/hooks/useAllAccessibleVessels";
 
 export default function DocumentsPage() {
-  const [selectedFleetId, setSelectedFleetId] = useState<Id<"fleets"> | null>(null);
   const [selectedVessel, setSelectedVessel] = useState<{ id: Id<"vessels">; name: string } | null>(null);
 
-  const a = api as any;
-  const fleetList = useQuery(a.fleetDashboard.listAllFleetsDashboard) ?? [];
   const { totalCount } = useAllAccessibleVessels();
-
-  if (fleetList.length > 0 && !selectedFleetId) setSelectedFleetId(fleetList[0]._id);
 
   return (
     <div className="flex min-h-screen bg-[#0f1929]">
-      <AppSideNav selectedFleetId={selectedFleetId} fleets={fleetList}
-        onFleetChange={(id) => { setSelectedFleetId(id); setSelectedVessel(null); }} />
+      <AppSideNav />
 
       <main className="flex-1 min-w-0 overflow-x-hidden">
         <div className="px-6 pt-8 pb-6 border-b border-white/[0.06]">

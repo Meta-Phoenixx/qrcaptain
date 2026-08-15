@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../../convex/_generated/api";
 import { Id } from "../../../../../convex/_generated/dataModel";
-import { OwnerSideNav } from "@/components/owner-side-nav";
 import { AppSideNav } from "@/components/app-side-nav";
 import { InvoiceBuilder } from "@/components/invoice-builder";
 import { InvoiceViewer } from "@/components/invoice-viewer";
@@ -200,10 +199,8 @@ function MechanicInvoicesPage() {
 function CustomerInvoicesPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [viewingId, setViewingId] = useState<Id<"invoices"> | null>(null);
-  const [selectedFleetId, setSelectedFleetId] = useState<Id<"fleets"> | null>(null);
 
   const all = useQuery(a.invoices.getInvoicesByCustomer, {}) ?? [];
-  const fleetList = useQuery(a.fleetDashboard.listAllFleetsDashboard) ?? [];
   const filtered = activeTab === "all" ? all : all.filter((i: any) => i.status === activeTab);
 
   const outstanding = all.filter((i: any) => ["sent", "viewed", "overdue"].includes(i.status)).reduce((s: number, i: any) => s + i.balance, 0);
@@ -290,8 +287,6 @@ function CustomerInvoicesPage() {
 
 export default function InvoicesPage() {
   const me = useQuery(a.users.currentUser);
-  const [selectedFleetId, setSelectedFleetId] = useState<Id<"fleets"> | null>(null);
-  const fleetList = useQuery(a.fleetDashboard.listAllFleetsDashboard) ?? [];
 
   if (!me) {
     return (
@@ -307,11 +302,7 @@ export default function InvoicesPage() {
   if (isFleetManager) {
     return (
       <div className="flex min-h-screen bg-[#0f1929]">
-        <AppSideNav
-          selectedFleetId={selectedFleetId}
-          fleets={fleetList}
-          onFleetChange={setSelectedFleetId}
-        />
+        <AppSideNav />
         <CustomerInvoicesPage />
       </div>
     );
@@ -320,7 +311,7 @@ export default function InvoicesPage() {
   if (isMechanic) {
     return (
       <div className="flex min-h-screen bg-[#0f1929]">
-        <OwnerSideNav />
+        <AppSideNav />
         <MechanicInvoicesPage />
       </div>
     );
@@ -329,7 +320,7 @@ export default function InvoicesPage() {
   // Owner
   return (
     <div className="flex min-h-screen bg-[#0f1929]">
-      <OwnerSideNav />
+      <AppSideNav />
       <CustomerInvoicesPage />
     </div>
   );

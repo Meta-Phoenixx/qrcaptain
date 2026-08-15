@@ -36,8 +36,7 @@ export default function MaintenancePage() {
 
   return (
     <div className="flex min-h-screen bg-[#0f1929]">
-      <AppSideNav selectedFleetId={selectedFleetId} fleets={fleetList}
-        onFleetChange={(id) => { setSelectedFleetId(id); setSelectedVessel(null); }} />
+      <AppSideNav />
 
       <main className="flex-1 min-w-0 overflow-x-hidden">
         <div className="px-6 pt-8 pb-6 border-b border-white/[0.06]">

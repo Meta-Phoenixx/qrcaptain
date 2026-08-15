@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "../../../../../../convex/_generated/api";
 import { Id } from "../../../../../../convex/_generated/dataModel";
-import { FleetSideNav } from "@/components/fleet-side-nav";
+import { AppSideNav } from "@/components/app-side-nav";
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
   return (
@@ -20,9 +20,7 @@ export default function FleetManagerProfilePage() {
   const router = useRouter();
   const a = api as any;
   const me = useQuery(a.users.currentUser);
-  const fleetList = useQuery(a.fleetDashboard.listAllFleetsDashboard) ?? [];
   const logoUrl = useQuery(a.storage.getFleetManagerCompanyLogoUrl, {});
-  const [selectedFleetId, setSelectedFleetId] = useState<Id<"fleets"> | null>(null);
 
   // Logo upload
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -31,8 +29,6 @@ export default function FleetManagerProfilePage() {
   const [logoError, setLogoError] = useState<string | null>(null);
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const saveLogo = useMutation(a.storage.saveFleetManagerCompanyLogo);
-
-  if (fleetList.length > 0 && !selectedFleetId) setSelectedFleetId(fleetList[0]._id);
 
   const handleLogoSelect = useCallback(async (file: File) => {
     const preview = URL.createObjectURL(file);
@@ -72,11 +68,7 @@ export default function FleetManagerProfilePage() {
 
   return (
     <div className="flex min-h-screen bg-[#0f1929]">
-      <FleetSideNav
-        selectedFleetId={selectedFleetId}
-        fleets={fleetList}
-        onFleetChange={setSelectedFleetId}
-      />
+      <AppSideNav />
 
       <main className="flex-1 min-w-0 overflow-x-hidden">
         {/* Header */}
