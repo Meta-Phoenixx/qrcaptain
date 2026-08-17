@@ -2613,7 +2613,7 @@ function VesselQRCode({ qrCodeData, vesselName }: { qrCodeData: string; vesselNa
       <div className="text-center">
         <div ref={qrRef} className="inline-block p-4 bg-white rounded-xl shadow-sm mb-3">
           <QRCodeSVG
-            value={qrCodeData}
+            value={`https://theqrcaptain.com/scan/${qrCodeData}`}
             size={160}
             level="H"
             includeMargin={false}

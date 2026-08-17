@@ -122,7 +122,7 @@ function VesselQRCode({ qrCodeData, vesselName }: { qrCodeData: string; vesselNa
       <div className="text-center">
         <div ref={qrRef} className="inline-block p-4 bg-white rounded-xl shadow-sm mb-3">
           {/* Preview size stays small; download/print use the HD version */}
-          <QRCodeSVG value={qrCodeData} size={160} level="H" includeMargin={false} bgColor="#ffffff" fgColor="#0c4a6e" />
+          <QRCodeSVG value={`https://theqrcaptain.com/scan/${qrCodeData}`} size={160} level="H" includeMargin={false} bgColor="#ffffff" fgColor="#0c4a6e" />
         </div>
         <p className="text-sm text-gray-600 mb-1">Scan this QR code to access vessel history</p>
         <p className="text-xs text-captain-600 font-mono mb-1">{qrCodeData}</p>

@@ -285,6 +285,109 @@ export const getVesselByQRCode = query({
   },
 });
 
+// Public — no auth required. Returns minimal vessel info for the scan landing page.
+export const getVesselPublicInfo = query({
+  args: { qrCodeData: v.string() },
+  handler: async (ctx, args) => {
+    const vessel = await ctx.db
+      .query("vessels")
+      .withIndex("by_qr_code", (q) => q.eq("qrCodeData", args.qrCodeData))
+      .first();
+
+    if (!vessel) return null;
+
+    const owner = await ctx.db.get(vessel.ownerId);
+    return {
+      vesselId: vessel._id,
+      name: vessel.name,
+      make: vessel.make,
+      model: vessel.model,
+      year: vessel.year,
+      ownerId: vessel.ownerId,
+      ownerName:
+        owner?.firstName && owner?.lastName
+          ? `${owner.firstName} ${owner.lastName}`
+          : (owner?.name ?? "the owner"),
+    };
+  },
+});
+
+// Checks whether the current authenticated user can view this vessel.
+// Returns { canView, vessel, reason } where reason explains a denial.
+export const checkVesselAccess = query({
+  args: { qrCodeData: v.string() },
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return { canView: false, vessel: null, reason: "unauthenticated" as const };
+
+    const vessel = await ctx.db
+      .query("vessels")
+      .withIndex("by_qr_code", (q) => q.eq("qrCodeData", args.qrCodeData))
+      .first();
+
+    if (!vessel) return { canView: false, vessel: null, reason: "not_found" as const };
+
+    const owner = await ctx.db.get(vessel.ownerId);
+
+    // Owner or admin always has access
+    if (vessel.ownerId === user._id || user.role === "admin") {
+      return { canView: true, vessel: { ...vessel, ownerName: owner?.firstName ? `${owner.firstName} ${owner.lastName}` : (owner?.name ?? "") }, reason: null };
+    }
+
+    // Check mechanic authorization on the vessel
+    const auth = await ctx.db
+      .query("mechanicAuthorizations")
+      .withIndex("by_vessel_mechanic", (q) =>
+        q.eq("vesselId", vessel._id).eq("mechanicId", user._id)
+      )
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .first();
+
+    if (auth) {
+      return { canView: true, vessel: { ...vessel, ownerName: owner?.firstName ? `${owner.firstName} ${owner.lastName}` : (owner?.name ?? "") }, reason: null };
+    }
+
+    // Check fleet-level authorization
+    if (vessel.fleetId) {
+      const fleetAuth = await ctx.db
+        .query("fleetMechanicAuthorizations")
+        .withIndex("by_fleet_mechanic", (q) =>
+          q.eq("fleetId", vessel.fleetId!).eq("mechanicId", user._id)
+        )
+        .filter((q) => q.eq(q.field("isActive"), true))
+        .first();
+
+      if (fleetAuth) {
+        return { canView: true, vessel: { ...vessel, ownerName: owner?.firstName ? `${owner.firstName} ${owner.lastName}` : (owner?.name ?? "") }, reason: null };
+      }
+    }
+
+    // Check if there's already a pending access request
+    const existingRequest = await ctx.db
+      .query("accessRequests")
+      .withIndex("by_vessel_mechanic", (q) =>
+        q.eq("vesselId", vessel._id).eq("mechanicId", user._id)
+      )
+      .filter((q) => q.eq(q.field("status"), "pending"))
+      .first();
+
+    return {
+      canView: false,
+      vessel: {
+        _id: vessel._id,
+        name: vessel.name,
+        make: vessel.make,
+        model: vessel.model,
+        year: vessel.year,
+        ownerId: vessel.ownerId,
+        ownerName: owner?.firstName ? `${owner.firstName} ${owner.lastName}` : (owner?.name ?? "the owner"),
+      },
+      reason: "unauthorized" as const,
+      hasPendingRequest: !!existingRequest,
+    };
+  },
+});
+
 export const createVessel = mutation({
   args: {
     name: v.string(),
