@@ -33,61 +33,79 @@ function StatusBadge({ status }: { status?: string }) {
 
 // ─── Inline QR code with download / print ────────────────────────────────────
 
-function VesselQRCode({ qrCodeData, vesselName }: { qrCodeData: string; vesselName: string }) {
-  const qrRef = useRef<HTMLDivElement>(null);
+// 6in × 6in at 300 DPI = 1800px QR module
+const QR_PRINT_PX = 1800;
+const QR_PADDING_PX = 120; // 0.4 in
+const QR_LABEL_PX = 240;   // 0.8 in for vessel name + code
 
-  const handleDownload = useCallback(() => {
-    if (!qrRef.current) return;
-    const svg = qrRef.current.querySelector("svg");
-    if (!svg) return;
-
+function buildQRCanvas(svg: SVGElement, vesselName: string, qrCodeData: string): Promise<HTMLCanvasElement> {
+  return new Promise((resolve, reject) => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) { reject(new Error("no ctx")); return; }
 
-    const qrSize = 256;
-    const padding = 32;
-    const labelHeight = 60;
-    canvas.width = qrSize + padding * 2;
-    canvas.height = qrSize + padding * 2 + labelHeight;
+    canvas.width = QR_PRINT_PX + QR_PADDING_PX * 2;
+    canvas.height = QR_PRINT_PX + QR_PADDING_PX * 2 + QR_LABEL_PX;
 
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const svgData = new XMLSerializer().serializeToString(svg);
-    const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(svgBlob);
+    const url = URL.createObjectURL(new Blob([svgData], { type: "image/svg+xml;charset=utf-8" }));
     const img = new Image();
     img.onload = () => {
-      ctx.drawImage(img, padding, padding, qrSize, qrSize);
+      ctx.drawImage(img, QR_PADDING_PX, QR_PADDING_PX, QR_PRINT_PX, QR_PRINT_PX);
+
+      // Vessel name — 72px bold
       ctx.fillStyle = "#1f2937";
-      ctx.font = "bold 16px system-ui, -apple-system, sans-serif";
+      ctx.font = "bold 72px system-ui, -apple-system, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(vesselName, canvas.width / 2, qrSize + padding + 30);
+      ctx.fillText(vesselName, canvas.width / 2, QR_PRINT_PX + QR_PADDING_PX + 100, canvas.width - QR_PADDING_PX * 2);
+
+      // QR code ID — 48px mono
       ctx.fillStyle = "#6b7280";
-      ctx.font = "12px monospace";
-      ctx.fillText(qrCodeData, canvas.width / 2, qrSize + padding + 50);
-      const link = document.createElement("a");
-      link.download = `${vesselName.replace(/[^a-z0-9]/gi, "_")}_QR.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
+      ctx.font = "48px monospace";
+      ctx.fillText(qrCodeData, canvas.width / 2, QR_PRINT_PX + QR_PADDING_PX + 180, canvas.width - QR_PADDING_PX * 2);
+
       URL.revokeObjectURL(url);
+      resolve(canvas);
     };
+    img.onerror = reject;
     img.src = url;
+  });
+}
+
+function VesselQRCode({ qrCodeData, vesselName }: { qrCodeData: string; vesselName: string }) {
+  const qrRef = useRef<HTMLDivElement>(null);
+
+  const handleDownload = useCallback(async () => {
+    const svg = qrRef.current?.querySelector("svg");
+    if (!svg) return;
+    const canvas = await buildQRCanvas(svg, vesselName, qrCodeData);
+    const link = document.createElement("a");
+    link.download = `${vesselName.replace(/[^a-z0-9]/gi, "_")}_QR_6in.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
   }, [qrCodeData, vesselName]);
 
   const handlePrint = useCallback(() => {
     const win = window.open("", "_blank");
     if (!win) return;
+    // Print layout: 6in × 6in page, QR fills 4.5in centred, label below
     win.document.write(`<!DOCTYPE html><html><head><title>QR Code - ${vesselName}</title>
       <style>
-        body{font-family:system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;box-sizing:border-box;}
-        .qr-container{text-align:center;padding:40px;border:2px solid #e5e7eb;border-radius:16px;background:white;}
-        .qr-code{width:200px;height:200px;margin-bottom:20px;}
-        h2{margin:0 0 8px 0;color:#1f2937;font-size:24px;}
-        .code-id{font-family:monospace;color:#6b7280;font-size:14px;}
-        .instructions{margin-top:16px;font-size:12px;color:#9ca3af;}
-        @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.qr-container{border:1px solid #000;}}
+        @page{size:6in 8in;margin:0;}
+        *{box-sizing:border-box;}
+        body{font-family:system-ui,-apple-system,sans-serif;margin:0;padding:0;width:6in;background:white;}
+        .qr-container{width:6in;padding:0.5in;text-align:center;background:white;}
+        .qr-code{width:5in;height:5in;display:block;margin:0 auto 0.25in;}
+        .qr-code svg{width:100%;height:100%;}
+        h2{margin:0 0 0.1in;color:#1f2937;font-size:28pt;font-weight:700;}
+        .code-id{font-family:monospace;color:#6b7280;font-size:14pt;margin-bottom:0.1in;}
+        .instructions{font-size:10pt;color:#9ca3af;}
+        @media print{
+          body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+        }
       </style></head><body><div class="qr-container">
         <div class="qr-code">${qrRef.current?.innerHTML || ""}</div>
         <h2>${vesselName}</h2>
@@ -96,23 +114,25 @@ function VesselQRCode({ qrCodeData, vesselName }: { qrCodeData: string; vesselNa
       </div></body></html>`);
     win.document.close();
     win.focus();
-    setTimeout(() => { win.print(); win.close(); }, 250);
+    setTimeout(() => { win.print(); win.close(); }, 300);
   }, [qrCodeData, vesselName]);
 
   return (
     <div className="mb-6 p-4 bg-gradient-to-br from-captain-50 to-captain-100 rounded-xl">
       <div className="text-center">
         <div ref={qrRef} className="inline-block p-4 bg-white rounded-xl shadow-sm mb-3">
+          {/* Preview size stays small; download/print use the HD version */}
           <QRCodeSVG value={qrCodeData} size={160} level="H" includeMargin={false} bgColor="#ffffff" fgColor="#0c4a6e" />
         </div>
         <p className="text-sm text-gray-600 mb-1">Scan this QR code to access vessel history</p>
-        <p className="text-xs text-captain-600 font-mono mb-4">{qrCodeData}</p>
+        <p className="text-xs text-captain-600 font-mono mb-1">{qrCodeData}</p>
+        <p className="text-xs text-gray-400 mb-4">Download outputs 6&quot; × 6&quot; at 300 DPI — ready to print and mount on your vessel</p>
         <div className="flex gap-2 justify-center">
           <button onClick={handleDownload} className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-captain-700 bg-white border border-captain-200 rounded-lg hover:bg-captain-50 transition-colors">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            Download
+            Download HD (6×6 in)
           </button>
           <button onClick={handlePrint} className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-captain-700 bg-white border border-captain-200 rounded-lg hover:bg-captain-50 transition-colors">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
