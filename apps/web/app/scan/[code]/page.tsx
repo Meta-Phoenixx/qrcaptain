@@ -27,12 +27,8 @@ function UnauthenticatedScanView({ code }: { code: string }) {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-captain-500 flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </div>
+          <div className="inline-flex items-center gap-3 mb-2">
+            <img src="/qr-captain-logo.png" alt="QR Captain" className="w-10 h-10 object-contain" />
             <span className="text-white font-heading font-bold text-xl">QR Captain</span>
           </div>
         </div>
