@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Id } from "@convex/_generated/dataModel";
@@ -2571,7 +2571,7 @@ function buildDashQRCanvas(svg: SVGElement, vesselName: string, qrCodeData: stri
 
 function VesselQRCode({ qrCodeData, vesselName }: { qrCodeData: string; vesselName: string }) {
   const qrRef = useRef<HTMLDivElement>(null);
-  const emailMutation = useMutation((api as any).vessels.sendQRCodeEmail);
+  const emailMutation = useAction((api as any).vessels.sendQRCodeEmail);
   const [showEmail, setShowEmail] = useState(false);
   const [emailTo, setEmailTo] = useState("");
   const [emailSending, setEmailSending] = useState(false);

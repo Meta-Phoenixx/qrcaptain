@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Id } from "@convex/_generated/dataModel";
 import { QRCodeSVG } from "qrcode.react";
@@ -77,7 +77,7 @@ function buildQRCanvas(svg: SVGElement, vesselName: string, qrCodeData: string):
 
 function VesselQRCode({ qrCodeData, vesselName }: { qrCodeData: string; vesselName: string }) {
   const qrRef = useRef<HTMLDivElement>(null);
-  const emailMutation = useMutation(a.vessels.sendQRCodeEmail);
+  const emailMutation = useAction(a.vessels.sendQRCodeEmail);
 
   const [showEmail, setShowEmail] = useState(false);
   const [emailTo, setEmailTo] = useState("");
