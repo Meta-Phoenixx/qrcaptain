@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
@@ -77,6 +77,29 @@ function buildQRCanvas(svg: SVGElement, vesselName: string, qrCodeData: string):
 
 function VesselQRCode({ qrCodeData, vesselName }: { qrCodeData: string; vesselName: string }) {
   const qrRef = useRef<HTMLDivElement>(null);
+  const emailMutation = useMutation(a.vessels.sendQRCodeEmail);
+
+  const [showEmail, setShowEmail] = useState(false);
+  const [emailTo, setEmailTo] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<"idle" | "sent" | "error">("idle");
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  // Close email panel on Escape
+  useEffect(() => {
+    if (!showEmail) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setShowEmail(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showEmail]);
+
+  const getCanvasBase64 = useCallback(async (): Promise<string | null> => {
+    const svg = qrRef.current?.querySelector("svg");
+    if (!svg) return null;
+    const canvas = await buildQRCanvas(svg, vesselName, qrCodeData);
+    // Strip the "data:image/png;base64," prefix
+    return canvas.toDataURL("image/png").split(",")[1];
+  }, [qrCodeData, vesselName]);
 
   const handleDownload = useCallback(async () => {
     const svg = qrRef.current?.querySelector("svg");
@@ -91,7 +114,6 @@ function VesselQRCode({ qrCodeData, vesselName }: { qrCodeData: string; vesselNa
   const handlePrint = useCallback(() => {
     const win = window.open("", "_blank");
     if (!win) return;
-    // Print layout: 6in × 6in page, QR fills 4.5in centred, label below
     win.document.write(`<!DOCTYPE html><html><head><title>QR Code - ${vesselName}</title>
       <style>
         @page{size:6in 8in;margin:0;}
@@ -103,9 +125,7 @@ function VesselQRCode({ qrCodeData, vesselName }: { qrCodeData: string; vesselNa
         h2{margin:0 0 0.1in;color:#1f2937;font-size:28pt;font-weight:700;}
         .code-id{font-family:monospace;color:#6b7280;font-size:14pt;margin-bottom:0.1in;}
         .instructions{font-size:10pt;color:#9ca3af;}
-        @media print{
-          body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-        }
+        @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
       </style></head><body><div class="qr-container">
         <div class="qr-code">${qrRef.current?.innerHTML || ""}</div>
         <h2>${vesselName}</h2>
@@ -117,22 +137,57 @@ function VesselQRCode({ qrCodeData, vesselName }: { qrCodeData: string; vesselNa
     setTimeout(() => { win.print(); win.close(); }, 300);
   }, [qrCodeData, vesselName]);
 
+  const handleSendEmail = useCallback(async () => {
+    if (!emailTo.trim()) return;
+    setEmailSending(true);
+    setEmailError(null);
+    try {
+      const pngBase64 = await getCanvasBase64();
+      if (!pngBase64) throw new Error("Could not generate QR image");
+      const result = await emailMutation({
+        toEmail: emailTo.trim(),
+        vesselName,
+        qrCodeData,
+        pngBase64,
+      });
+      if (result.success) {
+        setEmailStatus("sent");
+      } else {
+        setEmailError(result.error ?? "Failed to send email");
+        setEmailStatus("error");
+      }
+    } catch (err: any) {
+      setEmailError(err?.message ?? "Failed to send email");
+      setEmailStatus("error");
+    } finally {
+      setEmailSending(false);
+    }
+  }, [emailTo, emailMutation, vesselName, qrCodeData, getCanvasBase64]);
+
+  const resetEmail = () => {
+    setShowEmail(false);
+    setEmailTo("");
+    setEmailStatus("idle");
+    setEmailError(null);
+  };
+
   return (
     <div className="mb-6 p-4 bg-gradient-to-br from-captain-50 to-captain-100 rounded-xl">
       <div className="text-center">
         <div ref={qrRef} className="inline-block p-4 bg-white rounded-xl shadow-sm mb-3">
-          {/* Preview size stays small; download/print use the HD version */}
           <QRCodeSVG value={`https://theqrcaptain.com/scan/${qrCodeData}`} size={160} level="H" includeMargin={false} bgColor="#ffffff" fgColor="#0c4a6e" />
         </div>
         <p className="text-sm text-gray-600 mb-1">Scan this QR code to access vessel history</p>
         <p className="text-xs text-captain-600 font-mono mb-1">{qrCodeData}</p>
         <p className="text-xs text-gray-400 mb-4">Download outputs 6&quot; × 6&quot; at 300 DPI — ready to print and mount on your vessel</p>
-        <div className="flex gap-2 justify-center">
+
+        {/* Action buttons */}
+        <div className="flex flex-wrap gap-2 justify-center mb-3">
           <button onClick={handleDownload} className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-captain-700 bg-white border border-captain-200 rounded-lg hover:bg-captain-50 transition-colors">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            Download HD (6×6 in)
+            Download HD
           </button>
           <button onClick={handlePrint} className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-captain-700 bg-white border border-captain-200 rounded-lg hover:bg-captain-50 transition-colors">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,7 +195,56 @@ function VesselQRCode({ qrCodeData, vesselName }: { qrCodeData: string; vesselNa
             </svg>
             Print
           </button>
+          <button onClick={() => { setShowEmail(true); setEmailStatus("idle"); }} className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-captain-700 bg-white border border-captain-200 rounded-lg hover:bg-captain-50 transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            Email QR Code
+          </button>
         </div>
+
+        {/* Inline email panel */}
+        {showEmail && (
+          <div className="mt-3 p-4 bg-white rounded-xl border border-captain-200 text-left">
+            {emailStatus === "sent" ? (
+              <div className="text-center py-2">
+                <svg className="w-8 h-8 text-green-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <p className="text-sm font-medium text-gray-800">QR code sent to {emailTo}</p>
+                <button onClick={resetEmail} className="mt-3 text-xs text-captain-600 underline">Done</button>
+              </div>
+            ) : (
+              <>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Send QR code to email</label>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={emailTo}
+                    onChange={(e) => setEmailTo(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleSendEmail(); }}
+                    placeholder="name@example.com"
+                    className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-captain-400 text-gray-800 placeholder:text-gray-400"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleSendEmail}
+                    disabled={emailSending || !emailTo.trim()}
+                    className="px-4 py-2 text-sm font-medium text-white bg-captain-600 rounded-lg hover:bg-captain-700 disabled:opacity-50 transition-colors"
+                  >
+                    {emailSending ? "Sending…" : "Send"}
+                  </button>
+                  <button onClick={resetEmail} className="px-3 py-2 text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                {emailError && <p className="mt-2 text-xs text-red-500">{emailError}</p>}
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
