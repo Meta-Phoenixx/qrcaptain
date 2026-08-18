@@ -640,11 +640,18 @@ export const sendQRCodeEmail = action({
 </body>
 </html>`;
 
-    // Resend supports inline attachments via content_id for email clients that block external images
     const result = await sendEmail({
       to: args.toEmail,
       subject: `QR Code for ${args.vesselName} — QR Captain`,
       html,
+      attachments: [
+        {
+          content: args.pngBase64,
+          filename: "qrcode.png",
+          content_type: "image/png",
+          content_id: "qrcode",
+        },
+      ],
     });
 
     return result;
