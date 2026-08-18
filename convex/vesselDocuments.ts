@@ -42,9 +42,15 @@ export const listVesselDocuments = query({
       }
     }
 
-    const docs = await ctx.db.query("vesselDocuments")
-      .withIndex("by_vessel", (q) => q.eq("vesselId", args.vesselId))
-      .collect();
+    let docs: any[] = [];
+    try {
+      docs = await ctx.db.query("vesselDocuments")
+        .withIndex("by_vessel", (q) => q.eq("vesselId", args.vesselId))
+        .collect();
+    } catch (err) {
+      console.error("[vesselDocuments] query failed for vessel", args.vesselId, err);
+      return [];
+    }
 
     return Promise.all(
       docs.map(async (doc) => {
