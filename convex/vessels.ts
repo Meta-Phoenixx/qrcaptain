@@ -1,6 +1,7 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, action } from "./_generated/server";
 import { Doc } from "./_generated/dataModel";
+import { sendEmail } from "./lib/email";
 import {
   getAuthenticatedUser,
   requireRole,
@@ -591,5 +592,61 @@ export const getAdminStats = query({
       completedWorkOrders: workOrders.filter((wo) => wo.status === "completed")
         .length,
     };
+  },
+});
+
+// Sends the vessel QR code as an email attachment.
+// The client generates the PNG data URI from the canvas and passes it here.
+export const sendQRCodeEmail = action({
+  args: {
+    toEmail: v.string(),
+    vesselName: v.string(),
+    qrCodeData: v.string(),
+    // base64-encoded PNG (without the data: prefix) from the client canvas
+    pngBase64: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const scanUrl = `https://theqrcaptain.com/scan/${args.qrCodeData}`;
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f0f4f8;font-family:system-ui,-apple-system,sans-serif;">
+  <div style="max-width:560px;margin:32px auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+    <!-- Header -->
+    <div style="background:#0c4a6e;padding:32px 24px;text-align:center;">
+      <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">QR Captain</h1>
+      <p style="margin:8px 0 0;color:#7dd3fc;font-size:14px;">Vessel Service QR Code</p>
+    </div>
+    <!-- Body -->
+    <div style="padding:32px 24px;text-align:center;">
+      <h2 style="margin:0 0 4px;color:#0f172a;font-size:20px;font-weight:700;">${args.vesselName}</h2>
+      <p style="margin:0 0 24px;color:#64748b;font-size:14px;">Scan this QR code to access the vessel's complete service history.</p>
+      <!-- QR Code image -->
+      <div style="display:inline-block;padding:16px;background:#ffffff;border:2px solid #e2e8f0;border-radius:12px;margin-bottom:24px;">
+        <img src="cid:qrcode" alt="QR Code for ${args.vesselName}" width="200" height="200" style="display:block;" />
+      </div>
+      <p style="margin:0 0 8px;color:#64748b;font-size:12px;font-family:monospace;">${args.qrCodeData}</p>
+      <p style="margin:0 0 24px;color:#94a3b8;font-size:12px;">Print and mount this code on your vessel for instant access.</p>
+      <!-- CTA -->
+      <a href="${scanUrl}" style="display:inline-block;padding:12px 28px;background:#0284c7;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:15px;">Open Vessel Page</a>
+    </div>
+    <!-- Footer -->
+    <div style="padding:20px 24px;border-top:1px solid #f1f5f9;text-align:center;">
+      <p style="margin:0;color:#94a3b8;font-size:12px;">Sent via <a href="https://theqrcaptain.com" style="color:#0284c7;text-decoration:none;">QR Captain</a> · Vessel maintenance made simple.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    // Resend supports inline attachments via content_id for email clients that block external images
+    const result = await sendEmail({
+      to: args.toEmail,
+      subject: `QR Code for ${args.vesselName} — QR Captain`,
+      html,
+    });
+
+    return result;
   },
 });
