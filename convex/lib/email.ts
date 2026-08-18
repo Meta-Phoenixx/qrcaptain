@@ -10,12 +10,20 @@ declare const process: { env: Record<string, string | undefined> };
 const RESEND_API_URL = "https://api.resend.com/emails";
 const DEFAULT_FROM = "QR Captain <noreply@qrcaptain.com>";
 
+export interface EmailAttachment {
+  content: string;       // base64-encoded
+  filename: string;
+  content_type: string;
+  content_id?: string;   // set to use as inline image via cid: in HTML
+}
+
 export interface EmailPayload {
   to: string | string[];
   subject: string;
   html: string;
   from?: string;
   replyTo?: string;
+  attachments?: EmailAttachment[];
 }
 
 export interface EmailResult {
@@ -37,6 +45,7 @@ export async function sendEmail(payload: EmailPayload): Promise<EmailResult> {
     subject: payload.subject,
     html: payload.html,
     ...(payload.replyTo ? { reply_to: payload.replyTo } : {}),
+    ...(payload.attachments?.length ? { attachments: payload.attachments } : {}),
   };
 
   try {
