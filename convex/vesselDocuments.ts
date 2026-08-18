@@ -47,10 +47,13 @@ export const listVesselDocuments = query({
       .collect();
 
     return Promise.all(
-      docs.map(async (doc) => ({
-        ...doc,
-        url: await ctx.storage.getUrl(doc.storageId),
-      }))
+      docs.map(async (doc) => {
+        let url: string | null = null;
+        try {
+          url = await ctx.storage.getUrl(doc.storageId);
+        } catch {}
+        return { ...doc, url };
+      })
     );
   },
 });
