@@ -454,22 +454,35 @@ export const updateVessel = mutation({
     if (args.notes !== undefined) requireMaxLength(args.notes, "Notes", 2000);
 
     const { vesselId, ...fields } = args;
-    const updates = Object.fromEntries(
-      Object.entries(fields).filter(([, v]) => v !== undefined)
-    );
 
-    // Before patching, clear any legacy fields that fail the current schema.
-    // ctx.db.patch validates the whole merged document, so invalid existing
-    // fields (e.g. status:null, insuranceInfo with wrong types) must be removed.
+    // ctx.db.patch validates the entire merged document, so a vessel with any
+    // legacy field that violates the current schema will fail even on unrelated
+    // patches. Use replace to write a clean, fully-validated document instead.
     const VALID_STATUSES = new Set(["in_service", "in_maintenance", "out_of_service", "storage"]);
-    if (!VALID_STATUSES.has(vessel.status as string)) {
-      await ctx.db.patch(vesselId, { status: undefined });
-    }
-    if (vessel.insuranceInfo && typeof vessel.insuranceInfo.expiryDate !== "number") {
-      await ctx.db.patch(vesselId, { insuranceInfo: undefined });
-    }
+    const safeStatus = VALID_STATUSES.has(vessel.status as string)
+      ? (vessel.status as "in_service" | "in_maintenance" | "out_of_service" | "storage")
+      : undefined;
+    const safeInsurance =
+      vessel.insuranceInfo && typeof vessel.insuranceInfo.expiryDate === "number"
+        ? vessel.insuranceInfo
+        : undefined;
 
-    await ctx.db.patch(vesselId, updates);
+    await ctx.db.replace(vesselId, {
+      ownerId: vessel.ownerId,
+      name:               fields.name              ?? vessel.name,
+      make:               fields.make              ?? vessel.make,
+      model:              fields.model             ?? vessel.model,
+      year:               fields.year              ?? vessel.year,
+      vesselType:         fields.vesselType        ?? vessel.vesselType,
+      qrCodeData:         vessel.qrCodeData,
+      registrationNumber: fields.registrationNumber ?? vessel.registrationNumber,
+      hullId:             fields.hullId            ?? vessel.hullId,
+      notes:              fields.notes             ?? vessel.notes,
+      imageStorageId:     vessel.imageStorageId,
+      fleetId:            vessel.fleetId,
+      status:             safeStatus,
+      insuranceInfo:      safeInsurance,
+    });
 
     await logAudit(ctx, {
       action: "vessel.updated",
@@ -477,7 +490,7 @@ export const updateVessel = mutation({
       targetId: vesselId,
       targetType: "vessels",
       before: { name: vessel.name, make: vessel.make, model: vessel.model },
-      after: updates,
+      after: fields,
     });
 
     return { success: true };
