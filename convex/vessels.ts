@@ -458,6 +458,17 @@ export const updateVessel = mutation({
       Object.entries(fields).filter(([, v]) => v !== undefined)
     );
 
+    // Before patching, clear any legacy fields that fail the current schema.
+    // ctx.db.patch validates the whole merged document, so invalid existing
+    // fields (e.g. status:null, insuranceInfo with wrong types) must be removed.
+    const VALID_STATUSES = new Set(["in_service", "in_maintenance", "out_of_service", "storage"]);
+    if (!VALID_STATUSES.has(vessel.status as string)) {
+      await ctx.db.patch(vesselId, { status: undefined });
+    }
+    if (vessel.insuranceInfo && typeof vessel.insuranceInfo.expiryDate !== "number") {
+      await ctx.db.patch(vesselId, { insuranceInfo: undefined });
+    }
+
     await ctx.db.patch(vesselId, updates);
 
     await logAudit(ctx, {
