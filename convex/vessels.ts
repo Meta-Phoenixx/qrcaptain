@@ -455,34 +455,64 @@ export const updateVessel = mutation({
 
     const { vesselId, ...fields } = args;
 
-    // ctx.db.patch validates the entire merged document, so a vessel with any
-    // legacy field that violates the current schema will fail even on unrelated
-    // patches. Use replace to write a clean, fully-validated document instead.
     const VALID_STATUSES = new Set(["in_service", "in_maintenance", "out_of_service", "storage"]);
     const safeStatus = VALID_STATUSES.has(vessel.status as string)
       ? (vessel.status as "in_service" | "in_maintenance" | "out_of_service" | "storage")
       : undefined;
+
+    // Sanitize insuranceInfo: all sub-fields must be non-null strings/numbers
     const safeInsurance =
-      vessel.insuranceInfo && typeof vessel.insuranceInfo.expiryDate === "number"
-        ? vessel.insuranceInfo
+      vessel.insuranceInfo &&
+      typeof vessel.insuranceInfo.expiryDate === "number" &&
+      typeof vessel.insuranceInfo.provider === "string" &&
+      typeof vessel.insuranceInfo.policyNumber === "string" &&
+      typeof vessel.insuranceInfo.insuredName === "string"
+        ? {
+            provider: vessel.insuranceInfo.provider,
+            policyNumber: vessel.insuranceInfo.policyNumber,
+            insuredName: vessel.insuranceInfo.insuredName,
+            expiryDate: vessel.insuranceInfo.expiryDate,
+            ...(vessel.insuranceInfo.documentStorageId != null
+              ? { documentStorageId: vessel.insuranceInfo.documentStorageId }
+              : {}),
+            ...(vessel.insuranceInfo.verifiedAt != null
+              ? { verifiedAt: vessel.insuranceInfo.verifiedAt }
+              : {}),
+          }
         : undefined;
+
+    // Null → undefined — Convex rejects null for v.optional(...) fields
+    const safeImageStorageId = vessel.imageStorageId ?? undefined;
+    const safeFleetId = vessel.fleetId ?? undefined;
+    const safeRegistrationNumber = (fields.registrationNumber ?? vessel.registrationNumber) || undefined;
+    const safeHullId = (fields.hullId ?? vessel.hullId) || undefined;
+    const safeNotes = (fields.notes ?? vessel.notes) || undefined;
+
+    // Required string fields: apply update but never write null/empty (fall back to existing)
+    const name = (fields.name ?? vessel.name) || vessel.name;
+    const make = (fields.make ?? vessel.make) || vessel.make;
+    const model = (fields.model ?? vessel.model) || vessel.model;
+    const vesselType = (fields.vesselType ?? vessel.vesselType) || vessel.vesselType;
+
+    console.log("[updateVessel] replace: name=", name, "imageStorageId=", !!safeImageStorageId, "fleetId=", !!safeFleetId);
 
     await ctx.db.replace(vesselId, {
       ownerId: vessel.ownerId,
-      name:               fields.name              ?? vessel.name,
-      make:               fields.make              ?? vessel.make,
-      model:              fields.model             ?? vessel.model,
-      year:               fields.year              ?? vessel.year,
-      vesselType:         fields.vesselType        ?? vessel.vesselType,
+      name,
+      make,
+      model,
+      year:               fields.year ?? vessel.year,
+      vesselType,
       qrCodeData:         vessel.qrCodeData,
-      registrationNumber: fields.registrationNumber ?? vessel.registrationNumber,
-      hullId:             fields.hullId            ?? vessel.hullId,
-      notes:              fields.notes             ?? vessel.notes,
-      imageStorageId:     vessel.imageStorageId,
-      fleetId:            vessel.fleetId,
+      registrationNumber: safeRegistrationNumber,
+      hullId:             safeHullId,
+      notes:              safeNotes,
+      imageStorageId:     safeImageStorageId,
+      fleetId:            safeFleetId,
       status:             safeStatus,
       insuranceInfo:      safeInsurance,
     });
+    console.log("[updateVessel] step 5: replace succeeded");
 
     await logAudit(ctx, {
       action: "vessel.updated",
