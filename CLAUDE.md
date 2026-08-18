@@ -119,6 +119,7 @@ pnpm clean            # Remove turbo cache and node_modules
 - Do not stop after one screenshot pass — at least 2 rounds.
 - Do not use `transition-all`.
 - Do not use default Tailwind blue/indigo as primary color.
+- **For every new feature, write a Jest test in `apps/web/__tests__/` that covers the core functionality before marking the feature complete. No exceptions.**
 - **NEVER run `vercel`, `vercel link`, or any Vercel CLI deployment command.** Deployments happen exclusively via the Vercel GitHub Integration — it auto-deploys on every merge to `main`. Running CLI deploys corrupts the project linkage and pushes broken builds to production. If a deploy does not trigger automatically, instruct the user to trigger a redeploy from the Vercel dashboard.
 
 ## Install Skills
