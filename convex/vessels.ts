@@ -7,6 +7,7 @@ import {
   requireRole,
   requireOwnerClass,
   requireVesselOwnerOrAdmin,
+  requireVesselReadAccess,
 } from "./lib/auth";
 import { logAudit } from "./lib/audit";
 import { Errors } from "./lib/errors";
@@ -444,7 +445,8 @@ export const updateVessel = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { userId, vessel } = await requireVesselOwnerOrAdmin(ctx, args.vesselId);
+    // Vessel owner, admin, or any authorized mechanic for this vessel may update it
+    const { userId, vessel } = await requireVesselReadAccess(ctx, args.vesselId);
 
     if (args.name !== undefined) requireMaxLength(args.name, "Vessel name", 200);
     if (args.make !== undefined) requireMaxLength(args.make, "Make", 100);
