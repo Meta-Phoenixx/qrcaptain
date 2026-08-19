@@ -494,8 +494,6 @@ export const updateVessel = mutation({
     const model = (fields.model ?? vessel.model) || vessel.model;
     const vesselType = (fields.vesselType ?? vessel.vesselType) || vessel.vesselType;
 
-    console.log("[updateVessel] replace: name=", name, "imageStorageId=", !!safeImageStorageId, "fleetId=", !!safeFleetId);
-
     await ctx.db.replace(vesselId, {
       ownerId: vessel.ownerId,
       name,
@@ -512,7 +510,6 @@ export const updateVessel = mutation({
       status:             safeStatus,
       insuranceInfo:      safeInsurance,
     });
-    console.log("[updateVessel] step 5: replace succeeded");
 
     await logAudit(ctx, {
       action: "vessel.updated",
