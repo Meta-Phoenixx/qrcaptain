@@ -20,6 +20,11 @@ export const metadata: Metadata = {
   title: "QR Captain - Vessel Maintenance Tracking",
   description:
     "Track and manage all maintenance work on your vessel with QR Captain",
+  icons: {
+    icon: "/qr-captain-logo.png",
+    shortcut: "/qr-captain-logo.png",
+    apple: "/qr-captain-logo.png",
+  },
 };
 
 export default function RootLayout({

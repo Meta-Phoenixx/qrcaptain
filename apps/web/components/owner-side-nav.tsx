@@ -132,7 +132,7 @@ export function OwnerSideNav() {
     : "?";
 
   return (
-    <aside className="hidden lg:flex flex-col w-56 xl:w-60 flex-shrink-0 min-h-screen bg-[#0d1526] border-r border-white/[0.06]">
+    <aside className="hidden lg:flex flex-col w-56 xl:w-60 flex-shrink-0 sticky top-0 h-screen bg-[#0d1526] border-r border-white/[0.06]">
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-5 border-b border-white/[0.06]">
         <div className="w-9 h-9 rounded-xl bg-captain-500/20 border border-captain-500/30 flex items-center justify-center flex-shrink-0">
@@ -193,7 +193,7 @@ export function OwnerSideNav() {
                 <p className="text-[10px] text-white/40 truncate">{me?.email ?? ""}</p>
               </div>
               <button
-                onClick={() => { router.push("/home"); setProfileOpen(false); }}
+                onClick={() => { router.push("/profile"); setProfileOpen(false); }}
                 className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white/60 hover:text-white hover:bg-white/[0.06] transition-colors text-left"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

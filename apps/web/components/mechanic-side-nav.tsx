@@ -78,7 +78,7 @@ export function MechanicSideNav() {
     : "?";
 
   return (
-    <aside className="hidden lg:flex flex-col w-56 xl:w-60 flex-shrink-0 min-h-screen bg-[#0d1526] border-r border-white/[0.06]">
+    <aside className="hidden lg:flex flex-col w-56 xl:w-60 flex-shrink-0 sticky top-0 h-screen bg-[#0d1526] border-r border-white/[0.06]">
       {/* Logo — always goes back to mechanic home */}
       <button
         onClick={() => router.push("/home")}

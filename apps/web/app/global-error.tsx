@@ -79,7 +79,7 @@ export default function GlobalError({
             </div>
 
             <div style={{ display: "flex", gap: "12px", marginBottom: "20px" }}>
-              <button onClick={reset} style={{ flex: 1, padding: "10px", borderRadius: "12px", background: "#0ea5e9", border: "none", color: "white", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
+              <button onClick={() => { window.location.reload(); }} style={{ flex: 1, padding: "10px", borderRadius: "12px", background: "#0ea5e9", border: "none", color: "white", fontSize: "14px", fontWeight: 600, cursor: "pointer" }}>
                 Try Again
               </button>
               <a href="/home" style={{ flex: 1, padding: "10px", borderRadius: "12px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", fontSize: "14px", fontWeight: 500, cursor: "pointer", textAlign: "center", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center" }}>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Id, Doc } from "../../../convex/_generated/dataModel";
@@ -165,7 +166,19 @@ interface EquipmentManifestProps {
 
 export function EquipmentManifest({ vesselId }: EquipmentManifestProps) {
   const { mode } = useTheme();
-  const [selectedCategory, setSelectedCategory] = useState<CategoryDefinition | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedCategoryId = searchParams.get("category");
+  const selectedCategory = EQUIPMENT_CATEGORIES.find((c) => c.id === selectedCategoryId) ?? null;
+  const setSelectedCategory = (cat: CategoryDefinition | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (cat) {
+      params.set("category", cat.id);
+    } else {
+      params.delete("category");
+    }
+    router.push(`?${params.toString()}`);
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);

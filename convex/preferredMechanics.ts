@@ -121,7 +121,7 @@ export const addToPreferredList = mutation({
     hourlyRate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { userId, user } = await requireRole(ctx, "owner");
+    const { userId, user } = await requireRole(ctx, "owner", "fleet_manager");
 
     const mechanic = await ctx.db.get(args.mechanicId);
     if (!mechanic || mechanic.role !== "mechanic") {
@@ -210,7 +210,7 @@ export const removeFromPreferredList = mutation({
     revokeVesselAccess: v.optional(v.boolean()), // Also revoke vessel authorizations
   },
   handler: async (ctx, args) => {
-    const { userId, user } = await requireRole(ctx, "owner");
+    const { userId, user } = await requireRole(ctx, "owner", "fleet_manager");
 
     const preferred = await ctx.db
       .query("preferredMechanics")
@@ -258,7 +258,7 @@ export const updatePreferredMechanicNotes = mutation({
     notes: v.string(),
   },
   handler: async (ctx, args) => {
-    const { userId, user } = await requireRole(ctx, "owner");
+    const { userId, user } = await requireRole(ctx, "owner", "fleet_manager");
 
     const preferred = await ctx.db
       .query("preferredMechanics")
@@ -283,7 +283,7 @@ export const updatePreferredMechanicVessels = mutation({
     vesselIds: v.array(v.id("vessels")), // New list of authorized vessels
   },
   handler: async (ctx, args) => {
-    const { userId, user } = await requireRole(ctx, "owner");
+    const { userId, user } = await requireRole(ctx, "owner", "fleet_manager");
 
     // Verify mechanic is in preferred list
     const preferred = await ctx.db
@@ -392,7 +392,7 @@ export const setApprovedHourlyRate = mutation({
     hourlyRate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { userId } = await requireRole(ctx, "owner");
+    const { userId } = await requireRole(ctx, "owner", "fleet_manager");
 
     const preferred = await ctx.db
       .query("preferredMechanics")
