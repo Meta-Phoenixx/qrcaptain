@@ -237,7 +237,7 @@ export default function OwnerDashboardPage() {
                       ) : (
                         <div className="w-full h-28 bg-white/[0.03] flex items-center justify-center">
                           <svg className="w-8 h-8 text-white/10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3l14 9-14 9V3z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 4v2M8 9h8M12 11v10M6 21c0-3.31 2.69-6 6-6s6 2.69 6 6" />
                           </svg>
                         </div>
                       )}
@@ -357,7 +357,7 @@ export default function OwnerDashboardPage() {
               <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-captain-500/10 border border-captain-500/20 flex items-center justify-center">
                   <svg className="w-8 h-8 text-captain-400/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3l14 9-14 9V3z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 4v2M8 9h8M12 11v10M6 21c0-3.31 2.69-6 6-6s6 2.69 6 6" />
                   </svg>
                 </div>
                 <div>
