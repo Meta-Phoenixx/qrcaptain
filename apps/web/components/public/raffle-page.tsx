@@ -170,7 +170,7 @@ export function RafflePage() {
         ticketTier: selectedTier,
       });
       if (res.success) {
-        setResult({ ticketCount: res.ticketCount, amount: res.amount });
+        setResult({ ticketCount: res.ticketCount!, amount: res.amount! });
         setStatus("success");
       }
     } catch {
