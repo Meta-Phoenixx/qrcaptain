@@ -3,6 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireAdmin } from "./lib/auth";
 import { Errors } from "./lib/errors";
+import { checkRateLimit, RATE_LIMITS } from "./lib/rateLimit";
 
 // Intentionally public — event donation form, no account required.
 // Input is validated (name ≤ 100 chars, email format + length, amount > 0).
@@ -26,6 +27,8 @@ export const submitDonation = mutation({
     if (args.amount <= 0) {
       return { success: false, error: "invalid_amount" };
     }
+
+    await checkRateLimit(ctx, `donation:${args.email.toLowerCase()}`, RATE_LIMITS.donation);
 
     const id = await ctx.db.insert("donationEntries", {
       name: args.name,
