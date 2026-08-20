@@ -214,7 +214,7 @@ export default function MyVesselsPage() {
             {vessels.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 gap-4 text-white/20">
                 <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2} d="M5 3l14 9-14 9V3z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2} d="M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 4v2M8 9h8M12 11v10M6 21c0-3.31 2.69-6 6-6s6 2.69 6 6" />
                 </svg>
                 <p className="text-sm">No vessels yet</p>
                 <button onClick={() => setShowAddModal(true)} className="text-captain-400 hover:text-captain-300 text-sm font-medium transition-colors">+ Add your first vessel</button>
@@ -260,7 +260,7 @@ function VesselCard({ vessel, onClick }: { vessel: any; onClick: () => void }) {
       ) : (
         <div className="w-full h-36 bg-white/[0.03] flex items-center justify-center">
           <svg className="w-10 h-10 text-white/10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3l14 9-14 9V3z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 4v2M8 9h8M12 11v10M6 21c0-3.31 2.69-6 6-6s6 2.69 6 6" />
           </svg>
         </div>
       )}
@@ -273,7 +273,7 @@ function VesselCard({ vessel, onClick }: { vessel: any; onClick: () => void }) {
             <p className="text-xs text-white/25">{vessel.year} · {vessel.vesselType?.replace("_", " ")}</p>
           </div>
           <svg className="w-4 h-4 text-captain-400/50 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9V3z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 4v2M8 9h8M12 11v10M6 21c0-3.31 2.69-6 6-6s6 2.69 6 6" />
           </svg>
         </div>
 

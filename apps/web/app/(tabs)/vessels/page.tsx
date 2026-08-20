@@ -38,7 +38,7 @@ function VesselCard({ v, onClick }: { v: AccessibleVessel; onClick: () => void }
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <svg className="w-12 h-12 text-white/[0.06]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M5 3l14 9-14 9V3z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 4v2M8 9h8M12 11v10M6 21c0-3.31 2.69-6 6-6s6 2.69 6 6" />
             </svg>
           </div>
         )}
@@ -157,7 +157,7 @@ export default function VesselsPage() {
           {groups.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 gap-3 text-white/20">
               <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2} d="M5 3l14 9-14 9V3z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2} d="M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 4v2M8 9h8M12 11v10M6 21c0-3.31 2.69-6 6-6s6 2.69 6 6" />
               </svg>
               <p className="text-sm">No vessels accessible</p>
             </div>

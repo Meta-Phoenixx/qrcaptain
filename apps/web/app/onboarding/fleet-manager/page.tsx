@@ -258,7 +258,7 @@ export default function FleetManagerOnboardingPage() {
         <div className="flex items-center justify-center gap-2.5 mb-8">
           <div className="w-8 h-8 rounded-xl bg-captain-500/20 border border-captain-500/30 flex items-center justify-center">
             <svg className="w-4 h-4 text-captain-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9V3z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 4v2M8 9h8M12 11v10M6 21c0-3.31 2.69-6 6-6s6 2.69 6 6" />
             </svg>
           </div>
           <span className="text-sm font-bold text-white/60 tracking-widest uppercase font-heading">QR Captain</span>

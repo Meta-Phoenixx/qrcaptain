@@ -23,7 +23,7 @@ export function VesselGroupPicker({ onSelect, emptyMessage = "No vessels accessi
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-white/20">
         <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2} d="M5 3l14 9-14 9V3z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.2} d="M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 4v2M8 9h8M12 11v10M6 21c0-3.31 2.69-6 6-6s6 2.69 6 6" />
         </svg>
         <p className="text-sm">{emptyMessage}</p>
       </div>
@@ -40,7 +40,7 @@ export function VesselGroupPicker({ onSelect, emptyMessage = "No vessels accessi
               <>
                 <div className="w-6 h-6 rounded-lg bg-captain-500/20 flex items-center justify-center flex-shrink-0">
                   <svg className="w-3.5 h-3.5 text-captain-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3l14 9-14 9V3z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 4v2M8 9h8M12 11v10M6 21c0-3.31 2.69-6 6-6s6 2.69 6 6" />
                   </svg>
                 </div>
                 <h2 className="text-sm font-bold text-white/80">My Vessels</h2>
@@ -81,7 +81,7 @@ export function VesselGroupPicker({ onSelect, emptyMessage = "No vessels accessi
                 ) : (
                   <div className="w-12 h-12 rounded-lg bg-captain-500/10 border border-captain-500/20 flex items-center justify-center flex-shrink-0">
                     <svg className="w-6 h-6 text-captain-400/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3l14 9-14 9V3z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 4v2M8 9h8M12 11v10M6 21c0-3.31 2.69-6 6-6s6 2.69 6 6" />
                     </svg>
                   </div>
                 )}
