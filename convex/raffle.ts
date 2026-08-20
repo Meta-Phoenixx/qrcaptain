@@ -11,6 +11,8 @@ const TICKET_TIERS = {
   bigdog: { count: 40, amount: 100 },
 } as const;
 
+// Intentionally public — event raffle form, no account required.
+// Input is validated (name ≤ 100 chars, email format + length).
 export const submitRaffleEntry = mutation({
   args: {
     name: v.string(),

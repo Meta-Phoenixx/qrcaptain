@@ -4,6 +4,8 @@ import { internal } from "./_generated/api";
 import { requireAdmin } from "./lib/auth";
 import { Errors } from "./lib/errors";
 
+// Intentionally public — pre-launch marketing form, no auth required.
+// Input is validated (name ≤ 100 chars, email format + length) and deduplicated by email.
 export const submitWaitlistSignup = mutation({
   args: {
     name: v.string(),

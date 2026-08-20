@@ -4,6 +4,8 @@ import { internal } from "./_generated/api";
 import { requireAdmin } from "./lib/auth";
 import { Errors } from "./lib/errors";
 
+// Intentionally public — event donation form, no account required.
+// Input is validated (name ≤ 100 chars, email format + length, amount > 0).
 export const submitDonation = mutation({
   args: {
     name: v.string(),
@@ -108,6 +110,7 @@ export const deleteDonation = mutation({
   },
 });
 
+// Intentionally public — aggregate totals only, no PII. Used for public fundraising widget.
 export const getDonationStats = query({
   args: {},
   handler: async (ctx) => {
