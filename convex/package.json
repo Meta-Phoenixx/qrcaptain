@@ -6,7 +6,8 @@
     "deploy": "echo '\\n❌ ERROR: Do not run convex deploy from this directory.\\n   Run from the repo root: pnpm deploy:convex\\n' && exit 1"
   },
   "dependencies": {
-    "convex": "^1.17.0",
-    "@convex-dev/auth": "^0.0.71"
+    "@convex-dev/auth": "^0.0.71",
+    "@convex-dev/ratelimiter": "^0.1.7",
+    "convex": "^1.17.0"
   }
 }
