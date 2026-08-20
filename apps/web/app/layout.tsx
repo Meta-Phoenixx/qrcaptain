@@ -16,6 +16,9 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+// Prevent static prerendering — all pages are auth-gated and personalized
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "QR Captain - Vessel Maintenance Tracking",
   description:
