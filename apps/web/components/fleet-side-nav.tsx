@@ -78,7 +78,7 @@ export function FleetSideNav({
 
   return (
     <>
-    <aside className="hidden lg:flex flex-col w-56 xl:w-60 flex-shrink-0 min-h-screen bg-[#0d1526] border-r border-white/[0.06]">
+    <aside className="hidden lg:flex flex-col w-56 xl:w-60 flex-shrink-0 sticky top-0 h-screen bg-[#0d1526] border-r border-white/[0.06]">
       {/* Logo */}
       <button onClick={() => router.push("/fleet")} className="flex items-center gap-3 px-5 py-5 border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors text-left w-full">
         <div className="w-9 h-9 rounded-xl bg-captain-500/20 border border-captain-500/30 flex items-center justify-center flex-shrink-0">

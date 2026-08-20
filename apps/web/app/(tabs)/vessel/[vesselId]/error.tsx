@@ -79,7 +79,7 @@ export default function VesselError({
 
           <div className="flex gap-3 mb-6">
             <button
-              onClick={reset}
+              onClick={() => { router.refresh(); reset(); }}
               className="flex-1 py-2.5 rounded-xl bg-captain-500 hover:bg-captain-600 text-white text-sm font-semibold transition-colors"
             >
               Try Again

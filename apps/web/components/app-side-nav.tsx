@@ -166,7 +166,7 @@ export function AppSideNav() {
   const roleLabel = role === "fleet_manager" ? "Fleet Manager" : role.charAt(0).toUpperCase() + role.slice(1);
 
   return (
-    <aside className="hidden lg:flex flex-col w-56 xl:w-60 flex-shrink-0 min-h-screen bg-[#0d1526] border-r border-white/[0.06]">
+    <aside className="hidden lg:flex flex-col w-56 xl:w-60 flex-shrink-0 sticky top-0 h-screen bg-[#0d1526] border-r border-white/[0.06]">
       {/* Logo — always navigates to role home */}
       <button
         onClick={() => router.push(home)}

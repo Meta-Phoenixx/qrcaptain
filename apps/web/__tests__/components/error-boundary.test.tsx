@@ -4,8 +4,9 @@ import { render, screen, fireEvent } from "@testing-library/react";
 
 // ── Mock next/navigation ─────────────────────────────────────────────────────
 const mockBack = jest.fn();
+const mockRefresh = jest.fn();
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({ back: mockBack }),
+  useRouter: () => ({ back: mockBack, refresh: mockRefresh }),
 }));
 
 // ── Mock AppSideNav ───────────────────────────────────────────────────────────
@@ -47,10 +48,11 @@ describe("TabsError — error boundary", () => {
     expect(alerts.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("calls reset() when Try Again is clicked", () => {
+  it("calls router.refresh() and reset() when Try Again is clicked", () => {
     const reset = jest.fn();
     render(<TabsError error={makeError("boom")} reset={reset} />);
     fireEvent.click(screen.getByText("Try Again"));
+    expect(mockRefresh).toHaveBeenCalledTimes(1);
     expect(reset).toHaveBeenCalledTimes(1);
   });
 
