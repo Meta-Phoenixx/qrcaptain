@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query, mutation, action } from "./_generated/server";
 import { Doc } from "./_generated/dataModel";
 import { sendEmail } from "./lib/email";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import {
   getAuthenticatedUser,
   requireRole,
@@ -667,7 +668,9 @@ export const sendQRCodeEmail = action({
     // base64-encoded PNG (without the data: prefix) from the client canvas
     pngBase64: v.string(),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
     const scanUrl = `https://theqrcaptain.com/scan/${args.qrCodeData}`;
 
     const html = `

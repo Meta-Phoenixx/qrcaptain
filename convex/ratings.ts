@@ -12,6 +12,9 @@ import { newRatingReceived } from "./lib/notify";
 export const getMechanicRatings = query({
   args: { mechanicId: v.id("users") },
   handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return [];
+
     const ratings = await ctx.db
       .query("ratings")
       .withIndex("by_mechanic", (q) => q.eq("mechanicId", args.mechanicId))
@@ -298,6 +301,9 @@ export const createMechanicRating = mutation({
 export const getMechanicRatingsDetailed = query({
   args: { mechanicId: v.id("users") },
   handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return [];
+
     const ratings = await ctx.db
       .query("mechanicRatings")
       .withIndex("by_mechanic_created", (q) => q.eq("mechanicId", args.mechanicId))
@@ -328,6 +334,9 @@ export const getMechanicRatingsDetailed = query({
 export const getMechanicAverageRatings = query({
   args: { mechanicId: v.id("users") },
   handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return null;
+
     const ratings = await ctx.db
       .query("mechanicRatings")
       .withIndex("by_mechanic", (q) => q.eq("mechanicId", args.mechanicId))
@@ -442,6 +451,9 @@ export const createOwnerRating = mutation({
 export const getOwnerRatingsDetailed = query({
   args: { ownerId: v.id("users") },
   handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return [];
+
     const ratings = await ctx.db
       .query("ownerRatings")
       .withIndex("by_owner_created", (q) => q.eq("ownerId", args.ownerId))
@@ -473,6 +485,9 @@ export const getOwnerRatingsDetailed = query({
 export const getOwnerAverageRatings = query({
   args: { ownerId: v.id("users") },
   handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    if (!user) return null;
+
     const ratings = await ctx.db
       .query("ownerRatings")
       .withIndex("by_owner", (q) => q.eq("ownerId", args.ownerId))

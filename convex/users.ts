@@ -6,7 +6,9 @@ import { Errors } from "./lib/errors";
 
 declare const process: { env: Record<string, string | undefined> };
 
-// Check if an email is already registered (used during sign-up to prevent silent sign-in)
+// Check if an email is already registered (used during sign-up to prevent silent sign-in).
+// Intentionally public — must work before the caller has an account or session.
+// Returns boolean only; no PII is exposed.
 export const emailExists = query({
   args: { email: v.string() },
   handler: async (ctx, args) => {
@@ -260,6 +262,9 @@ export const listUsers = query({
 export const getMechanicProfile = query({
   args: { mechanicId: v.id("users") },
   handler: async (ctx, args) => {
+    const caller = await getAuthenticatedUser(ctx);
+    if (!caller) return null;
+
     const mechanic = await ctx.db.get(args.mechanicId);
     if (!mechanic || mechanic.role !== "mechanic") {
       return null;
