@@ -55,11 +55,12 @@ interface NotificationsPanelProps {
   onViewAnnouncement?: () => void;
   onViewMessage?: (messageId: Id<"messages">) => void;
   onViewPreferredOwner?: (preferredId: Id<"preferredMechanics">) => void;
+  onOpenOnboarding?: () => void;
 }
 
-export function NotificationsPanel({ 
-  isOpen, 
-  onClose, 
+export function NotificationsPanel({
+  isOpen,
+  onClose,
   onViewRequest,
   onViewQuote,
   onViewWorkOrder,
@@ -69,6 +70,7 @@ export function NotificationsPanel({
   onViewAnnouncement,
   onViewMessage,
   onViewPreferredOwner,
+  onOpenOnboarding,
 }: NotificationsPanelProps) {
   const notifications = useQuery(api.notifications.getMyNotifications, { limit: 20 });
   const markAsRead = useMutation(api.notifications.markAsRead);
@@ -179,8 +181,12 @@ export function NotificationsPanel({
         }
         break;
 
-      // Onboarding reminder - no specific deep link
+      // Onboarding reminder - reopen the onboarding wizard
       case "onboarding_reminder":
+        if (onOpenOnboarding) {
+          onClose();
+          onOpenOnboarding();
+        }
         break;
 
       default:

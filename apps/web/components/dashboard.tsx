@@ -127,6 +127,7 @@ export function Dashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<Id<"accessRequests"> | null>(null);
   const [showProfile, setShowProfile] = useState(false);
+  const [openMechanicOnboarding, setOpenMechanicOnboarding] = useState(false);
   const { mode, toggleTheme } = useTheme();
   
   // Notification-linked states
@@ -270,6 +271,10 @@ export function Dashboard() {
                   setShowNotifications(false);
                   setViewingPreferredId(preferredId);
                 }}
+                onOpenOnboarding={() => {
+                  setShowNotifications(false);
+                  setOpenMechanicOnboarding(true);
+                }}
               />
             </div>
 
@@ -314,7 +319,12 @@ export function Dashboard() {
             onViewRequest={setSelectedRequestId}
           />
         )}
-        {user.role === "mechanic" && <MechanicDashboard />}
+        {user.role === "mechanic" && (
+          <MechanicDashboard
+            forceOpenOnboarding={openMechanicOnboarding}
+            onForcedOnboardingHandled={() => setOpenMechanicOnboarding(false)}
+          />
+        )}
         {user.role === "admin" && <AdminDashboard />}
         {user.role === "fleet_manager" && !user.onboardingCompleted && (
           <FleetManagerOnboarding />
@@ -1953,7 +1963,7 @@ export function VesselDetailModal({ vesselId, onClose }: { vesselId: Id<"vessels
 // MECHANIC DASHBOARD
 // ============================================
 
-function MechanicDashboard() {
+function MechanicDashboard({ forceOpenOnboarding, onForcedOnboardingHandled }: { forceOpenOnboarding?: boolean; onForcedOnboardingHandled?: () => void }) {
   const user = useQuery(api.users.currentUser);
   const onboardingStatus = useQuery(api.users.getMechanicOnboardingStatus);
   const workOrders = useQuery(api.workOrders.getMyWorkOrders, {});
@@ -1962,6 +1972,14 @@ function MechanicDashboard() {
   const [scannedVessel, setScannedVessel] = useState<any>(null);
   const [selectedVessel, setSelectedVessel] = useState<any>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Open onboarding when triggered from the notifications panel
+  useEffect(() => {
+    if (forceOpenOnboarding) {
+      setShowOnboarding(true);
+      onForcedOnboardingHandled?.();
+    }
+  }, [forceOpenOnboarding, onForcedOnboardingHandled]);
   const [editingWorkOrderId, setEditingWorkOrderId] = useState<Id<"workOrders"> | null>(null);
   const [selectedPendingRequestId, setSelectedPendingRequestId] = useState<Id<"workOrders"> | null>(null);
   const { mode } = useTheme();
