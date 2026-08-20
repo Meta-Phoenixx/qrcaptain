@@ -16,7 +16,9 @@ import { requireMaxLength } from "./lib/validate";
 
 function generateQRCodeData(): string {
   const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 10);
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  const random = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
   return `QRC-${timestamp}-${random}`.toUpperCase();
 }
 
@@ -305,7 +307,6 @@ export const getVesselPublicInfo = query({
       make: vessel.make,
       model: vessel.model,
       year: vessel.year,
-      ownerId: vessel.ownerId,
       ownerName:
         owner?.firstName && owner?.lastName
           ? `${owner.firstName} ${owner.lastName}`
@@ -412,7 +413,15 @@ export const createVessel = mutation({
     if (args.hullId !== undefined) requireMaxLength(args.hullId, "Hull ID", 100);
     if (args.notes !== undefined) requireMaxLength(args.notes, "Notes", 2000);
 
-    const qrCodeData = generateQRCodeData();
+    let qrCodeData = generateQRCodeData();
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const collision = await ctx.db
+        .query("vessels")
+        .withIndex("by_qr_code", (q) => q.eq("qrCodeData", qrCodeData))
+        .first();
+      if (!collision) break;
+      qrCodeData = generateQRCodeData();
+    }
 
     const vesselId = await ctx.db.insert("vessels", {
       ownerId: userId,
