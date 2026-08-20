@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internalAction, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { sendEmail } from "./lib/email";
+import { sendEmail, escapeHtml } from "./lib/email";
 
 const TIER_LABELS: Record<string, string> = {
   single: "$5 — 1 Ticket",
@@ -34,7 +34,7 @@ export const sendRaffleConfirmation = internalAction({
           </div>
 
           <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e5e7eb;">
-            <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Hey ${args.name}! 🎣</p>
+            <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Hey ${escapeHtml(args.name)}! 🎣</p>
             <p style="margin: 0 0 16px; color: #333;">You've been entered into the <strong>Biggest Trout 50/50 Raffle</strong> at the Safety Harbor Slam!</p>
 
             <div style="background: #f0f9ff; border-radius: 8px; padding: 16px; margin-bottom: 16px; border-left: 4px solid #0ea5e9;">
@@ -108,7 +108,7 @@ export const sendWaitlistConfirmation = internalAction({
           </div>
 
           <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e5e7eb;">
-            <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Welcome aboard, ${args.name}! ⚓</p>
+            <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Welcome aboard, ${escapeHtml(args.name)}! ⚓</p>
             <p style="margin: 0 0 16px; color: #333;">
               You've been added to the QR Captain waitlist as a <strong>${roleLabel}</strong>.
               We're building the future of vessel maintenance tracking and you'll be among the first to know when we launch.
@@ -162,7 +162,7 @@ export const sendDonationConfirmation = internalAction({
           </div>
 
           <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e5e7eb;">
-            <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Thank you, ${args.name}!</p>
+            <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Thank you, ${escapeHtml(args.name)}!</p>
             <p style="margin: 0 0 16px; color: #333;">
               Your generous donation of <strong>$${args.amount}</strong> is helping support
               <strong>Cass Walden's</strong> missionary aviation training program.
@@ -230,7 +230,7 @@ export const sendDonationUpdateNotification = internalAction({
             <p style="color: #666; margin: 8px 0 0; font-size: 13px;">Walden Marine & The QR Captain</p>
           </div>
           <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e5e7eb;">
-            <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Hi ${args.name},</p>
+            <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Hi ${escapeHtml(args.name)},</p>
             <p style="margin: 0 0 16px; color: #333;">
               Your donation record has been updated by our team.
             </p>
@@ -272,7 +272,7 @@ export const sendDonationDeleteNotification = internalAction({
             <p style="color: #666; margin: 8px 0 0; font-size: 13px;">Walden Marine & The QR Captain</p>
           </div>
           <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e5e7eb;">
-            <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Hi ${args.name},</p>
+            <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Hi ${escapeHtml(args.name)},</p>
             <p style="margin: 0 0 16px; color: #333;">
               Your donation record of <strong>$${args.amount}</strong> has been removed from our system by our team.
             </p>
@@ -315,7 +315,7 @@ export const sendRaffleUpdateNotification = internalAction({
             <p style="color: #666; margin: 8px 0 0; font-size: 13px;">Walden Marine & The QR Captain</p>
           </div>
           <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e5e7eb;">
-            <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Hi ${args.name},</p>
+            <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Hi ${escapeHtml(args.name)},</p>
             <p style="margin: 0 0 16px; color: #333;">
               Your raffle ticket count has been updated by our team.
             </p>
@@ -361,7 +361,7 @@ export const sendRaffleDeleteNotification = internalAction({
             <p style="color: #666; margin: 8px 0 0; font-size: 13px;">Walden Marine & The QR Captain</p>
           </div>
           <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e5e7eb;">
-            <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Hi ${args.name},</p>
+            <p style="margin: 0 0 16px; color: #333; font-size: 16px;">Hi ${escapeHtml(args.name)},</p>
             <p style="margin: 0 0 16px; color: #333;">
               Your raffle entry (${tierLabel}, ${args.ticketCount} ticket${args.ticketCount !== 1 ? "s" : ""}) has been removed from our system by our team.
             </p>

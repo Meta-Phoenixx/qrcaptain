@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-import { requireAuth } from "./lib/auth";
+import { requireAuth, requireVesselReadAccess } from "./lib/auth";
 import { Errors } from "./lib/errors";
 
 const DOCUMENT_CATEGORIES = [
@@ -22,25 +22,8 @@ const categoryArg = v.union(
 export const listVesselDocuments = query({
   args: { vesselId: v.id("vessels") },
   handler: async (ctx, args) => {
-    const { userId, user } = await requireAuth(ctx);
-
-    const vessel = await ctx.db.get(args.vesselId);
-    if (!vessel) throw Errors.notFound("Vessel");
-
-    // Check access: owner, fleet_manager (owns vessel's fleet), mechanic authorized, or admin
-    if (user.role !== "admin") {
-      if (vessel.ownerId !== userId) {
-        if (user.role === "mechanic") {
-          const auth = await ctx.db.query("mechanicAuthorizations")
-            .withIndex("by_vessel_mechanic", (q) => q.eq("vesselId", args.vesselId).eq("mechanicId", userId))
-            .filter((q) => q.eq(q.field("isActive"), true))
-            .first();
-          if (!auth) throw Errors.accessDenied();
-        } else {
-          throw Errors.accessDenied();
-        }
-      }
-    }
+    // requireVesselReadAccess checks: admin, owner, fleet_manager, or authorized mechanic (vessel or fleet level)
+    await requireVesselReadAccess(ctx, args.vesselId);
 
     let docs: any[] = [];
     try {
