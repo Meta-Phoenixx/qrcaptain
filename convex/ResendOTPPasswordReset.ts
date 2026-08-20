@@ -3,17 +3,30 @@ import { Email } from "@convex-dev/auth/providers/Email";
 // Convex environment variables are available via process.env at runtime
 declare const process: { env: Record<string, string | undefined> };
 
-// Generate a random numeric OTP using Web Crypto API (available in Convex runtime)
+// Generate a random numeric OTP using Web Crypto API with rejection sampling to eliminate modulo bias.
+// digits.length = 10; 256 / 10 = 25.6, so bytes >= 250 would bias digits 0-5. Reject them.
 function generateOTP(length: number): string {
   const digits = "0123456789";
-  const array = new Uint8Array(length);
-  crypto.getRandomValues(array);
-  return Array.from(array, (byte) => digits[byte % digits.length]).join("");
+  const threshold = 256 - (256 % digits.length); // 250
+  const result: string[] = [];
+  while (result.length < length) {
+    const array = new Uint8Array(length - result.length + 4); // over-sample
+    crypto.getRandomValues(array);
+    for (const byte of array) {
+      if (byte < threshold) {
+        result.push(digits[byte % digits.length]);
+        if (result.length === length) break;
+      }
+    }
+  }
+  return result.join("");
 }
 
 export const ResendOTPPasswordReset = Email({
   id: "resend-otp-password-reset",
   apiKey: process.env.AUTH_RESEND_KEY,
+  // Token expires after 15 minutes — matches the promise in the email body
+  maxAge: 15 * 60,
 
   async generateVerificationToken() {
     return generateOTP(8);

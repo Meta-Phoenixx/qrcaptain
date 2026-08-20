@@ -934,4 +934,13 @@ export default defineSchema({
     .index("by_action", ["action"])
     .index("by_created", ["createdAt"])
     .index("by_target", ["targetType", "targetId"]),
+
+  // Rate limiting — sliding window buckets keyed by "action:identifier"
+  rateLimitBuckets: defineTable({
+    key: v.string(),          // e.g. "waitlist:user@email.com"
+    windowStart: v.number(),  // ms timestamp of window start
+    count: v.number(),        // requests in this window
+  })
+    .index("by_key", ["key"])
+    .index("by_window", ["windowStart"]),
 });

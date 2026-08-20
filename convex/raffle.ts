@@ -3,6 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireAdmin } from "./lib/auth";
 import { Errors } from "./lib/errors";
+import { checkRateLimit, RATE_LIMITS } from "./lib/rateLimit";
 
 const TICKET_TIERS = {
   single: { count: 1, amount: 5 },
@@ -33,6 +34,8 @@ export const submitRaffleEntry = mutation({
     if (!emailRegex.test(args.email) || args.email.length > 254) {
       return { success: false, error: "invalid_email" };
     }
+
+    await checkRateLimit(ctx, `raffle:${args.email.toLowerCase()}`, RATE_LIMITS.raffleEntry);
 
     const tier = TICKET_TIERS[args.ticketTier];
 
