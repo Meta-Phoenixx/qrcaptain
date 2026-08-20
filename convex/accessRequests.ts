@@ -173,7 +173,7 @@ export const getPendingRequestsForOwner = query({
   args: {},
   handler: async (ctx) => {
     const user = await getAuthenticatedUser(ctx);
-    if (!user || user.role !== "owner") return [];
+    if (!user || (user.role !== "owner" && user.role !== "fleet_manager")) return [];
 
     const requests = await ctx.db
       .query("accessRequests")
@@ -292,7 +292,7 @@ export const getMechanicsForOwner = query({
   args: {},
   handler: async (ctx) => {
     const user = await getAuthenticatedUser(ctx);
-    if (!user || user.role !== "owner") return [];
+    if (!user || (user.role !== "owner" && user.role !== "fleet_manager")) return [];
 
     const vessels = await ctx.db
       .query("vessels")
