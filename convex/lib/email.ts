@@ -5,6 +5,16 @@
  * should call the Resend API directly or know about the API key location.
  */
 
+/** Escape user-supplied strings before interpolating into HTML email bodies. */
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
 declare const process: { env: Record<string, string | undefined> };
 
 const RESEND_API_URL = "https://api.resend.com/emails";

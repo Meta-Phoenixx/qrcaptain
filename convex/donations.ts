@@ -14,6 +14,13 @@ export const submitDonation = mutation({
     message: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    if (args.name.trim().length === 0 || args.name.length > 100) {
+      return { success: false, error: "invalid_name" };
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(args.email) || args.email.length > 254) {
+      return { success: false, error: "invalid_email" };
+    }
     if (args.amount <= 0) {
       return { success: false, error: "invalid_amount" };
     }
