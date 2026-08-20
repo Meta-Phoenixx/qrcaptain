@@ -52,7 +52,7 @@ export const getVesselWorkOrders = query({
     const vessel = await ctx.db.get(args.vesselId);
     if (!vessel) return [];
 
-    if (user.role === "owner" && vessel.ownerId !== user._id) return [];
+    if ((user.role === "owner" || user.role === "fleet_manager") && vessel.ownerId !== user._id) return [];
 
     if (user.role === "mechanic") {
       const vesselAuth = await ctx.db
@@ -108,7 +108,7 @@ export const getWorkOrder = query({
     const vessel = await ctx.db.get(workOrder.vesselId);
     if (!vessel) return null;
 
-    if (user.role === "owner" && vessel.ownerId !== user._id) return null;
+    if ((user.role === "owner" || user.role === "fleet_manager") && vessel.ownerId !== user._id) return null;
     if (user.role === "mechanic" && workOrder.mechanicId !== user._id) return null;
 
     const [mechanic, parts, photos, rating, owner] = await Promise.all([
@@ -868,7 +868,7 @@ export const cancelWorkOrder = mutation({
     });
 
     const isOwnerCancelling =
-      user.role === "owner" || workOrder.requestedByOwnerId === userId;
+      user.role === "owner" || user.role === "fleet_manager" || workOrder.requestedByOwnerId === userId;
 
     const cancellerName = isOwnerCancelling
       ? (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : "The owner")
