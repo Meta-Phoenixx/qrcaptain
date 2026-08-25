@@ -1,10 +1,6 @@
-import {
-  convexAuthNextjsMiddleware,
-  createRouteMatcher,
-  nextjsMiddlewareRedirect,
-} from "@convex-dev/auth/nextjs/server";
+import { createRouteMatcher } from "@convex-dev/auth/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
 
-// Routes that require authentication
 const isProtectedRoute = createRouteMatcher([
   "/home(.*)",
   "/my-dashboard(.*)",
@@ -26,13 +22,22 @@ const isProtectedRoute = createRouteMatcher([
   "/admin(.*)",
 ]);
 
-export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
-  if (isProtectedRoute(request) && !convexAuth.isAuthenticated()) {
-    return nextjsMiddlewareRedirect(request, "/signin");
+export function middleware(request: NextRequest) {
+  if (isProtectedRoute(request)) {
+    // __auth is a lightweight session cookie set by SessionCookieSync in
+    // providers.tsx after client-side auth succeeds. It is not the JWT itself
+    // (data is protected at the Convex function level), but it does prevent
+    // unauthenticated browsers from loading dashboard page bundles.
+    const authCookie = request.cookies.get("__auth");
+    if (!authCookie) {
+      return NextResponse.redirect(new URL("/signin", request.url));
+    }
   }
-});
+  return NextResponse.next();
+}
 
 export const config = {
-  // Run on all routes except Next.js internals and static files
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.svg$|.*\\.jpg$|.*\\.ico$).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.svg$|.*\\.jpg$|.*\\.ico$).*)",
+  ],
 };

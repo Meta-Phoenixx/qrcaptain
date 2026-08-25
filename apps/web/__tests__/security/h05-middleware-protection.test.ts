@@ -26,23 +26,21 @@ describe("H-05 — middleware.ts exists and protects routes", () => {
     expect(content).toContain("/signin");
   });
 
-  it("middleware uses convexAuthNextjsMiddleware", () => {
+  it("middleware checks auth cookie before allowing access to protected routes", () => {
     const content = fs.readFileSync(path.join(webRoot, "middleware.ts"), "utf8");
-    expect(content).toContain("convexAuthNextjsMiddleware");
+    expect(content).toContain("__auth");
+    expect(content).toContain("cookies");
   });
 
-  it("middleware matcher covers /api/auth for cookie-based token proxy", () => {
-    // convexAuthNextjsMiddleware intercepts /api/auth internally —
-    // no separate route.ts is needed; the matcher must not exclude it.
-    const content = fs.readFileSync(path.join(webRoot, "middleware.ts"), "utf8");
-    // Matcher must not exclude /api/auth paths
-    expect(content).not.toContain("api/auth");
-    // Confirm the middleware is the one from @convex-dev/auth which handles proxying
-    expect(content).toContain("@convex-dev/auth/nextjs/server");
-  });
-
-  it("providers use ConvexAuthNextjsProvider for cookie propagation", () => {
+  it("providers sync auth state to session cookie", () => {
     const content = fs.readFileSync(path.join(webRoot, "app/providers.tsx"), "utf8");
-    expect(content).toContain("ConvexAuthNextjsProvider");
+    expect(content).toContain("__auth");
+    expect(content).toContain("SessionCookieSync");
+  });
+
+  it("middleware uses createRouteMatcher from @convex-dev/auth", () => {
+    const content = fs.readFileSync(path.join(webRoot, "middleware.ts"), "utf8");
+    expect(content).toContain("createRouteMatcher");
+    expect(content).toContain("@convex-dev/auth/nextjs/server");
   });
 });
